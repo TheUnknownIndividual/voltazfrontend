@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /admin-dashboard
+Disallow: /customer-dashboard
+Disallow: /pro-club/dashboard
+Disallow: /cart
+Disallow: /order
+Disallow: /theme-lab
+
+Sitemap: https://volt.az/sitemap.xml

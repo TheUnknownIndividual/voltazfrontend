@@ -1,0 +1,7 @@
+{
+  "name": "Volt.az - Əsas",
+  "description": "A premium platform for solar panel sales and installation by SOLARIX. Features energy calculators, project showcases, and product catalogs.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
