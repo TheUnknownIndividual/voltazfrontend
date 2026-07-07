@@ -16,6 +16,7 @@ interface ForumMessage {
 
 interface MasterForumProps {
   masters?: any[];
+  lang?: 'az' | 'en' | 'ru' | 'tr';
 }
 
 const MasterForum: React.FC<MasterForumProps> = ({ masters = [] }) => {

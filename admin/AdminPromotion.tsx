@@ -4,7 +4,7 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 import { useNotification } from '../contexts/NotificationContext';
 import { usePromotion } from "../contexts/PromotionContext";
 
-const AdminPromotion: React.FC = () => {
+const AdminPromotion: React.FC<{ onBack?: () => void }> = () => {
     const { showNotification } = useNotification();
     const {
         promotions,

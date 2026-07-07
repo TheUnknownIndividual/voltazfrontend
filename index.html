@@ -3,22 +3,28 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Volt.az | Günəş Panelləri Satışı və Quraşdırılması | SOLARIX</title>
     <meta name="msvalidate.01" content="91CEBD3DFB719728D45E302234E7C692" />
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Volt.az - Günəş panelləri, invertorlar və quraşdırma xidmətləri. SOLARIX ilə enerji qənaəti edin və günəş enerjisindən faydalanın.">
-    <meta name="keywords" content="günəş panelləri, solar panel, bərpa olunan enerji, Volt.az, SOLARIX, günəş enerjisi quraşdırılması, yaşıl enerji, Azərbaycan solar">
+    <meta name="description" lang="az" content="Volt.az - Azərbaycanda günəş panelləri, invertorlar, enerji saxlama, quraşdırma və solar kalkulyator xidmətləri. SOLARIX ilə ev və biznes üçün günəş enerjisi həlləri.">
+    <meta name="description" lang="en" content="Volt.az provides solar panels, inverters, energy storage, installation services, and solar calculators in Azerbaijan for homes and businesses.">
+    <meta name="description" lang="ru" content="Volt.az предлагает солнечные панели, инверторы, накопители энергии, монтаж и солнечный калькулятор для домов и бизнеса в Азербайджане.">
+    <meta name="description" lang="tr" content="Volt.az Azerbaycan’da güneş panelleri, inverterler, enerji depolama, kurulum hizmetleri ve güneş enerjisi hesaplayıcısı sunar.">
+    <meta name="keywords" content="günəş paneli kalkulyatoru, günəş enerjisi kalkulyatoru, solar calculator Azerbaijan, solar energy calculator, güneş paneli hesaplayıcı, солнечный калькулятор, günəş panelləri, solar panel, bərpa olunan enerji, Volt.az, SOLARIX, günəş enerjisi quraşdırılması, yaşıl enerji, Azərbaycan solar">
     <meta name="author" content="SOLARIX MMC">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="robots" content="index, follow, max-image-preview:none, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow, max-image-preview:none, max-snippet:-1, max-video-preview:-1">
     <meta name="theme-color" content="#99c21c">
     <meta name="application-name" content="Volt.az">
     <meta name="apple-mobile-web-app-title" content="Volt.az">
     <link rel="canonical" href="https://volt.az/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="alternate" hreflang="az" href="https://volt.az/" />
+    <link rel="alternate" hreflang="en" href="https://volt.az/" />
+    <link rel="alternate" hreflang="ru" href="https://volt.az/" />
+    <link rel="alternate" hreflang="tr" href="https://volt.az/" />
     <link rel="alternate" hreflang="x-default" href="https://volt.az/" />
     
     <!-- Open Graph / Facebook / WhatsApp -->
@@ -27,13 +33,13 @@
     <meta property="og:locale" content="az_AZ">
     <meta property="og:url" content="https://volt.az/">
     <meta property="og:title" content="Volt.az | Günəş Panelləri və Enerji Həlləri">
-    <meta property="og:description" content="Eviniz və biznesiniz üçün ən səmərəli günəş paneli sistemləri. Peşəkar quraşdırma və zəmanət.">
+    <meta property="og:description" content="Eviniz və biznesiniz üçün günəş panelləri, invertorlar, quraşdırma və günəş enerjisi kalkulyatoru.">
     <meta property="og:image" content="https://volt.az/volt-logo.png">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:card" content="summary">
     <meta property="twitter:title" content="Volt.az | SOLARIX Günəş Enerjisi">
-    <meta property="twitter:description" content="Azərbaycanda günəş panellərinin peşəkar satışı və quraşdırılması.">
+    <meta property="twitter:description" content="Azərbaycanda günəş panelləri, quraşdırma xidmətləri və solar kalkulyator.">
     <meta property="twitter:image" content="https://volt.az/volt-logo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -87,8 +93,14 @@
       "name": "SOLARIX MMC",
       "alternateName": "Volt.az",
       "url": "https://volt.az/",
-      "logo": "https://volt.az/volt-logo.png",
-      "description": "Azərbaycanda günəş panellərinin satışı, quraşdırılması və bərpa olunan enerji həlləri.",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://volt.az/volt-site-icon.png",
+        "width": 512,
+        "height": 512
+      },
+      "image": "https://volt.az/volt-site-icon.png",
+      "description": "Azərbaycanda günəş panellərinin satışı, quraşdırılması, solar kalkulyator və bərpa olunan enerji həlləri.",
       "telephone": "+994504180001",
       "sameAs": [
         "https://www.facebook.com/people/voltaz/61590498963600/",
@@ -109,13 +121,30 @@
       "url": "https://volt.az/",
       "name": "Volt.az",
       "publisher": { "@id": "https://volt.az/#organization" },
-      "inLanguage": "az"
+      "inLanguage": "az",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://volt.az/products?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://volt.az/calculator#solar-calculator",
+      "name": "Volt.az Günəş Enerjisi Kalkulyatoru",
+      "url": "https://volt.az/calculator",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "inLanguage": ["az", "en", "ru", "tr"],
+      "description": "Günəş paneli sistemi, günəş enerjisi istehsalı, təxmini qənaət və sistem gücünü hesablamaq üçün solar kalkulyator."
     }
   ]
 }
 </script>
 <link rel="stylesheet" href="/index.css">
-<link rel="icon" href="/favicon.ico" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" href="/volt-logo.png" />
+<link rel="apple-touch-icon" href="/volt-logo.png" />
 </head>
 <body class="bg-gray-50 text-slate-900">
     <div id="root"></div>

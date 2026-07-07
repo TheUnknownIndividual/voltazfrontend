@@ -19,6 +19,7 @@ interface EmailContextType {
 
   getApplicationTypes: () => Promise<void>;
   getApplicationTypesById: (id: string) => Promise<any>;
+  getApplicationTypeById: (id: string) => Promise<any>;
 
   createApplicationType: (data: ApplicationTypeContextPayload) => Promise<any>;
   updateApplicationType: (id: string, data: ApplicationTypeContextPayload) => Promise<any>;
@@ -116,6 +117,7 @@ export const EmailProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         applicationTypes,
         getApplicationTypes,
+        getApplicationTypesById: getApplicationTypeById,
         getApplicationTypeById,
         createApplicationType,
         updateApplicationType,

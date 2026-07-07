@@ -12,9 +12,10 @@ interface PartnershipTypeContextPayload {
 }
 
 interface PartnershipPayload {
-  name: string;
+  name?: string;
   description?: string;
   isActive?: boolean;
+  languages?: LanguagePayload[];
 }
 
 interface CreatePartnershipRequestPayload {
@@ -59,7 +60,7 @@ export const usePartnership = () => {
 export const PartnershipProvider = ({ children }: { children: React.ReactNode }) => {
   const { get, post, put, del, patch, loading } = useApi();
 
-  const [partnershipTypes, setPartnershipTypes] = useState<PartnershipType[]>([]);
+  const [partnershipTypes, setPartnershipTypes] = useState<PartnershipTypeContextPayload[]>([]);
 
   //
   // GET ALL

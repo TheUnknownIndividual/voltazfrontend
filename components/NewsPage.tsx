@@ -14,8 +14,10 @@ interface NewsItem {
 }
 
 interface NewsPageProps {
-  lang?: 'az' | 'en' | 'ru';
+  lang?: LangCode;
   onBack?: () => void;
+  initialId?: string;
+  onNavigate?: (page: any, id?: string) => void;
 }
 
 const newsData: NewsItem[] = [
@@ -75,40 +77,44 @@ const LANGUAGES = [
   { code: 'az', name: 'Azərbaycan' },
   { code: 'en', name: 'English' },
   { code: 'ru', name: 'Русский' },
+  { code: 'tr', name: 'Türkçe' },
 ] as const;
 
 type LangCode = typeof LANGUAGES[number]['code'];
 
-const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang }) => {
-  const { getPublicNews } = useNews();
+const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate }) => {
+  const currentLang = lang || 'az';
+  const { getPublicNews, getNewsById } = useNews();
 
   const [news, setNews] = React.useState<any[]>([]);
+  const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
+
+  const mapNewsItem = (item: any) => {
+    const langItem =
+      item.languages?.find((l: any) =>
+        (currentLang === 'az' && l.languageCode === 1) ||
+        (currentLang === 'en' && l.languageCode === 2) ||
+        (currentLang === 'ru' && l.languageCode === 3) ||
+        (currentLang === 'tr' && l.languageCode === 4)
+      ) || item.languages?.[0];
+
+    return {
+      id: item.id,
+      title: langItem?.title,
+      summary: langItem?.content,
+      image: item.coverImagePath,
+      link: item.postLink,
+      source: item.source,
+      date: new Date(item.createdAt).toLocaleDateString("az-AZ"),
+      category: langItem?.description,
+    };
+  };
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await getPublicNews();
-
-        const mapped = res.data.map((item: any) => {
-          // uyğun dili tap
-          const langItem =
-            item.languages.find((l: any) =>
-              (lang === 'az' && l.languageCode === 1) ||
-              (lang === 'en' && l.languageCode === 2) ||
-              (lang === 'ru' && l.languageCode === 3)
-            ) || item.languages[0];
-
-          return {
-            id: item.id,
-            title: langItem?.title,
-            summary: langItem?.content,
-            image: item.coverImagePath,
-            link: item.postLink,
-            source: item.source,
-            date: new Date(item.createdAt).toLocaleDateString(),
-            category: langItem?.description,
-          };
-        });
+        const mapped = (res.data || res || []).map(mapNewsItem);
 
         setNews(mapped);
       } catch (err) {
@@ -118,7 +124,80 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang }) => {
     };
 
     fetchData();
-  }, [lang]);
+  }, [currentLang]);
+
+  React.useEffect(() => {
+    if (!initialId) {
+      setSelectedNews(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadNews = async () => {
+      try {
+        const data = await getNewsById(initialId);
+        if (!cancelled) setSelectedNews(mapNewsItem(data));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadNews();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialId, currentLang]);
+
+  React.useEffect(() => {
+    if (!selectedNews) return;
+
+    const title = selectedNews.title || 'Volt.az News';
+    const description = selectedNews.category || selectedNews.summary?.slice(0, 155) || '';
+    const canonicalUrl = `https://volt.az/news/${selectedNews.id}`;
+    const setMeta = (selector: string, attr: 'content' | 'href', value: string, create?: () => HTMLElement) => {
+      let element = document.head.querySelector(selector) as HTMLElement | null;
+      if (!element && create) {
+        element = create();
+        document.head.appendChild(element);
+      }
+      element?.setAttribute(attr, value);
+    };
+
+    document.title = `${title} | Volt.az`;
+    setMeta('meta[name="description"]', 'content', description);
+    setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    setMeta('meta[name="googlebot"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    setMeta('meta[property="og:type"]', 'content', 'article');
+    setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
+    setMeta('meta[property="og:description"]', 'content', description);
+    setMeta('meta[property="og:url"]', 'content', canonicalUrl);
+    if (selectedNews.image) {
+      setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
+      setMeta('meta[property="og:image"]', 'content', selectedNews.image, () => {
+        const tag = document.createElement('meta');
+        tag.setAttribute('property', 'og:image');
+        return tag;
+      });
+      setMeta('meta[property="twitter:image"]', 'content', selectedNews.image, () => {
+        const tag = document.createElement('meta');
+        tag.setAttribute('property', 'twitter:image');
+        return tag;
+      });
+    }
+    setMeta('meta[property="twitter:title"]', 'content', `${title} | Volt.az`);
+    setMeta('meta[property="twitter:description"]', 'content', description);
+    setMeta('link[rel="canonical"]', 'href', canonicalUrl);
+  }, [selectedNews]);
+
+  const handleBackClick = () => {
+    if (selectedNews) {
+      setSelectedNews(null);
+      onNavigate?.('news');
+      return;
+    }
+
+    onBack?.();
+  };
 
   const t = {
     title: {
@@ -168,25 +247,69 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang }) => {
       {/* Page Header */}
       <section className="bg-emerald-950 py-4 border-b border-emerald-900/50 sticky z-40">
         <div className="max-w-7xl mx-auto px-4 md:px-12 flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
+          <button onClick={handleBackClick} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            {t.back[lang]}
+            {t.back[currentLang]}
           </button>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest">{t.title[lang]}</h1>
+          <h1 className="text-sm font-black text-white uppercase tracking-widest">{selectedNews?.title || t.title[currentLang]}</h1>
         </div>
       </section>
 
       {/* Main Content */}
       <section className="py-16 md:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-12">
+          {selectedNews ? (
+            <article className="mx-auto max-w-4xl rounded-[3rem] border border-slate-100 bg-white shadow-2xl overflow-hidden">
+              {selectedNews.image && (
+                <div className="aspect-video w-full overflow-hidden bg-slate-100">
+                  <img src={selectedNews.image} alt={selectedNews.title || ''} className="h-full w-full object-cover" />
+                </div>
+              )}
+              <div className="p-8 md:p-14">
+                <div className="mb-6 flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span>{selectedNews.date}</span>
+                  {selectedNews.source && <span>{selectedNews.source}</span>}
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">{selectedNews.title}</h2>
+                {selectedNews.category && (
+                  <div className="mt-6 inline-flex rounded-full bg-emerald-600 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white">
+                    {selectedNews.category}
+                  </div>
+                )}
+                <div className="mt-8 space-y-5 text-base leading-relaxed text-slate-600">
+                  {(selectedNews.summary || '').split('\n').map((paragraph: string, index: number) => (
+                    <p key={index}>{paragraph.trim()}</p>
+                  ))}
+                </div>
+                {selectedNews.link && (
+                  <a
+                    href={selectedNews.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-10 inline-flex rounded-2xl bg-slate-900 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-emerald-600"
+                  >
+                    {t.readMore[currentLang]}
+                  </a>
+                )}
+              </div>
+            </article>
+          ) : (
+            <>
           <div className="mb-16 text-center space-y-4">
-            <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">{t.title[lang]}</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto text-sm md:text-base font-medium opacity-80">{t.subtitle[lang]}</p>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">{t.title[currentLang]}</h2>
+            <p className="text-slate-500 max-w-2xl mx-auto text-sm md:text-base font-medium opacity-80">{t.subtitle[currentLang]}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {news.map((item) => (
-              <div key={item.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col">
+              <div
+                key={item.id}
+                onClick={() => {
+                  setSelectedNews(item);
+                  onNavigate?.('news', item.id);
+                }}
+                className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
+              >
                 {/* Image Wrap */}
                 <div className="relative aspect-video overflow-hidden">
                   <img src={item.image} alt={item.title || ''} className="w-full h-full transition-transform duration-700 group-hover:scale-110" />
@@ -220,9 +343,10 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang }) => {
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(event) => event.stopPropagation()}
                       className="theme-more-link group/link"
                     >
-                      {t.readMore[lang]}
+                      {t.readMore[currentLang]}
                       <svg
                         className="w-3.5 h-3.5 transform group-hover/link:translate-x-1 transition-transform"
                         fill="none"
@@ -248,15 +372,17 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang }) => {
               Heç bir xəbər tapılmadı
             </div>
           )}
+          </>
+          )}
         </div>
       </section>
 
       {/* Newsletter / Info Footer Section */}
       <section className="bg-emerald-600 py-20 text-white text-center">
         <div className="max-w-4xl mx-auto px-4 space-y-8">
-          <h3 className="text-2xl md:text-4xl font-black italic">"{t.quote[lang]}"</h3>
+          <h3 className="text-2xl md:text-4xl font-black italic">"{t.quote[currentLang]}"</h3>
           <p className="text-emerald-50/80 text-sm max-w-xl mx-auto leading-relaxed">
-             {t.description[lang]}
+             {t.description[currentLang]}
           </p>
         </div>
       </section>

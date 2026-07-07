@@ -32,6 +32,8 @@ interface BlogPost {
 interface BlogPageProps {
   lang?: LangCode;
   onBack?: () => void;
+  initialId?: string;
+  onNavigate?: (page: any, id?: string) => void;
 }
 const LANGUAGES = [
   { code: 'az', name: 'Azərbaycan' },
@@ -42,13 +44,78 @@ const LANGUAGES = [
 
 type LangCode = typeof LANGUAGES[number]['code'];
 
-const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang }) => {
+const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onNavigate }) => {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
    const { blogs,getBlogs, getBlogById, loading} = useBlog();
 
    useEffect(() => {
          getBlogs();
        }, [lang]);
+
+   useEffect(() => {
+     if (!initialId) {
+       setSelectedPost(null);
+       return;
+     }
+
+     let cancelled = false;
+     const loadPost = async () => {
+       try {
+         const data = await getBlogById(initialId);
+         if (!cancelled) setSelectedPost(transformBlog(data));
+       } catch (error) {
+         console.error(error);
+       }
+     };
+
+     loadPost();
+     return () => {
+       cancelled = true;
+     };
+   }, [initialId]);
+
+   useEffect(() => {
+     if (!selectedPost) return;
+
+     const title = selectedPost.title?.[lang] || selectedPost.title?.az || 'Volt.az Blog';
+     const description = selectedPost.description?.[lang] || selectedPost.description?.az || selectedPost.content?.[lang]?.slice(0, 155) || '';
+     const canonicalUrl = `https://volt.az/blog/${selectedPost.id}`;
+     const setMeta = (selector: string, attr: 'content' | 'href', value: string, create?: () => HTMLElement) => {
+       let element = document.head.querySelector(selector) as HTMLElement | null;
+       if (!element && create) {
+         element = create();
+         document.head.appendChild(element);
+       }
+       element?.setAttribute(attr, value);
+     };
+
+     document.title = `${title} | Volt.az`;
+     setMeta('meta[name="description"]', 'content', description);
+     setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+     setMeta('meta[name="googlebot"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+     setMeta('meta[property="og:type"]', 'content', 'article');
+     setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
+     setMeta('meta[property="og:description"]', 'content', description);
+     setMeta('meta[property="og:url"]', 'content', canonicalUrl);
+     if (selectedPost.image) {
+       setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
+       setMeta('meta[property="og:image"]', 'content', selectedPost.image, () => {
+         const tag = document.createElement('meta');
+         tag.setAttribute('property', 'og:image');
+         return tag;
+       });
+     }
+     setMeta('meta[property="twitter:title"]', 'content', `${title} | Volt.az`);
+     setMeta('meta[property="twitter:description"]', 'content', description);
+     if (selectedPost.image) {
+       setMeta('meta[property="twitter:image"]', 'content', selectedPost.image, () => {
+         const tag = document.createElement('meta');
+         tag.setAttribute('property', 'twitter:image');
+         return tag;
+       });
+     }
+     setMeta('link[rel="canonical"]', 'href', canonicalUrl);
+   }, [selectedPost, lang]);
 
  const t = {
   title: {
@@ -103,12 +170,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang }) => {
   const handleBackClick = () => {
     if (selectedPost) {
       setSelectedPost(null);
+      onNavigate?.('blog');
     } else if (onBack) {
       onBack();
     }
   };
 
 const handleReadMore = async (id: string) => {
+  onNavigate?.('blog', id);
   const data = await getBlogById(id);
 
   const transformed = transformBlog(data);

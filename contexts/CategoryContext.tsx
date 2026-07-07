@@ -4,7 +4,8 @@ import { API_ENDPOINTS } from "../utils/constants";
 
 interface LanguagePayload {
   languageCode: number;
-  categoryName: string;
+  categoryName?: string;
+  subCategoryName?: string;
 }
 
 interface CategoryPayload {

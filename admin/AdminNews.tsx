@@ -505,7 +505,7 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
         {news.map((item) => (
           <div key={item.id} className={`bg-white rounded-[2.5rem] overflow-hidden border transition-all duration-300 group ${!item.isActive ? 'border-slate-100 opacity-60' : 'border-slate-100 hover:border-emerald-500 shadow-sm hover:shadow-xl'}`}>
             <div className="relative aspect-video">
-              <img src={item.image} alt={item.title} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
+              <img src={item.image} alt={item.title.az || item.title.en || ''} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute top-4 left-4 flex gap-2">
                 <div className={`px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${item.isActive ? 'bg-emerald-600' : 'bg-slate-400'}`}>
                   {item.isActive ? 'Aktiv' : 'Deaktiv'}

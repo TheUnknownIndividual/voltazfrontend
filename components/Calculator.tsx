@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { logPublicSolarCalculation, logPublicWhatsappClick } from '../api/solarAnalytics';
 
 interface CalculatorProps {
   lang: 'az' | 'en' | 'ru' | 'tr';
@@ -10,9 +11,12 @@ type LocalizedText = Record<Lang, string>;
 
 const getText = (value: LocalizedText, lang: Lang) => value[lang] || value.az;
 
-const PANEL_WATTAGE = 550;
-const AREA_PER_PANEL = 2.5;
+const PANEL_WATTAGE = 650;
+const AREA_PER_PANEL = 2.7;
 const AZERBAIJAN_AVERAGE_YIELD = 1350;
+const DEFAULT_BILL = 150;
+const DEFAULT_SAVING_TARGET = 100;
+const DEFAULT_ELECTRICITY_TARIFF = 0.15;
 
 const cityProfiles: Record<string, { lat: number; lon: number; yield: number }> = {
   'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1380 },
@@ -56,11 +60,16 @@ const parsePositiveNumber = (value: string) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
+const formatMoney = (value: string | number) => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) ? Math.round(numeric).toLocaleString() : '0';
+};
+
 const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
-  const [bill, setBill] = useState<number>(150);
+  const [bill, setBill] = useState<number>(DEFAULT_BILL);
   const [propertyType, setPropertyType] = useState<'home' | 'business'>('home');
   const [systemType, setSystemType] = useState<'on-grid' | 'off-grid'>('on-grid');
-  const [savingTarget, setSavingTarget] = useState<number>(100);
+  const [savingTarget, setSavingTarget] = useState<number>(DEFAULT_SAVING_TARGET);
   
   // New states
   const [city, setCity] = useState<string>('Bakı');
@@ -70,6 +79,8 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   const [maxRoofArea, setMaxRoofArea] = useState<string>('');
   const [tiltAngle, setTiltAngle] = useState<number>(35);
   const [orientation, setOrientation] = useState<number>(180);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const lastLoggedCalculationRef = useRef<string>('');
 
   const cities = [
     'Bakı', 'Sumqayıt', 'Gəncə', 'Lənkəran', 'Şəki', 'Qəbələ', 'Şamaxı', 
@@ -85,13 +96,16 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   ];
 
   const toggleDevice = (id: string) => {
+    setHasInteracted(true);
     setSelectedDevices(prev => 
       prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
     );
   };
 
+  const markCalculatorInteraction = () => setHasInteracted(true);
+
   const results = useMemo(() => {
-    const tariff = propertyType === 'home' ? 0.08 : 0.12;
+    const tariff = DEFAULT_ELECTRICITY_TARIFF;
     const annualConsumptionFromBill = (bill / tariff) * 12 * (savingTarget / 100);
     const extraConsumption = selectedDevices.reduce((total, device) => total + (extraDeviceAnnualKWh[device] || 0), 0);
     const offGridBuffer = systemType === 'off-grid' ? 1.15 : 1;
@@ -120,10 +134,14 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     const annualProduction = powerKWp * solarYield;
     const usefulProduction = Math.min(annualProduction, annualConsumption);
     const yearlySaving = usefulProduction * tariff * 0.95;
+    const kwpPrice = (propertyType === 'home' ? 1250 : 1150) + (systemType === 'off-grid' ? 850 : 0);
+    const installationBase = propertyType === 'home' ? 450 : 700;
+    const installationEstimate = Math.round((powerKWp * kwpPrice + panels * 35 + installationBase) / 50) * 50;
 
     return {
       power: powerKWp.toFixed(1),
       panels,
+      price: installationEstimate,
       yearly: yearlySaving.toFixed(0),
       production: Math.round(annualProduction),
       area: Math.round(panels * AREA_PER_PANEL),
@@ -181,6 +199,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     systemPower: { az: 'Sistem gücü', en: 'System power', ru: 'Мощность системы', tr: 'Sistem gücü' },
     panelCount: { az: 'Panel sayı', en: 'Panel count', ru: 'Количество панелей', tr: 'Panel sayısı' },
     yearlySaving: { az: 'İllik qənaət', en: 'Yearly saving', ru: 'Годовая экономия', tr: 'Yıllık tasarruf' },
+    installationPrice: { az: 'Təxmini qiymət', en: 'Estimated price', ru: 'Ориентировочная цена', tr: 'Tahmini fiyat' },
     pieces: { az: 'ədəd', en: 'pcs', ru: 'шт.', tr: 'adet' },
     quoteTitle: { az: 'Dəqiq qiymət istəyirsiniz?', en: 'Want an exact quote?', ru: 'Нужна точная смета?', tr: 'Net fiyat teklifi ister misiniz?' },
     quoteDesc: { az: 'Mütəxəssisimiz nəticəni yoxlasın və uyğun təklif hazırlasın.', en: 'Let our specialist review the result and prepare the right offer.', ru: 'Наш специалист проверит расчет и подготовит подходящее предложение.', tr: 'Uzmanımız sonucu kontrol edip uygun teklifi hazırlasın.' },
@@ -190,6 +209,12 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
       en: 'Hello, I would like to get a quote based on the calculator result.',
       ru: 'Здравствуйте, хочу получить предложение по результату калькулятора.',
       tr: 'Merhaba, hesaplayıcı sonucuna göre teklif almak istiyorum.'
+    },
+    defaultQuoteMessage: {
+      az: 'Salam, günəş paneli quraşdırılması ilə maraqlanıram. Növbəti addımlarım nədir?',
+      en: 'Hello, I am interested in a solar panel installation. What are my next steps?',
+      ru: 'Здравствуйте, меня интересует установка солнечных панелей. Какие мои следующие шаги?',
+      tr: 'Merhaba, güneş paneli kurulumu ile ilgileniyorum. Sonraki adımlarım nelerdir?'
     },
     detailsTitle: { az: 'Seçilmiş məlumatlar:', en: 'Selected details:', ru: 'Выбранные данные:', tr: 'Seçilen bilgiler:' },
     notSelected: { az: 'Seçilməyib', en: 'Not selected', ru: 'Не выбрано', tr: 'Seçilmedi' },
@@ -203,43 +228,93 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     roofLimited: { az: 'Dam sahəsi limiti', en: 'Roof space limited', ru: 'Ограничение площади крыши', tr: 'Çatı alanı sınırı' }
   };
 
-  const selectedDeviceLabels = selectedDevices.length
-    ? selectedDevices
-        .map((id) => extraDevicesList.find((device) => device.id === id))
-        .filter(Boolean)
-        .map((device) => getText(device!.label, lang))
-        .join(', ')
-    : getText(t.notSelected, lang);
-
-  const messageRoofArea = roofArea.trim() ? `${roofArea.trim()} m²` : getText(t.notSelected, lang);
-  const messageMaxRoofArea = isAdvancedOpen && maxRoofArea.trim() ? `${maxRoofArea.trim()} m²` : getText(t.notSelected, lang);
   const propertyLabel = propertyType === 'home' ? getText(t.residential, lang) : getText(t.commercial, lang);
   const systemLabel = systemType === 'on-grid' ? getText(t.onGrid, lang) : getText(t.offGrid, lang);
+  const selectedDeviceLabels = selectedDevices
+    .map((id) => extraDevicesList.find((device) => device.id === id))
+    .filter(Boolean)
+    .map((device) => getText(device!.label, lang))
+    .join(', ');
+  const isDefaultRequest =
+    bill === DEFAULT_BILL &&
+    savingTarget === DEFAULT_SAVING_TARGET &&
+    propertyType === 'home' &&
+    systemType === 'on-grid' &&
+    city === 'Bakı' &&
+    !roofArea.trim() &&
+    selectedDevices.length === 0 &&
+    !isAdvancedOpen;
   const quoteDetails = [
-    `${getText(t.city, lang)}: ${city}`,
-    `${getText(t.roofArea, lang)}: ${messageRoofArea}`,
-    `${getText(t.extraDevices, lang)}: ${selectedDeviceLabels}`,
-    `${getText(t.monthlyBill, lang)}: ${bill} AZN`,
-    `${getText(t.savingTarget, lang)}: ${savingTarget}%`,
-    `${getText(t.propertyType, lang)}: ${propertyLabel}`,
-    `${getText(t.systemType, lang)}: ${systemLabel}`,
-    `${getText(t.advancedMode, lang)}: ${isAdvancedOpen ? getText(t.yes, lang) : getText(t.no, lang)}`,
-    `${getText(t.maxRoofArea, lang)}: ${messageMaxRoofArea}`,
-    `${getText(t.tiltAngle, lang)}: ${isAdvancedOpen ? `${tiltAngle}°` : getText(t.notSelected, lang)}`,
-    `${getText(t.orientation, lang)}: ${isAdvancedOpen ? `${orientation}°` : getText(t.notSelected, lang)}`,
-    `${getText(t.systemPower, lang)}: ${results.power} kVt`,
-    `${getText(t.panelCount, lang)}: ${results.panels} ${getText(t.pieces, lang)}`,
-    `${getText(t.yearlySaving, lang)}: ${results.yearly} AZN`,
-    `${getText(t.annualProduction, lang)}: ${results.production} kWh`,
-    `${getText(t.neededRoofArea, lang)}: ${results.area} m²`,
-    `${getText(t.solarYield, lang)}: ${results.yield} kWh/kWp/year`,
-    `${getText(t.coverage, lang)}: ${results.coverage}%`,
-    `${getText(t.roofLimited, lang)}: ${results.limitedByRoof ? getText(t.yes, lang) : getText(t.no, lang)}`
-  ].join('\n');
+    city !== 'Bakı' && `${getText(t.city, lang)}: ${city}`,
+    parsePositiveNumber(roofArea) && `${getText(t.roofArea, lang)}: ${roofArea.trim()} m²`,
+    selectedDeviceLabels && `${getText(t.extraDevices, lang)}: ${selectedDeviceLabels}`,
+    bill > 0 && bill !== DEFAULT_BILL && `${getText(t.monthlyBill, lang)}: ${bill} AZN`,
+    savingTarget > 0 && savingTarget !== DEFAULT_SAVING_TARGET && `${getText(t.savingTarget, lang)}: ${savingTarget}%`,
+    propertyType !== 'home' && `${getText(t.propertyType, lang)}: ${propertyLabel}`,
+    systemType !== 'on-grid' && `${getText(t.systemType, lang)}: ${systemLabel}`,
+    isAdvancedOpen && parsePositiveNumber(maxRoofArea) && `${getText(t.maxRoofArea, lang)}: ${maxRoofArea.trim()} m²`,
+    isAdvancedOpen && tiltAngle > 0 && `${getText(t.tiltAngle, lang)}: ${tiltAngle}°`,
+    isAdvancedOpen && orientation > 0 && `${getText(t.orientation, lang)}: ${orientation}°`,
+    Number(results.power) > 0 && `${getText(t.systemPower, lang)}: ${results.power} kVt`,
+    results.price > 0 && `${getText(t.installationPrice, lang)}: ${results.price.toLocaleString()} AZN`,
+    Number(results.yearly) > 0 && `${getText(t.yearlySaving, lang)}: ${results.yearly} AZN`,
+    results.production > 0 && `${getText(t.annualProduction, lang)}: ${results.production} kWh`,
+    results.area > 0 && `${getText(t.neededRoofArea, lang)}: ${results.area} m²`,
+    results.yield > 0 && `${getText(t.solarYield, lang)}: ${results.yield} kWh/kWp/year`,
+    results.coverage > 0 && `${getText(t.coverage, lang)}: ${results.coverage}%`,
+    results.limitedByRoof && `${getText(t.roofLimited, lang)}: ${getText(t.yes, lang)}`
+  ].filter(Boolean).join('\n');
+  const quoteMessage = isDefaultRequest
+    ? getText(t.defaultQuoteMessage, lang)
+    : `${getText(t.quoteMessage, lang)}${quoteDetails ? `\n\n${getText(t.detailsTitle, lang)}\n${quoteDetails}` : ''}`;
 
   const quoteHref = `https://wa.me/994504180001?text=${encodeURIComponent(
-    `${getText(t.quoteMessage, lang)}\n\n${getText(t.detailsTitle, lang)}\n${quoteDetails}`
+    quoteMessage
   )}`;
+
+  const buildTrackingPayload = (eventType: 'calculation' | 'whatsapp') => ({
+    eventType,
+    inputs: {
+      bill,
+      propertyType,
+      systemType,
+      savingTarget,
+      city,
+      roofArea,
+      selectedDevices,
+      isAdvancedOpen,
+      maxRoofArea,
+      tiltAngle,
+      orientation
+    },
+    result: results,
+    quoteDetails: eventType === 'whatsapp' ? quoteDetails : undefined
+  });
+
+  useEffect(() => {
+    if (!hasInteracted || Number(results.power) <= 0 || results.price <= 0) {
+      return;
+    }
+
+    const payload = buildTrackingPayload('calculation');
+    const payloadKey = JSON.stringify(payload);
+
+    if (payloadKey === lastLoggedCalculationRef.current) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      lastLoggedCalculationRef.current = payloadKey;
+      logPublicSolarCalculation(lang, payload).catch(() => undefined);
+    }, 900);
+
+    return () => window.clearTimeout(timeout);
+  }, [bill, city, hasInteracted, isAdvancedOpen, lang, maxRoofArea, orientation, propertyType, quoteDetails, results, roofArea, savingTarget, selectedDevices, systemType, tiltAngle]);
+
+  const handleWhatsappClick = () => {
+    setHasInteracted(true);
+    logPublicWhatsappClick(lang, buildTrackingPayload('whatsapp')).catch(() => undefined);
+  };
 
   return (
     <section id="calculator" className="py-12 md:py-24 bg-[var(--color-surface)] overflow-hidden relative">
@@ -269,19 +344,19 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
           <div className="lg:col-span-7">
             <div className="h-full bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 p-6 md:p-10">
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <button onClick={() => setPropertyType('home')} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'home' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.residential, lang)}</button>
-                <button onClick={() => setPropertyType('business')} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'business' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.commercial, lang)}</button>
+                <button onClick={() => { markCalculatorInteraction(); setPropertyType('home'); }} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'home' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.residential, lang)}</button>
+                <button onClick={() => { markCalculatorInteraction(); setPropertyType('business'); }} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'business' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.commercial, lang)}</button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <button 
-                  onClick={() => setSystemType('on-grid')} 
+                  onClick={() => { markCalculatorInteraction(); setSystemType('on-grid'); }} 
                   className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${systemType === 'on-grid' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                 >
                   {getText(t.onGrid, lang)} <span className={`normal-case font-medium ml-1 ${systemType === 'on-grid' ? 'text-[var(--color-dark)] opacity-75' : 'text-slate-400 opacity-60'}`}>({getText(t.onGridNote, lang)})</span>
                 </button>
                 <button 
-                  onClick={() => setSystemType('off-grid')} 
+                  onClick={() => { markCalculatorInteraction(); setSystemType('off-grid'); }} 
                   className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${systemType === 'off-grid' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                 >
                   {getText(t.offGrid, lang)} <span className={`normal-case font-medium ml-1 ${systemType === 'off-grid' ? 'text-[var(--color-dark)] opacity-75' : 'text-slate-400 opacity-60'}`}>({getText(t.offGridNote, lang)})</span>
@@ -293,7 +368,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   <label className="block text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest mb-2">{getText(t.city, lang)}</label>
                   <select 
                     value={city} 
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => { markCalculatorInteraction(); setCity(e.target.value); }}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   >
                     {cities.map(c => <option key={c} value={c}>{c}</option>)}
@@ -305,7 +380,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                     type="number" 
                     placeholder={getText(t.roofPlaceholder, lang)}
                     value={roofArea}
-                    onChange={(e) => setRoofArea(e.target.value)}
+                    onChange={(e) => { markCalculatorInteraction(); setRoofArea(e.target.value); }}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   />
                 </div>
@@ -336,9 +411,9 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                 <div>
                   <div className="flex justify-between items-center mb-3 md:mb-4">
                     <label className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest">{getText(t.monthlyBill, lang)}</label>
-                    <span className="text-lg md:text-xl font-black text-[var(--color-primary)]">{bill} AZN</span>
+                    <span className="text-lg md:text-xl font-black text-[var(--color-primary)]">{formatMoney(bill)} AZN</span>
                   </div>
-                  <input type="range" min="30" max="2000" step="10" value={bill} onChange={(e) => setBill(parseInt(e.target.value))} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
+                  <input type="range" min="30" max="10000" step="10" value={bill} onChange={(e) => { markCalculatorInteraction(); setBill(Number(e.target.value)); }} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
                 </div>
                 
                 <div>
@@ -346,14 +421,14 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                     <label className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest">{getText(t.savingTarget, lang)}</label>
                     <span className="text-lg md:text-xl font-black text-[var(--color-primary)]">{savingTarget}%</span>
                   </div>
-                  <input type="range" min="10" max="100" step="5" value={savingTarget} onChange={(e) => setSavingTarget(parseInt(e.target.value))} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
+                  <input type="range" min="10" max="100" step="5" value={savingTarget} onChange={(e) => { markCalculatorInteraction(); setSavingTarget(parseInt(e.target.value)); }} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
                 </div>
               </div>
 
               <div className="mb-8 flex justify-center">
                 <button 
                   type="button"
-                  onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                  onClick={() => { markCalculatorInteraction(); setIsAdvancedOpen(!isAdvancedOpen); }}
                   className={`group flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all border-2 ${
                     isAdvancedOpen 
                       ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-xl scale-105' 
@@ -376,7 +451,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                       <input 
                         type="number" 
                         value={maxRoofArea}
-                        onChange={(e) => setMaxRoofArea(e.target.value)}
+                        onChange={(e) => { markCalculatorInteraction(); setMaxRoofArea(e.target.value); }}
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                       />
                     </div>
@@ -385,7 +460,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                       <input 
                         type="number" 
                         value={tiltAngle}
-                        onChange={(e) => setTiltAngle(parseInt(e.target.value) || 0)}
+                        onChange={(e) => { markCalculatorInteraction(); setTiltAngle(parseInt(e.target.value) || 0); }}
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                       />
                     </div>
@@ -394,7 +469,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                       <input 
                         type="number" 
                         value={orientation}
-                        onChange={(e) => setOrientation(parseInt(e.target.value) || 0)}
+                        onChange={(e) => { markCalculatorInteraction(); setOrientation(parseInt(e.target.value) || 0); }}
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                       />
                     </div>
@@ -402,18 +477,21 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                 )}
 
               <div className="bg-[var(--color-dark)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 text-white">
-                <div className="grid grid-cols-3 gap-1 md:gap-8 text-center items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-6 text-center items-center">
                   <div>
                     <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] opacity-60 uppercase tracking-widest mb-0.5">{getText(t.systemPower, lang)}</div>
                     <div className="text-xs md:text-2xl font-black">{results.power} <span className="text-[7px] opacity-40">kVt</span></div>
                   </div>
                   <div>
-                    <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] opacity-60 uppercase tracking-widest mb-0.5">{getText(t.panelCount, lang)}</div>
-                    <div className="text-xs md:text-2xl font-black">{results.panels} <span className="text-[7px] opacity-40">{getText(t.pieces, lang)}</span></div>
+                    <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] opacity-60 uppercase tracking-widest mb-0.5">{getText(t.installationPrice, lang)}</div>
+                    <div className="text-xs md:text-2xl font-black whitespace-nowrap">{formatMoney(results.price)} <span className="text-[7px] opacity-40">AZN</span></div>
                   </div>
-                  <div className="bg-white/10 rounded-xl md:rounded-2xl py-2 md:py-4 px-1 md:px-6 border border-white/10">
+                  <div className="bg-white/10 rounded-xl md:rounded-2xl py-2 md:py-4 px-2 md:px-6 border border-white/10 min-w-0 overflow-hidden">
                     <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] uppercase tracking-widest mb-0.5">{getText(t.yearlySaving, lang)}</div>
-                    <div className="text-sm md:text-3xl font-black text-[var(--color-primary)]">{results.yearly} <span className="text-[7px] md:text-sm">AZN</span></div>
+                    <div className="flex flex-wrap items-baseline justify-center gap-x-1 text-sm md:text-2xl xl:text-3xl font-black text-[var(--color-primary)] leading-tight">
+                      <span>{formatMoney(results.yearly)}</span>
+                      <span className="text-[7px] md:text-sm">AZN</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -427,6 +505,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   href={quoteHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleWhatsappClick}
                   className="inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-6 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest text-[var(--color-dark)] shadow-lg shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:bg-[var(--color-accent)]"
                 >
                   {getText(t.quoteButton, lang)}

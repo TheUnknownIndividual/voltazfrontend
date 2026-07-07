@@ -1,0 +1,26 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://api.volt.az/api/",
+      "service-desc": [
+        {
+          "href": "https://api.volt.az/swagger/v1/swagger.json",
+          "type": "application/vnd.oai.openapi+json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://api.volt.az/swagger/index.html",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://api.volt.az/api/seo/sitemap.xml",
+          "type": "application/xml"
+        }
+      ]
+    }
+  ]
+}
+

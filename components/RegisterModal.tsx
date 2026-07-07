@@ -1,13 +1,17 @@
 
 import React, { useState } from 'react';
+import SocialAuthButtons from './SocialAuthButtons';
+import { useAuth } from '../contexts/AuthContext';
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang?: 'az' | 'en';
+  onRegisterSuccess?: (user: any) => void;
 }
 
-const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = 'az' }) => {
+const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = 'az', onRegisterSuccess }) => {
+  const { register, loading } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -22,7 +26,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -31,38 +35,71 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
       return;
     }
 
-    const fullPhone = `${formData.phonePrefix}${formData.phone}`;
-    const savedUsers = JSON.parse(localStorage.getItem('volt_users') || '[]');
-    if (savedUsers.find((u: any) => u.email === formData.email || u.phone === fullPhone)) {
-      setError(lang === 'az' ? 'Bu email və ya nömrə ilə artıq qeydiyyat var' : 'Email or phone already registered');
+    if (formData.password.length < 6) {
+      setError(lang === 'az'
+        ? 'Şifrə ən azı 6 simvol olmalıdır. Hərf, rəqəm və simvollardan istifadə edə bilərsiniz.'
+        : 'Password must be at least 6 characters. Letters, numbers, and symbols are allowed.');
       return;
     }
 
-    const newUser = { 
-      name: `${formData.firstName} ${formData.lastName}`,
+    const fullPhone = `${formData.phonePrefix}${formData.phone}`;
+    const nextUser = await register({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       email: formData.email,
-      role: 'customer',
-      address: formData.address,
       phone: fullPhone,
-      isApproved: true,
-      registrationDate: new Date().toISOString()
-    };
+      address: formData.address,
+      password: formData.password,
+    });
 
-    // Bazaya əlavə et
-    localStorage.setItem('volt_users', JSON.stringify([...savedUsers, newUser]));
-    
-    // Login et
-    onRegisterSuccess(newUser);
+    if (!nextUser) {
+      setError(lang === 'az' ? 'Qeydiyyat alınmadı. Email və ya nömrə artıq istifadə oluna bilər.' : 'Registration failed. Email or phone may already be registered.');
+      return;
+    }
+
+    onRegisterSuccess?.(nextUser);
     onClose();
   };
 
+  const handleModalKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-social-auth="true"]')) return;
+    e.preventDefault();
+    e.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+  };
+
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onKeyDown={handleModalKeyDown}>
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose} />
       <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-black text-slate-900 mb-2">{lang === 'az' ? 'Yeni Hesab Yarat' : 'Create Account'}</h2>
           <p className="text-slate-500 text-sm">Müştəri kabinetinə giriş üçün qeydiyyatdan keçin.</p>
+        </div>
+
+        <div className="mb-8">
+          <SocialAuthButtons
+            mode="register"
+            lang={lang}
+            getProfile={() => ({
+              name: `${formData.firstName} ${formData.lastName}`.trim(),
+              email: formData.email.trim(),
+              phone: `${formData.phonePrefix}${formData.phone}`,
+              address: formData.address,
+            })}
+            onSuccess={(nextUser) => {
+              onRegisterSuccess?.(nextUser);
+              onClose();
+            }}
+          />
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-100" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {lang === 'az' ? 'və ya' : 'or'}
+            </span>
+            <div className="h-px flex-1 bg-slate-100" />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -105,18 +142,18 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şifrə *</label>
-              <input required type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+              <input required type="password" minLength={6} autoComplete="new-password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Yeni Şifrə *</label>
-              <input required type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+              <input required type="password" minLength={6} autoComplete="new-password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
             </div>
           </div>
 
           {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-          <button type="submit" className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-4">
-            Qeydiyyatı Tamamla
+          <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-4 disabled:cursor-not-allowed disabled:opacity-60">
+            {loading ? (lang === 'az' ? 'Göndərilir...' : 'Submitting...') : 'Qeydiyyatı Tamamla'}
           </button>
         </form>
       </div>

@@ -5,7 +5,7 @@ import { usePartnership} from '../contexts/PartnershipContext'
 import { useNotification } from '../contexts/NotificationContext';
 
 
-const AdminPartnership: React.FC = () => {
+const AdminPartnership: React.FC<{ onBack?: () => void }> = () => {
     const {  partnershipTypes, loading, getPartnershipTypes, getPartnershipTypeById, createPartnershipType, updatePartnershipType, deletePartnershipType } = usePartnership();
     const { showNotification } = useNotification();
 

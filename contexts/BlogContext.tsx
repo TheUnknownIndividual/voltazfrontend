@@ -11,16 +11,16 @@ interface Translation {
 
 interface CreateBlogPayload {
   coverImagePath: string;
-  source: string;
-  postLink: string;
+  source?: string;
+  postLink?: string;
   translations: Translation[];
 }
 
 interface UpdateBlogPayload {
   coverImagePath: string;
-  source: string;
-  postLink: string;
-  isActive: boolean;
+  source?: string;
+  postLink?: string;
+  isActive?: boolean;
   translations: Translation[];
 }
 

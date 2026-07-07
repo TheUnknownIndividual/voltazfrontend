@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import SocialAuthButtons from "./SocialAuthButtons";
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToRegister: () => void;
   lang?: "az" | "en";
+  onCustomerLogin?: (user: any) => void;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
@@ -13,6 +15,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onSwitchToRegister,
   lang = "az",
+  onCustomerLogin,
 }) => {
   const { login, loading } = useAuth();
 
@@ -29,12 +32,13 @@ const LoginModal: React.FC<LoginModalProps> = ({
     e.preventDefault();
     setError("");
 
-    const success = await login({
+    const nextUser = await login({
       username: formData.identifier,
       password: formData.password,
     });
 
-    if (success) {
+    if (nextUser) {
+      onCustomerLogin?.(nextUser);
       onClose();
     } else {
       setError(
@@ -45,8 +49,16 @@ const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
+  const handleModalKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Enter" || e.shiftKey || loading) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-social-auth="true"]')) return;
+    e.preventDefault();
+    e.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
+  };
+
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6" onKeyDown={handleModalKeyDown}>
       <div
         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
         onClick={onClose}
@@ -56,6 +68,28 @@ const LoginModal: React.FC<LoginModalProps> = ({
         <h2 className="text-2xl font-black mb-6">
           {lang === "az" ? "Giriş" : "Login"}
         </h2>
+
+        <div className="mb-6">
+          <SocialAuthButtons
+            mode="login"
+            lang={lang}
+            getProfile={() => ({
+              email: formData.identifier.includes("@") ? formData.identifier.trim() : undefined,
+            })}
+            onSuccess={(nextUser) => {
+              onCustomerLogin?.(nextUser);
+              onClose();
+            }}
+          />
+        </div>
+
+        <div className="mb-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-100" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {lang === "az" ? "və ya" : "or"}
+          </span>
+          <div className="h-px flex-1 bg-slate-100" />
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -71,6 +105,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
           <input
             type="password"
+            autoComplete="current-password"
             placeholder="Şifrə"
             value={formData.password}
             onChange={(e) =>
@@ -82,7 +117,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button className="w-full bg-emerald-600 text-white py-3 rounded" disabled={loading}>
+          <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded" disabled={loading}>
             {lang === "az" ? "Daxil ol" : "Login"}
           </button>
         </form>

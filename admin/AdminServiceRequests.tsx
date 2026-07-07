@@ -15,7 +15,7 @@ const AdminServiceRequests: React.FC = () => {
     updateServiceRequestStatus
   } = useService();
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({});
+  const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   useEffect(() => {
@@ -27,7 +27,7 @@ const AdminServiceRequests: React.FC = () => {
   }, [statusFilter]);
 
 
-  const handlePendingChange = (id: number, status: string) => {
+  const handlePendingChange = (id: string, status: string) => {
     setPendingChanges(prev => ({ ...prev, [id]: status }));
   };
 

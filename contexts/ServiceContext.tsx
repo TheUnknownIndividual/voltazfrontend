@@ -41,11 +41,13 @@ interface ServiceRequestItem {
   message: string;
   serviceManagementId: number;
   status: number;
+  createdAt?: string;
 }
 
 interface ServiceContextType {
   loading: boolean;
   services: ServiceItem[];
+  serviceRequests: ServiceRequestItem[];
 
   getServices: () => Promise<void>;
   getServiceById: (id: string) => Promise<ServiceItem | null>;
@@ -54,7 +56,7 @@ interface ServiceContextType {
   updateService: (id: string, data: ServicePayload) => Promise<void>;
   deleteService: (id: string) => Promise<void>;
 
-  getServiceRequests: () => Promise<void>;
+  getServiceRequests: (status?: string) => Promise<void>;
   getServiceRequestById: (
     id: string
   ) => Promise<ServiceRequestItem | null>;

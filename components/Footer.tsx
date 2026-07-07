@@ -9,18 +9,23 @@ import {
 } from "react-icons/fa6";
 
 interface FooterProps {
-  onNavigate?: (page: any) => void;
+  onNavigate?: (page: any, id?: string, extra?: any) => void;
   lang?: 'az' | 'en' | 'ru' | 'tr';
   logoSrc?: string;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate, lang, logoSrc = '/volt-logo.png'}) => {
-  const handleNav = (e: React.MouseEvent, page: any) => {
+  const handleNav = (e: React.MouseEvent, page: any, extra?: any) => {
     e.preventDefault();
     if (onNavigate) {
-      onNavigate(page);
+      onNavigate(page, undefined, extra);
     }
   };
+
+  const serviceNav = (service: string) => ({
+    service,
+    focus: Date.now()
+  });
 
   const socials = [
   {
@@ -49,13 +54,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, lang, logoSrc = '/volt-logo
     url: "https://www.youtube.com/@voltpanel",
   },
 ];
-
-  const termsPdf = {
-  az: "/Volt-İstifadəŞərtləri.pdf",
-  en: "/Volt-TermsofUse.pdf",
-  ru: "/Volt-Условияиспользования.pdf",
-  tr: "/Volt-KullanımKoşulları.pdf"
-};
 
 const t = {
   desc:
@@ -303,12 +301,12 @@ designROI:
           <div>
             <h5 className="font-black text-slate-900 mb-8 uppercase text-xs tracking-widest">{t.ourServices}</h5>
             <ul className="space-y-4 text-sm font-medium">
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.smartMeterMonitoring}</a></li>
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.financeCredit}</a></li>
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.legalFormalization}</a></li>
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.energyAudit}</a></li>
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.installation}</a></li>
-              <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.designROI}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('smart-meter-monitoring'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.smartMeterMonitoring}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('finance-credit'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.financeCredit}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('legal-formalization'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.legalFormalization}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('energy-audit'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.energyAudit}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('installation'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.installation}</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('design-roi'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.designROI}</a></li>
             </ul>
           </div>
 
@@ -337,10 +335,7 @@ designROI:
           </p>
           <div className="flex gap-8 text-[11px] font-black uppercase tracking-widest text-slate-400">
             <a href="#" onClick={(e) => handleNav(e, 'privacy-policy')} className="hover:text-emerald-600 transition-colors">{t.privacy}</a>
-            <a href={termsPdf[lang]}
-             target="_blank"
-             rel="noopener noreferrer"
-            className="hover:text-emerald-600 transition-colors">{t.terms}</a>
+            <a href="#" onClick={(e) => handleNav(e, 'terms-of-service')} className="hover:text-emerald-600 transition-colors">{t.terms}</a>
           </div>
         </div>
       </div>

@@ -23,23 +23,35 @@ export interface BlogsSection {
 }
 
 export interface ProductVariant {
-  power: string;
-  efficiency: string;
+  power?: string;
+  efficiency?: string;
+  technicalPower?: string;
+  effectiveness?: string | number;
   count: number;
-  price: number;
+  price?: number;
+  amount?: number;
 }
 
 export interface Product {
   id: string;
   name: string;
+  productName?: string;
   brand: string;
   category?: string;
   subCategory?: string;
   price: number;
   image: string;
+  productImage?: string[];
   images?: string[];
   power: string;
   efficiency: string;
+  productParametrs?: {
+    technicalPower?: string;
+    effectiveness?: string | number;
+    count?: number;
+    amount?: number;
+  }[];
+  productBrandId?: string | number;
   technology?: string;
   model?: string;
   mppt?: string;
@@ -47,6 +59,7 @@ export interface Product {
   description: string;
   stockCount?: number;
   isOnOrder?: boolean;
+  inStock?: boolean;
   showOnHome?: boolean;
   features?: string[];
   specs?: string[];

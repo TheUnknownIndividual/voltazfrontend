@@ -13,9 +13,17 @@ interface ProductsPageProps {
   onBack?: () => void;
   initialCategory?: string | number;
   initialSubCategory?: string | number;
+  initialSearch?: string;
 }
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang, onBack, initialCategory = 'all', initialSubCategory = 'all' }) => {
+const normalizeFilterId = (value?: string | number) => {
+  if (value === undefined || value === null || value === '' || value === 'all') return null;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang, onBack, initialCategory = 'all', initialSubCategory = 'all', initialSearch = '' }) => {
   const { getHomeProducts, productHomeData, getProducts, productData} = useProduct();
   const {
     categories,
@@ -24,11 +32,25 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow
     getSubCategories,
   } = useCategory();
 
-  const [filter, setFilter] = useState<number | null>(null);
-  const [subFilter, setSubFilter] = useState<number | null>(null);
-  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+  const initialCategoryId = normalizeFilterId(initialCategory);
+  const initialSubCategoryId = normalizeFilterId(initialSubCategory);
+  const [filter, setFilter] = useState<number | null>(initialCategoryId);
+  const [subFilter, setSubFilter] = useState<number | null>(initialSubCategoryId);
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(initialCategoryId);
   const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(12);
+const [search, setSearch] = useState(initialSearch);
+const totalPages = productData?.totalPages || 0;
+
+const clearProductSearch = () => {
+  if (!search.trim()) return;
+
+  setSearch('');
+  const url = new URL(window.location.href);
+  url.searchParams.delete('search');
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, '', nextUrl);
+};
 
 useEffect(() => {
   const handleResize = () => {
@@ -46,25 +68,24 @@ useEffect(() => {
 }, []);
 
   useEffect(() => {
-    if (initialCategory && initialCategory !== 'all') {
-      const catId = Number(initialCategory);
+    const catId = normalizeFilterId(initialCategory);
+    const subCatId = normalizeFilterId(initialSubCategory);
 
-      setFilter(catId);
-      setActiveCategoryId(catId);
+    setFilter(catId);
+    setActiveCategoryId(catId);
+    setSubFilter(subCatId);
+
+    if (catId !== null) {
       getSubCategories(catId);
-    } else {
-      setFilter(null);
-      setActiveCategoryId(null);
-      setSubFilter(null);
     }
 
-    if (initialSubCategory && initialSubCategory !== 'all') {
-      setSubFilter(Number(initialSubCategory));
-    } else if (initialCategory && initialCategory !== 'all') {
-      setSubFilter(null);
-    }
     setPage(1);
   }, [initialCategory, initialSubCategory]);
+
+  useEffect(() => {
+    setSearch(initialSearch || '');
+    setPage(1);
+  }, [initialSearch]);
 
 
   useEffect(() => {
@@ -76,9 +97,10 @@ useEffect(() => {
     filter ?? undefined,
     subFilter ?? undefined,
     page,
-    pageSize
+    pageSize,
+    search
   );
-}, [filter, subFilter, page, pageSize]);
+}, [filter, subFilter, page, pageSize, search]);
 
 useEffect(() => {
   setPage(1);
@@ -166,6 +188,7 @@ useEffect(() => {
 
                 <button
                   onClick={() => {
+                    clearProductSearch();
                     setActiveCategoryId(null);
                     setFilter(null);
                     setSubFilter(null);
@@ -183,6 +206,7 @@ useEffect(() => {
                   <button
                     key={category.id}
                     onClick={() => {
+                      clearProductSearch();
                       setActiveCategoryId(category.id);
                       setFilter(category.id);
                       setSubFilter(null);
@@ -206,7 +230,10 @@ useEffect(() => {
                 <div className="flex gap-2 flex-wrap animate-in slide-in-from-top-1 duration-300">
 
                   <button
-                    onClick={() => setSubFilter(null)}
+                    onClick={() => {
+                      clearProductSearch();
+                      setSubFilter(null);
+                    }}
                     className={`px-2 py-1 rounded-md text-[7px] font-bold uppercase
           ${subFilter === null
                         ? 'bg-[var(--color-accent)] text-[var(--color-dark)]'
@@ -219,7 +246,10 @@ useEffect(() => {
                   {subcategories.map((sub) => (
                     <button
                       key={sub.id}
-                      onClick={() => setSubFilter(sub.id)}
+                      onClick={() => {
+                        clearProductSearch();
+                        setSubFilter(sub.id);
+                      }}
                       className={`px-2 py-1 rounded-md text-[7px] font-bold uppercase
             ${subFilter == sub.id
                           ? 'bg-[var(--color-accent)] text-[var(--color-dark)]'
@@ -237,7 +267,14 @@ useEffect(() => {
 
 
           </div>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest hidden sm:block">{t.title[lang]}</h1>
+          <div className="hidden sm:flex flex-col items-end gap-1">
+            <h1 className="text-sm font-black text-white uppercase tracking-widest">{t.title[lang]}</h1>
+            {search.trim() && (
+              <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">
+                {productData?.totalCount ?? 0} nəticə
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
@@ -273,7 +310,7 @@ useEffect(() => {
       disabled={page === 1}
       className="
         w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14
-        flex items-center justify-center
+        hidden sm:flex items-center justify-center
         rounded-full bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-primary)_24%,white)] text-[var(--color-dark)] hover:bg-[color-mix(in_srgb,var(--color-primary)_10%,white)]
         disabled:opacity-40 transition
       "
@@ -302,12 +339,13 @@ useEffect(() => {
 
     {/* RIGHT */}
     <button
-      onClick={() => setPage((p) => p + 1)}
+      onClick={() => setPage((p) => totalPages > 0 ? Math.min(p + 1, totalPages) : p)}
+      disabled={totalPages === 0 || page >= totalPages}
       className="
         w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14
-        flex items-center justify-center
+        hidden sm:flex items-center justify-center
         rounded-full bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-primary)_24%,white)] text-[var(--color-dark)] hover:bg-[color-mix(in_srgb,var(--color-primary)_10%,white)]
-        transition
+        disabled:opacity-40 transition
       "
     >
       <ChevronRight
@@ -325,7 +363,7 @@ useEffect(() => {
 >
   <ChevronLeft/>
 </button>
-  {getPagination(page, productData?.totalPages || 0).map((item, index) => {
+  {getPagination(page, totalPages).map((item, index) => {
     if (item === "prevDots" || item === "nextDots") {
       return (
         <span key={index} className="px-2 text-gray-400">
@@ -355,8 +393,9 @@ useEffect(() => {
   })}
      <button
   onClick={() =>
-    setPage(prev => Math.min(prev + 1, productData.totalPages))
+    setPage(prev => totalPages > 0 ? Math.min(prev + 1, totalPages) : prev)
   }
+  disabled={totalPages === 0 || page >= totalPages}
   className="px-3 py-2 rounded"
 >
   <ChevronRight/>

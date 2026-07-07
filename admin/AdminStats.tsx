@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import axiosInstance from '../api/axiosInstance';
+import { API_ENDPOINTS } from '../utils/constants';
 
 
 interface AdminStatsProps {
@@ -10,6 +12,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   const [dynamicProducts, setDynamicProducts] = useState<string[]>([]);
   const [warehouseProducts, setWarehouseProducts] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
 
 
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7)); // YYYY-MM
@@ -84,6 +87,9 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   const masterTypes = ['all', 'Mühəndis', 'Texnik', 'Elektrik', 'Quraşdırıcı', 'Layihəçi'];
   const productTypes = [
     'all', 
+    'Sifariş',
+    'Qiymət sorğusu',
+    'Stok sorğusu',
     'Günəş paneli', 
     'İnverter', 
     'Enerji saxlama sistemləri', 
@@ -92,22 +98,38 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
     'Monitorinq və İdarəetmə'
   ];
   
-  const productsList = dynamicProducts.length > 0 ? dynamicProducts : ['all', 'Huawei Inverter 5kW', 'Longi Solar Panel 450W', 'Trina Solar 550W', 'Smart Energy Meter'];
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const response = await axiosInstance.get(API_ENDPOINTS.ORDER.GET_ORDERS());
+        const apiResponse = response.data;
+        setOrders(apiResponse?.success && Array.isArray(apiResponse.data) ? apiResponse.data : []);
+      } catch {
+        setOrders([]);
+      }
+    };
 
-  // Mock sales data with more entries and types
-  const mockSales = useMemo(() => [
-    { id: 1, product: 'Huawei Inverter 5kW', type: 'İnverter', amount: 1200, date: '2024-05-10', city: 'Bakı' },
-    { id: 2, product: 'Longi Solar Panel 450W', type: 'Günəş paneli', amount: 180, date: '2024-05-12', city: 'Gəncə' },
-    { id: 3, product: 'Trina Solar 550W', type: 'Günəş paneli', amount: 220, date: '2024-04-15', city: 'Bakı' },
-    { id: 4, product: 'Smart Energy Meter', type: 'Monitorinq və İdarəetmə', amount: 85, date: '2024-05-20', city: 'Sumqayıt' },
-    { id: 5, product: 'Huawei Inverter 5kW', type: 'İnverter', amount: 1200, date: '2024-05-25', city: 'Quba' },
-    { id: 6, product: 'Longi Solar Panel 450W', type: 'Günəş paneli', amount: 180, date: '2024-02-10', city: 'Bakı' },
-    { id: 7, product: 'Trina Solar 550W', type: 'Günəş paneli', amount: 220, date: '2024-05-05', city: 'Lənkəran' },
-    { id: 8, product: 'Smart Energy Meter', type: 'Monitorinq və İdarəetmə', amount: 85, date: '2024-05-08', city: 'Bakı' },
-    { id: 9, product: 'Huawei Inverter 5kW', type: 'İnverter', amount: 1200, date: '2024-05-15', city: 'Sumqayıt' },
-    { id: 10, product: 'Longi Solar Panel 450W', type: 'Günəş paneli', amount: 180, date: '2024-05-18', city: 'Gəncə' },
-    { id: 11, product: 'Battery Storage 10kWh', type: 'Enerji saxlama sistemləri', amount: 4500, date: '2024-05-22', city: 'Bakı' },
-  ], []);
+    loadOrders();
+  }, []);
+
+  const orderSales = useMemo(() => orders.flatMap((order) => (
+    Array.isArray(order.items) ? order.items.map((item: any) => ({
+      id: `${order.id}-${item.id}`,
+      product: item.productName,
+      type: order.intent === 2 ? 'Qiymət sorğusu' : order.intent === 3 ? 'Stok sorğusu' : 'Sifariş',
+      amount: Number(item.lineTotal || 0),
+      date: order.createdAt,
+      city: order.cityOrRegion || 'Təsdiqlənəcək',
+      source: order.source,
+      intent: order.intent,
+      quantity: item.quantity,
+    })) : []
+  )), [orders]);
+
+  const productsList = useMemo(() => {
+    const names = Array.from(new Set(orderSales.map((sale) => sale.product).filter(Boolean)));
+    return ['all', ...(names.length > 0 ? names : dynamicProducts)];
+  }, [orderSales, dynamicProducts]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -126,7 +148,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   }, [users, cityFilter]);
 
   const salesStats = useMemo(() => {
-    const filteredSales = mockSales.filter(s => {
+    const filteredSales = orderSales.filter(s => {
       const saleDate = s.date.substring(0, 7); // YYYY-MM
       const dateMatch = saleDate === selectedMonth;
       const productMatch = productFilter === 'all' || s.product === productFilter;
@@ -136,11 +158,18 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
       return dateMatch && productMatch && typeMatch && cityMatch;
     });
 
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.amount, 0);
-    const totalSold = filteredSales.length;
+    const soldSales = filteredSales.filter((s) => s.intent === 1);
+    const totalRevenue = soldSales.reduce((sum, s) => sum + s.amount, 0);
+    const totalSold = soldSales.reduce((sum, s) => sum + Number(s.quantity || 0), 0);
+    const cartOrders = orders.filter((order) => order.source === 1 && order.intent === 1).length;
+    const directOrders = orders.filter((order) => order.source === 2 && order.intent === 1).length;
+    const quoteRequests = orders.filter((order) => order.intent === 2).length;
+    const outOfStockRequests = orders.filter((order) => order.intent === 3).length;
+    const completedOrders = orders.filter((order) => order.status === 5).length;
+    const activeOrders = orders.filter((order) => order.status !== 5 && order.status !== 6).length;
 
-    return { totalRevenue, totalSold, filteredSales };
-  }, [mockSales, selectedMonth, productFilter, productTypeFilter, cityFilter]);
+    return { totalRevenue, totalSold, filteredSales, cartOrders, directOrders, quoteRequests, outOfStockRequests, completedOrders, activeOrders };
+  }, [orderSales, orders, selectedMonth, productFilter, productTypeFilter, cityFilter]);
 
   const warehouseStats = useMemo(() => {
     const totalItems = warehouseProducts.reduce((sum, p) => sum + p.count, 0);
@@ -289,6 +318,13 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
           <div className={`text-3xl font-black ${detailView === 'customers' ? 'text-white' : 'text-emerald-600'}`}>{filteredCustomers.length}</div>
           <div className={`text-[9px] mt-1 ${detailView === 'customers' ? 'text-emerald-200' : 'text-slate-400'}`}>Filtrə uyğun müştərilər</div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MiniMetric label="Səbətdən sifariş" value={salesStats.cartOrders} />
+        <MiniMetric label="Tək məhsul sifarişi" value={salesStats.directOrders} />
+        <MiniMetric label="Qiymət sorğusu" value={salesStats.quoteRequests} />
+        <MiniMetric label="Stok sorğusu" value={salesStats.outOfStockRequests} />
       </div>
 
       {/* Detailed Views */}
@@ -642,7 +678,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {mockSales.slice(0, 5).map(sale => (
+                {orderSales.slice(0, 5).map(sale => (
                   <tr key={sale.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-8 py-4 text-sm font-bold text-slate-900">{sale.product}</td>
                     <td className="px-8 py-4 text-xs text-slate-500">{sale.city}</td>
@@ -650,6 +686,11 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
                     <td className="px-8 py-4 text-sm font-black text-emerald-600 text-right">{sale.amount} AZN</td>
                   </tr>
                 ))}
+                {orderSales.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-8 py-12 text-center text-slate-400 text-xs italic">Sifariş məlumatı yoxdur.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -658,5 +699,12 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
     </div>
   );
 };
+
+const MiniMetric = ({ label, value }: { label: string; value: number }) => (
+  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+    <div className="mt-1 text-2xl font-black text-slate-900">{value}</div>
+  </div>
+);
 
 export default AdminStats;

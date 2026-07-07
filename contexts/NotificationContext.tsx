@@ -12,7 +12,7 @@ interface Notification {
 
 interface NotificationContextType {
   showNotification: (message: string, type?: NotificationType) => void;
-  confirm: (message: string) => Promise<boolean>;
+  confirm: (message: string, details?: string) => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);

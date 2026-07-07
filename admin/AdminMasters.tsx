@@ -6,7 +6,7 @@ import MasterForum from '../components/MasterForum';
 interface UserRecord {
   email: string;
   name: string;
-  role: 'customer' | 'master' | 'admin';
+  role: string;
   isApproved: boolean;
   registrationDate: string;
   city?: string;

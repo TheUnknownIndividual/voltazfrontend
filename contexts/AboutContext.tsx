@@ -10,7 +10,8 @@ interface AboutLanguage {
 
 interface AboutPayload {
   languages: AboutLanguage[];
-  imagePaths: string[];
+  imagePaths?: string[];
+  imagePath?: string | string[];
 }
 interface ReorderItem {
   id: number;

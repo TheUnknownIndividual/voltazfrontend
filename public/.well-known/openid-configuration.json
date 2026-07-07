@@ -1,0 +1,13 @@
+{
+  "issuer": "https://api.volt.az",
+  "authorization_endpoint": "https://volt.az/",
+  "token_endpoint": "https://api.volt.az/api/CustomerAuth/login",
+  "registration_endpoint": "https://api.volt.az/api/CustomerAuth/register",
+  "jwks_uri": "https://volt.az/.well-known/jwks.json",
+  "grant_types_supported": ["password"],
+  "response_types_supported": ["token"],
+  "token_endpoint_auth_methods_supported": ["none"],
+  "scopes_supported": ["openid", "profile", "email"],
+  "claims_supported": ["sub", "name", "email", "role"]
+}
+

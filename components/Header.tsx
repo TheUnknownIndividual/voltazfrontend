@@ -4,6 +4,8 @@ import Logo from './Logo';
 import RegisterModal from './RegisterModal';
 import LoginModal from './LoginModal';
 import { useAuth } from "../contexts/AuthContext";
+import { API_ENDPOINTS } from "../utils/constants";
+import axiosInstance from "../api/axiosInstance";
 
 import { useCategory } from "../contexts/CategoryContext";
 
@@ -13,6 +15,9 @@ interface HeaderProps {
   currentLang: 'az' | 'en' | 'ru' | 'tr';
   onLangChange: (lang: 'az' | 'en' | 'ru' | 'tr') => void;
   logoSrc?: string;
+  user?: any;
+  onLogout?: () => void;
+  onLogin?: (userData: any) => void;
 }
 
 const DropdownItem = ({ label, onClick, icon }: { label: string; onClick: () => void; icon?: React.ReactNode }) => (
@@ -27,8 +32,15 @@ const DropdownItem = ({ label, onClick, icon }: { label: string; onClick: () => 
   </button>
 );
 
+const verseQuoteByLang = {
+  az: '“Və biz parlaq bir çıraq yaratdıq”',
+  en: '“And We created a shining lamp”',
+  ru: '“И Мы создали сияющий светильник”',
+  tr: '“Ve parlak bir kandil yarattık”',
+};
 
-const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, onLangChange, logoSrc = '/volt-logo.png' }) => {
+
+const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, onLangChange, logoSrc = '/volt-logo.png', user, onLogout, onLogin }) => {
   const { role, logout, isAuthenticated } = useAuth();
   const {
     categories,
@@ -41,8 +53,18 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
   const [activeDropdown, setActiveDropdown] = useState<'none' | 'profile' | 'products' | 'usefulInfo' | 'lang' | 'volt'>('none');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState<'none' | 'products' | 'usefulInfo' | 'volt'>('none');
-  const [co2Saved, setCo2Saved] = useState(450.125);
+  const verseQuote = verseQuoteByLang[currentLang];
+
+  const blurActiveInput = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
 
   useEffect(() => {
     getCategories();
@@ -71,12 +93,38 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     );
   };
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setCo2Saved(prev => prev + 0.001);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults(null);
+      setIsSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await axiosInstance.get(API_ENDPOINTS.SEARCH.GET_SEARCH(query, 6));
+        if (!cancelled) {
+          setSearchResults(res?.data?.data || null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSearchResults(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   const toggleMobileSubMenu = (menu: 'products' | 'usefulInfo' | 'volt') => {
     setOpenMobileSubMenu(openMobileSubMenu === menu ? 'none' : menu);
@@ -97,6 +145,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     decrees: currentLang === 'az' ? 'Fərmanlar' : currentLang === 'en' ? 'Decrees' : currentLang === 'ru' ? 'Указы' : 'Kararnameler',
     login: currentLang === 'az' ? 'Giriş' : currentLang === 'en' ? 'Login' : currentLang === 'ru' ? 'Вход' : 'Giriş',
     logout: currentLang === 'az' ? 'Çıxış' : currentLang === 'en' ? 'Logout' : currentLang === 'ru' ? 'Выход' : 'Çıkış',
+    myProfile: currentLang === 'az' ? 'Profilim' : currentLang === 'en' ? 'My Profile' : currentLang === 'ru' ? 'Мой профиль' : 'Profilim',
+    myOrders: currentLang === 'az' ? 'Sifarişlərim' : currentLang === 'en' ? 'My Orders' : currentLang === 'ru' ? 'Мои заказы' : 'Siparişlerim',
     proClub: currentLang === 'az' ? 'Ustalar Klubu' : currentLang === 'en' ? 'Pro Club' : currentLang === 'ru' ? 'Клуб мастеров' : 'Ustalar Kulübü',
     projects: currentLang === 'az' ? 'Layihələr' : currentLang === 'en' ? 'Projects' : currentLang === 'ru' ? 'Проекты' : 'Projeler',
     products: currentLang === 'az' ? 'Məhsullar' : currentLang === 'en' ? 'Products' : currentLang === 'ru' ? 'Продукты' : 'Ürünler',
@@ -117,18 +167,246 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     support: currentLang === 'az' ? 'Dəstək' : currentLang === 'en' ? 'Support' : currentLang === 'ru' ? 'Поддержка' : 'Destek',
     blog: currentLang === 'az' ? 'Bloq' : currentLang === 'en' ? 'Blog' : currentLang === 'ru' ? 'Блог' : 'Blog',
     privacyPolicy: currentLang === 'az' ? 'Məxfilik siyasəti' : currentLang === 'en' ? 'Privacy Policy' : currentLang === 'ru' ? 'Политика конфиденциальности' : 'Gizlilik Politikası',
+    termsOfService: currentLang === 'az' ? 'İstifadə şərtləri' : currentLang === 'en' ? 'Terms of Use' : currentLang === 'ru' ? 'Условия использования' : 'Kullanım Şartları',
     contact: currentLang === 'az' ? 'Əlaqə' : currentLang === 'en' ? 'Contact Us' : currentLang === 'ru' ? 'Контакты' : 'İletişim',
     partnership: currentLang === 'az' ? 'Tərəfdaşlıq' : currentLang === 'en' ? 'Partnership' : currentLang === 'ru' ? 'Партнерство' : 'Ortaklık',
     calculate: currentLang === 'az' ? 'Hesabla' : currentLang === 'en' ? 'Calculate' : currentLang === 'ru' ? 'Рассчитать' : 'Hesapla',
     search: currentLang === 'az' ? 'Axtarış' : currentLang === 'en' ? 'Search' : currentLang === 'ru' ? 'Поиск' : 'Arama',
     menu: currentLang === 'az' ? 'Menyunu aç' : currentLang === 'en' ? 'Open menu' : currentLang === 'ru' ? 'Открыть меню' : 'Menüyü aç',
-    closeMenu: currentLang === 'az' ? 'Menyunu bağla' : currentLang === 'en' ? 'Close menu' : currentLang === 'ru' ? 'Закрыть меню' : 'Menüyü kapat'
+    closeMenu: currentLang === 'az' ? 'Menyunu bağla' : currentLang === 'en' ? 'Close menu' : currentLang === 'ru' ? 'Закрыть меню' : 'Menüyü kapat',
+    searchLoading: currentLang === 'az' ? 'Axtarılır...' : currentLang === 'en' ? 'Searching...' : currentLang === 'ru' ? 'Идет поиск...' : 'Aranıyor...',
+    searchNoResults: currentLang === 'az' ? 'Nəticə tapılmadı' : currentLang === 'en' ? 'No results found' : currentLang === 'ru' ? 'Результаты не найдены' : 'Sonuç bulunamadı',
+    productCategories: currentLang === 'az' ? 'Məhsul kateqoriyaları' : currentLang === 'en' ? 'Product categories' : currentLang === 'ru' ? 'Категории продуктов' : 'Ürün kategorileri',
+    servicesGroup: currentLang === 'az' ? 'Xidmətlərimiz' : currentLang === 'en' ? 'Our services' : currentLang === 'ru' ? 'Наши услуги' : 'Hizmetlerimiz',
+    resultsCount: currentLang === 'az' ? 'nəticə' : currentLang === 'en' ? 'results' : currentLang === 'ru' ? 'результатов' : 'sonuç'
   };
 
   const handleItemClick = (page: string, id?: string, extra?: any) => {
     onNavigate(page, id, extra);
     setActiveDropdown('none');
     setIsMobileMenuOpen(false);
+  };
+
+  const closeSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+    setIsSearchLoading(false);
+    setIsSearchFocused(false);
+    setIsMobileSearchOpen(false);
+    blurActiveInput();
+  };
+
+  const resetMobileSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+    setIsSearchLoading(false);
+    setIsSearchFocused(false);
+    setIsMobileSearchOpen(false);
+    blurActiveInput();
+  };
+
+  useEffect(() => {
+    if (!isMobileSearchOpen) return;
+
+    let lastY = window.scrollY;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastY + 4) {
+        resetMobileSearch();
+        return;
+      }
+      lastY = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobileSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchFocused) return;
+
+    let lastY = window.scrollY;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastY + 4) {
+        setIsSearchFocused(false);
+        blurActiveInput();
+      }
+      lastY = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isSearchFocused]);
+
+  const handleSearchSubmit = () => {
+    const query = searchQuery.trim();
+    if (!query) return;
+    closeSearch();
+    handleItemClick('products', undefined, { search: query });
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSearchSubmit();
+    }
+  };
+
+  const staticUsefulPages = [
+    { title: t.faq, description: t.usefulInfo, page: 'faq' },
+    { title: t.howToStart, description: t.usefulInfo, page: 'how-to-start' },
+    { title: t.necessaryDocuments, description: t.usefulInfo, page: 'necessary-documents' },
+    { title: t.legislationAndDecrees, description: t.usefulInfo, page: 'legislation' },
+    { title: t.creditTerms, description: t.usefulInfo, page: 'credits' },
+    { title: t.privacyPolicy, description: t.usefulInfo, page: 'privacy-policy' },
+    { title: t.termsOfService, description: t.usefulInfo, page: 'terms-of-service' },
+    { title: t.blog, description: t.usefulInfo, page: 'blog' },
+    { title: t.news, description: t.usefulInfo, page: 'news' },
+  ];
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasTypedSearch = normalizedSearchQuery.length > 0;
+  const staticUsefulMatches = hasTypedSearch
+    ? staticUsefulPages.filter(page =>
+        page.title.toLowerCase().includes(normalizedSearchQuery)
+        || page.description.toLowerCase().includes(normalizedSearchQuery))
+    : staticUsefulPages;
+  const dynamicUsefulPages = hasTypedSearch ? searchResults?.usefulPages || [] : [];
+  const usefulPages = [
+    ...staticUsefulMatches,
+    ...dynamicUsefulPages.filter((page: any) =>
+      !staticUsefulMatches.some(staticPage => staticPage.page === page.page)),
+  ];
+  const hasSearchResults = Boolean(
+    (searchResults?.products?.items?.length || 0) > 0
+    || (searchResults?.categories?.length || 0) > 0
+    || (searchResults?.services?.length || 0) > 0
+    || usefulPages.length > 0
+  );
+  const isSignedIn = isAuthenticated || Boolean(user);
+  const resolvedRole = role || (user?.role === 'admin' ? 'Admin' : user?.role === 'master' ? 'Master' : user?.role ? 'Customer' : null);
+  const handleLogout = () => {
+    onLogout?.();
+    if (isAuthenticated) logout();
+  };
+
+  const renderSearchDropdown = () => {
+    if (!isSearchFocused) return null;
+
+    return (
+      <div
+        onMouseDown={(event) => event.preventDefault()}
+        style={{
+          boxShadow: '0 22px 46px color-mix(in srgb, var(--color-primary) 18%, transparent)',
+        }}
+        className="absolute left-0 right-0 top-full mt-2 bg-white border border-[color-mix(in_srgb,var(--color-primary)_18%,white)] rounded-2xl z-[120] overflow-hidden"
+      >
+        <div className="max-h-[70vh] overflow-y-auto overscroll-contain py-2">
+          {isSearchLoading && (
+            <div className="px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {t.searchLoading}
+            </div>
+          )}
+
+          {!isSearchLoading && hasTypedSearch && !hasSearchResults && (
+            <div className="px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {t.searchNoResults}
+            </div>
+          )}
+
+          {(searchResults?.products?.items?.length || 0) > 0 && (
+            <div className="py-2">
+              <div className="px-5 pb-2 flex items-center justify-between gap-3">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.products}</span>
+                <button
+                  onClick={handleSearchSubmit}
+                  className="text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700"
+                >
+                  {searchResults?.products?.totalCount || 0} {t.resultsCount}
+                </button>
+              </div>
+              {searchResults.products.items.map((product: any) => (
+                <button
+                  key={product.id}
+                  onClick={() => {
+                    closeSearch();
+                    handleItemClick('product-detail', String(product.id));
+                  }}
+                  className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-emerald-50 transition-colors"
+                >
+                  <img
+                    src={product.productImage?.[0] || '/volt-logo.png'}
+                    alt={product.productName}
+                    className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100"
+                  />
+                  <span className="text-[11px] font-bold text-slate-700 line-clamp-2">{product.productName}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(searchResults?.categories?.length || 0) > 0 && (
+            <div className="py-2 border-t border-slate-50">
+              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.productCategories}</div>
+              {searchResults.categories.map((category: any) => (
+                <button
+                  key={`${category.type}-${category.productCategoryId}-${category.productSubCategoryId || 'all'}`}
+                  onClick={() => {
+                    closeSearch();
+                    handleItemClick('products', undefined, {
+                      category: category.productCategoryId,
+                      subCategory: category.productSubCategoryId,
+                    });
+                  }}
+                  className="w-full px-5 py-2 text-left text-[11px] font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(searchResults?.services?.length || 0) > 0 && (
+            <div className="py-2 border-t border-slate-50">
+              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.servicesGroup}</div>
+              {searchResults.services.map((service: any) => (
+                <button
+                  key={service.id}
+                  onClick={() => {
+                    closeSearch();
+                    handleItemClick('services', undefined, { service: service.id });
+                  }}
+                  className="w-full px-5 py-2 text-left hover:bg-emerald-50 transition-colors"
+                >
+                  <span className="block text-[11px] font-bold text-slate-700">{service.title}</span>
+                  {service.description && <span className="block text-[9px] text-slate-400 line-clamp-1">{service.description}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {usefulPages.length > 0 && (
+            <div className="py-2 border-t border-slate-50">
+              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.usefulInfo}</div>
+              {usefulPages.map((page: any, index: number) => (
+                <button
+                  key={`${page.page}-${page.id || index}`}
+                  onClick={() => {
+                    closeSearch();
+                    handleItemClick(page.page);
+                  }}
+                  className="w-full px-5 py-2 text-left hover:bg-emerald-50 transition-colors"
+                >
+                  <span className="block text-[11px] font-bold text-slate-700">{page.title}</span>
+                  {page.description && <span className="block text-[9px] text-slate-400 line-clamp-1">{page.description}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const getLinkClass = (page: string, isDropdown?: boolean) => {
@@ -196,7 +474,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             <div className="flex items-center gap-3 md:gap-6">
               {/* Mobile Search Toggle */}
               <button
-                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                onClick={() => {
+                  if (isMobileSearchOpen) {
+                    resetMobileSearch();
+                  } else {
+                    setIsMobileSearchOpen(true);
+                  }
+                }}
                 aria-label={t.search}
                 className="lg:hidden p-1 text-slate-500 hover:text-emerald-600 transition-all"
               >
@@ -223,37 +507,44 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <input
                 type="text"
                 placeholder="Axtarış..."
-                className="w-full h-12 px-6 pr-12 rounded-full border-2 border-emerald-600/20 focus:border-emerald-600 outline-none transition-all text-sm font-medium bg-white shadow-sm"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
+                onKeyDown={handleSearchKeyDown}
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)',
+                  boxShadow: '0 10px 26px color-mix(in srgb, var(--color-primary) 18%, transparent)',
+                }}
+                className="w-full h-12 px-6 pr-12 rounded-full border-2 focus:border-[var(--color-primary)] outline-none transition-all text-sm font-medium bg-white"
               />
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 hover:scale-110 transition-transform">
+              <button onClick={handleSearchSubmit} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-primary)] hover:scale-110 transition-transform">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
+              {renderSearchDropdown()}
             </div>
 
-            {/* Eco-Contribution Counter */}
-            <div className="hidden xl:flex items-center gap-6 border-l border-gray-100 pl-6">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-3 text-emerald-700">
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Eko-Töhfə Sayğacı</span>
-                </div>
-                <div className="flex items-center gap-3 text-black">
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest flex items-baseline gap-1">
-                    <span>Qənaət edilən CO<sub className="bottom-0">2</sub>:</span>
-                    <span className="text-emerald-600 tabular-nums text-sm tracking-normal normal-case ml-1">{co2Saved.toFixed(3)}</span>
-                    <span className="text-black text-[10px]">Ton</span>
+            <div className="hidden xl:flex items-center border-l border-gray-100 pl-4 max-w-[430px] 2xl:max-w-[520px]">
+              <p className="relative m-0 pl-7 text-left">
+                <span className="absolute left-0 top-0.5 flex h-5 w-5 items-center justify-center text-[rgb(179_211_69)]" aria-hidden="true">
+                  <span className="absolute h-3.5 w-3.5 rounded-full bg-[rgb(179_211_69_/_0.18)]"></span>
+                  <svg className="relative h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3.25" stroke="currentColor" strokeWidth="2" />
+                    <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <span className="block text-[13.5px] font-bold leading-5 text-emerald-700 2xl:text-[15px] 2xl:leading-6">
+                  {verseQuote}
+                  <span className="ml-1.5 whitespace-nowrap align-baseline text-[10px] font-black tracking-widest text-slate-400 2xl:text-[11px]">
+                    78:13
                   </span>
-                </div>
-              </div>
+                </span>
+                <span
+                  className="volt-verse-line mt-1 block h-px w-24"
+                ></span>
+              </p>
             </div>
 
             {/* Action Buttons */}
@@ -295,7 +586,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
               {/* User / Login & Languages - Desktop Only */}
               <div className=" flex items-center gap-4 border-l border-slate-200 pl-4">
-                {isAuthenticated ? (
+                {isSignedIn ? (
                   <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
                     <button className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -304,11 +595,15 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     </button>
                     {activeDropdown === 'profile' && (
                       <div className="absolute top-full right-0 w-48 bg-white shadow-2xl border-t-2 border-emerald-500 py-0 z-[100] rounded-b-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                        <DropdownItem
-                          label={role === 'Admin' ? 'Admin Panel' : 'Profil'}
-                          onClick={() => handleItemClick(role === 'Admin' ? 'admin-dashboard' : role === 'Master' ? 'pro-club-dashboard' : 'customer-dashboard')}
-                        />
-                        <button onClick={logout} className="w-full text-left px-6 py-4 text-[10px] font-black text-red-500 hover:bg-red-50 transition-all uppercase tracking-widest">{t.logout}</button>
+                        {resolvedRole === 'Admin' ? (
+                          <DropdownItem label="Admin Panel" onClick={() => handleItemClick('admin-dashboard')} />
+                        ) : (
+                          <>
+                            <DropdownItem label={t.myProfile} onClick={() => handleItemClick(resolvedRole === 'Master' ? 'pro-club-dashboard' : 'customer-dashboard', undefined, { tab: 'profile' })} />
+                            <DropdownItem label={t.myOrders} onClick={() => handleItemClick('customer-dashboard', undefined, { tab: 'orders' })} />
+                          </>
+                        )}
+                        <button onClick={handleLogout} className="w-full text-left px-6 py-4 text-[10px] font-black text-red-500 hover:bg-red-50 transition-all uppercase tracking-widest">{t.logout}</button>
                       </div>
                     )}
                   </div>
@@ -361,13 +656,23 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 type="text"
                 placeholder="Axtarış..."
                 autoFocus
-                className="w-full h-10 px-4 pr-10 rounded-full border-2 border-emerald-600/20 focus:border-emerald-600 outline-none text-xs font-medium bg-gray-50"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
+                onKeyDown={handleSearchKeyDown}
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)',
+                  boxShadow: '0 8px 22px color-mix(in srgb, var(--color-primary) 14%, transparent)',
+                }}
+                className="w-full h-10 px-4 pr-10 rounded-full border-2 focus:border-[var(--color-primary)] outline-none text-xs font-medium bg-gray-50"
               />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600">
+            <button onClick={handleSearchSubmit} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)]">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
+            {renderSearchDropdown()}
           </div>
         </div>
       )}
@@ -377,14 +682,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-xl z-[60] py-4 px-6 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300 max-h-[calc(100vh-80px)] overflow-y-auto overscroll-contain">
           <button onClick={() => handleItemClick('home')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.home}</button>
 
-          <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
           <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
 
           {/* VOLT Mobile Dropdown */}
           <div className="flex flex-col border-b border-gray-50">
             <button
               onClick={() => toggleMobileSubMenu('volt')}
-              className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-emerald-600"
+              className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-600"
             >
               <span>{t.volt}</span>
               <svg className={`w-4 h-4 transition-transform ${openMobileSubMenu === 'volt' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
@@ -392,6 +696,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {openMobileSubMenu === 'volt' && (
               <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {/* <button onClick={() => handleItemClick('projects')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.projects}</button> */}
+                <button onClick={() => handleItemClick('about')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.about}</button>
                 <button onClick={() => handleItemClick('news')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.news}</button>
                 {/* <button onClick={() => handleItemClick('reels')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.reels}</button> */}
                 <button onClick={() => handleItemClick('blog')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.blog}</button>
@@ -406,7 +711,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-600"
             >
               <span>{t.products}</span>
-              <svg className={`w-4 h-4 text-[var(--color-primary)] transition-transform ${openMobileSubMenu === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+              <svg className={`w-4 h-4 text-slate-400 transition-transform ${openMobileSubMenu === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {openMobileSubMenu === 'products' && (
               <div className="flex flex-col gap-4 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
@@ -415,7 +720,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     <div className="flex items-center justify-between gap-2">
                       <button
                         onClick={() => handleItemClick("products", undefined, { category: category.id })}
-                        className="flex-1 text-left text-[9px] font-black uppercase tracking-widest text-emerald-600"
+                        className="flex-1 text-left text-[9px] font-black uppercase tracking-widest text-slate-500"
                       >
                         {getItemName(category)}
                       </button>
@@ -426,14 +731,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                           getSubCategories(category.id);
                           setActiveCategoryId(activeCategoryId === category.id ? null : category.id);
                         }}
-                        className="p-1.5 text-[var(--color-primary)]"
+                        className="p-1.5 text-slate-400"
                       >
                         <svg className={`h-3 w-3 transition-transform ${activeCategoryId === category.id ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
                       </button>
                     </div>
 
                     {activeCategoryId === category.id && (
-                      <div className="flex flex-col gap-1.5 pl-3 border-l border-emerald-100">
+                      <div className="flex flex-col gap-1.5 pl-3 border-l border-slate-100">
                         {subcategories.map((sub: any) => (
                           <button
                             key={sub.id}
@@ -443,7 +748,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                                 subCategory: sub.id,
                               })
                             }
-                            className="text-left text-[8px] font-bold uppercase tracking-widest text-slate-400 hover:text-[var(--color-primary)]"
+                            className="text-left text-[8px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600"
                           >
                             {getItemName(sub)}
                           </button>
@@ -483,7 +788,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           {/* User / Login & Languages - mobile Only */}
           <div className=" flex items-center justify-between gap-2 ">
-            {isAuthenticated ? (
+            {isSignedIn ? (
               <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
                 <button className="flex items-center gap-1.5 pr-2 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -493,23 +798,32 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {activeDropdown === 'profile' && (
   <div className="absolute top-0 left-full flex bg-white shadow-2xl border-l-2 border-emerald-500 z-[100] rounded-r-2xl overflow-hidden animate-in slide-in-from-left-2 duration-200">
     
-    <button
-      onClick={() =>
-        handleItemClick(
-          role === 'Admin'
-            ? 'admin-dashboard'
-            : role === 'Master'
-            ? 'pro-club-dashboard'
-            : 'customer-dashboard'
-        )
-      }
-      className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
-    >
-      {role === 'Admin' ? 'Admin Panel' : 'Profil'}
-    </button>
+    {resolvedRole === 'Admin' ? (
+      <button
+        onClick={() => handleItemClick('admin-dashboard')}
+        className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+      >
+        Admin Panel
+      </button>
+    ) : (
+      <>
+        <button
+          onClick={() => handleItemClick(resolvedRole === 'Master' ? 'pro-club-dashboard' : 'customer-dashboard', undefined, { tab: 'profile' })}
+          className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+        >
+          {t.myProfile}
+        </button>
+        <button
+          onClick={() => handleItemClick('customer-dashboard', undefined, { tab: 'orders' })}
+          className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+        >
+          {t.myOrders}
+        </button>
+      </>
+    )}
 
     <button
-      onClick={logout}
+      onClick={handleLogout}
       className="px-6 py-4 text-[10px] font-black text-red-500 hover:bg-red-50 uppercase tracking-widest whitespace-nowrap"
     >
       {t.logout}
@@ -563,11 +877,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
 
       {/* Desktop Navigation */}
-      <nav className="hidden lg:flex w-full px-2 md:px-4 items-center justify-center bg-white shadow-sm border-t border-gray-50 h-14">
+      <nav
+        className="hidden lg:flex w-full h-14 px-2 md:px-4 items-center justify-center bg-white shadow-sm border-t border-gray-50 overflow-visible"
+      >
         <div className="flex items-center gap-6 lg:gap-8 whitespace-nowrap">
           <button onClick={() => handleItemClick('home')} className={getLinkClass('home')}>{t.home}</button>
 
-          <button onClick={() => handleItemClick('about')} className={getLinkClass('about')}>{t.about}</button>
           <button onClick={() => handleItemClick('services')} className={getLinkClass('services')}>{t.services}</button>
 
           {/* VOLT Dropdown */}
@@ -579,6 +894,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {activeDropdown === 'volt' && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
                 {/* <DropdownItem label={t.projects} onClick={() => handleItemClick('projects')} /> */}
+                <DropdownItem label={t.about} onClick={() => handleItemClick('about')} />
                 <DropdownItem label={t.news} onClick={() => handleItemClick('news')} />
                 {/* <DropdownItem label={t.reels} onClick={() => handleItemClick('reels')} /> */}
                 <DropdownItem label={t.blog} onClick={() => handleItemClick('blog')} />
@@ -701,12 +1017,20 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         isOpen={modalType === 'register'}
         onClose={() => setModalType('none')}
         lang={currentLang === 'az' ? 'az' : 'en'}
+        onRegisterSuccess={(nextUser) => {
+          onLogin?.(nextUser);
+          setModalType('none');
+        }}
       />
       <LoginModal
         isOpen={modalType === 'login'}
         onClose={() => setModalType('none')}
         onSwitchToRegister={() => setModalType('register')}
         lang={currentLang === 'az' ? 'az' : 'en'}
+        onCustomerLogin={(nextUser) => {
+          onLogin?.(nextUser);
+          setModalType('none');
+        }}
       />
     </header>
   );

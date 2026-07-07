@@ -1,14 +1,31 @@
-import PrivacyPolicy from "@/components/PrivacyPolicy";
-import { SERVFAIL } from "dns";
+const resolveApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) {
+      return "http://localhost:5001/api/";
+    }
+  }
+  return "https://test.api.volt.az/api/";
+};
 
-
-const URL = "https://test.api.volt.az/api/";
+const API_BASE_URL = resolveApiBaseUrl();
+const URL = API_BASE_URL.endsWith("/") ? API_BASE_URL : `${API_BASE_URL}/`;
 // const URL = "https://api.volt.az/api/" # DO NOT USE THIS URL, IT IS FOR PREPROD ENVIRONMENT
-
+// const URL = "https://test.api.volt.az/api/"
 
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${URL}AdminAuth/login`,
+    CUSTOMER_LOGIN: `${URL}CustomerAuth/login`,
+    CUSTOMER_REGISTER: `${URL}CustomerAuth/register`,
+    CUSTOMER_ME: `${URL}CustomerAuth/me`,
+    GOOGLE_LOGIN: `${URL}CustomerAuth/social/google`,
+    APPLE_LOGIN: `${URL}CustomerAuth/social/apple`,
+    PASSKEY_REGISTER_OPTIONS: `${URL}CustomerAuth/passkeys/register/options`,
+    PASSKEY_REGISTER_COMPLETE: `${URL}CustomerAuth/passkeys/register/complete`,
+    PASSKEY_LOGIN_OPTIONS: `${URL}CustomerAuth/passkeys/login/options`,
+    PASSKEY_LOGIN_COMPLETE: `${URL}CustomerAuth/passkeys/login/complete`,
   },
   ABOUT: {
     GET_ABOUT: `${URL}Abouts`,
@@ -60,11 +77,29 @@ export const API_ENDPOINTS = {
     DELETE_SERVICE: (id: string) => `${URL}ServicesManagement/${id}`,
     GET_ID_SERVICE: (id: string) => `${URL}ServicesManagement/${id}`,
   },
+  SEARCH: {
+    GET_SEARCH: (query: string, productLimit = 6) => {
+      const params = new URLSearchParams();
+      params.append("Query", query);
+      params.append("ProductLimit", String(productLimit));
+      return `${URL}Search?${params.toString()}`;
+    },
+  },
   SERVICE_REQUEST: {
     GET_SERVICE_REQUEST:  (status?: string) =>`${URL}ServiceRequests${status ? `?status=${status}` : ''}`,
     CREATE_SERVICE_REQUEST: `${URL}ServiceRequests`,
     UPDATE_SERVICE_STATUS: (id: string) => `${URL}ServiceRequests/status?id=${id}`,
     GET_ID_SERVICE_REQUEST: (id: string) => `${URL}ServiceRequests/${id}`,
+  },
+  ORDER: {
+    GET_ORDERS: (status?: string) => `${URL}Orders${status ? `?status=${status}` : ''}`,
+    GET_MY_ORDERS: `${URL}Orders/my`,
+    CREATE_ORDER: `${URL}Orders`,
+    GET_ORDER: (id: string | number) => `${URL}Orders/${id}`,
+    LOOKUP_ORDER: (orderNumber: string, email: string) =>
+      `${URL}Orders/lookup?orderNumber=${encodeURIComponent(orderNumber)}&email=${encodeURIComponent(email)}`,
+    UPDATE_ORDER_STATUS: (id: string | number) => `${URL}Orders/status?id=${id}`,
+    MARK_ORDER_VIEWED: (id: string | number) => `${URL}Orders/${id}/viewed`,
   },
   CATEGORY: {
     GET_CATEGORY: `${URL}ProductCategories`,
@@ -109,7 +144,9 @@ export const API_ENDPOINTS = {
   initialCategory?: number,
   initialSubCategory?: number,
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  search?: string,
+  stockStatus?: string
 ) => {
   const params = new URLSearchParams();
 
@@ -127,6 +164,14 @@ export const API_ENDPOINTS = {
 
   if (pageSize !== undefined) {
     params.append("PageSize", String(pageSize));
+  }
+
+  if (search?.trim()) {
+    params.append("Search", search.trim());
+  }
+
+  if (stockStatus?.trim() && stockStatus !== "All") {
+    params.append("StockStatus", stockStatus);
   }
 
   return `${URL}Products${
@@ -162,10 +207,10 @@ export const API_ENDPOINTS = {
   }`;
 },
     CREATE_PRODUCT: `${URL}Products`,
-    UPDATE_PRODUCT: (id: string) => `${URL}Products/${id}`,
-    DELETE_PRODUCT: (id: string) => `${URL}Products/${id}`,
+    UPDATE_PRODUCT: (id: string | number) => `${URL}Products/${id}`,
+    DELETE_PRODUCT: (id: string | number) => `${URL}Products/${id}`,
     SHOW_PRODUCT: `${URL}Products/ShowHomePage`,
-    GET_ID_PRODUCT: (id: string) => `${URL}Products/${id}`,
+    GET_ID_PRODUCT: (id: string | number) => `${URL}Products/${id}`,
     GET_PRODUCT_COUNT: `${URL}Products/ShowHomePageProductCount`,
   },
   CONTACT_REQUEST:{
@@ -192,6 +237,19 @@ export const API_ENDPOINTS = {
     CREATE_PARTNERSHIP_REQUEST: `${URL}PartnershipRequests`,
     GET_ID_PARTNERSHIP_REQUEST: (id: string) => `${URL}PartnershipRequests/${id}`,
     UPDATE_PARTNERSHIP_REQUEST: (id: string | number) => `${URL}PartnershipRequests/status?id=${id}`,
+  },
+  SOLAR_ANALYTICS: {
+    SEARCH_PROJECTS: (query?: string) => `${URL}SolarAnalytics/projects${query ? `?query=${encodeURIComponent(query)}` : ''}`,
+    ADMIN_DOCX_EXPORT: `${URL}SolarAnalytics/admin/docx-export`,
+    ADMIN_PDF_EXPORT: `${URL}SolarAnalytics/admin/pdf-export`,
+    PUBLIC_CALCULATION: `${URL}SolarAnalytics/public/calculation`,
+    PUBLIC_WHATSAPP_CLICK: `${URL}SolarAnalytics/public/whatsapp-click`,
+    DASHBOARD: (from?: string, to?: string) => {
+      const params = new URLSearchParams();
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+      return `${URL}SolarAnalytics/dashboard${params.toString() ? `?${params.toString()}` : ''}`;
+    },
   }
 
 };

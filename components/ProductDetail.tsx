@@ -13,10 +13,11 @@ interface ProductDetailProps {
   onBack: () => void;
   onOrderNow: (id: string, quantity: number, power: string) => void;
   onAddToCart: (id: string, quantity: number, power: string) => void;
+  cartPreview?: React.ReactNode;
   lang?: 'az' | 'en' | 'ru' | 'tr';
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, lang }) => {
+const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, cartPreview, lang }) => {
   const { getProductById } = useProduct();
   const { getBrandById, getTechnologyById } = useCategory();
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const [downPayment, setDownPayment] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState('');
+  const [hoverPreviewImage, setHoverPreviewImage] = useState('');
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [showMobileFloatingActions, setShowMobileFloatingActions] = useState(false);
@@ -71,6 +73,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
   useEffect(() => {
     setIsDescriptionExpanded(false);
+    setSelectedVariantIndex(0);
+    setActiveImage('');
+    setHoverPreviewImage('');
   }, [id]);
 
   useEffect(() => {
@@ -136,15 +141,21 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     const rawDescription = translation?.description || translation?.features || product.productName || 'Volt.az məhsul məlumatları.';
     const productDescriptionMeta = String(rawDescription).replace(/\s+/g, ' ').trim().slice(0, 155);
     const canonicalUrl = `https://volt.az/product/${product.id || id}`;
+    const toAbsoluteUrl = (value: string) => {
+      if (!value) return 'https://volt.az/volt-logo.png';
+      if (/^https?:\/\//i.test(value)) return value;
+      return value.startsWith('/') ? `https://volt.az${value}` : `https://volt.az/${value}`;
+    };
     const productImage = Array.isArray(product.productImage) && product.productImage[0]
       ? product.productImage[0]
-      : 'https://volt.az/volt-logo.png';
+      : '/volt-logo.png';
     const adminIdentifier = String(product.id || id || '').trim();
-    const firstVariant = Array.isArray(product.productParametrs) ? product.productParametrs[0] : null;
-    const priceValue = Number(firstVariant?.amount || product.price || 0);
-    const schemaImage = String(productImage).startsWith('/')
-      ? `https://volt.az${productImage}`
-      : productImage;
+    const firstPricedVariant = Array.isArray(product.productParametrs)
+      ? product.productParametrs.find((item: any) => Number(item?.amount) > 0)
+      : null;
+    const priceValue = Number(firstPricedVariant?.amount || product.price || 0);
+    const absoluteProductImage = toAbsoluteUrl(String(productImage));
+    const schemaImage = absoluteProductImage;
 
     const setMeta = (selector: string, attr: 'content' | 'href', value: string) => {
       const element = document.head.querySelector(selector);
@@ -158,10 +169,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     setMeta('meta[property="og:title"]', 'content', productTitle);
     setMeta('meta[property="og:description"]', 'content', productDescriptionMeta);
     setMeta('meta[property="og:url"]', 'content', canonicalUrl);
-    setMeta('meta[property="og:image"]', 'content', productImage);
+    setMeta('meta[property="og:type"]', 'content', 'product');
+    setMeta('meta[property="og:image"]', 'content', absoluteProductImage);
     setMeta('meta[property="twitter:title"]', 'content', productTitle);
     setMeta('meta[property="twitter:description"]', 'content', productDescriptionMeta);
-    setMeta('meta[property="twitter:image"]', 'content', productImage);
+    setMeta('meta[property="twitter:image"]', 'content', absoluteProductImage);
     setMeta('link[rel="canonical"]', 'href', canonicalUrl);
 
     const productJsonLd = {
@@ -180,8 +192,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         '@type': 'Offer',
         url: canonicalUrl,
         priceCurrency: 'AZN',
-        price: priceValue > 0 ? priceValue : undefined,
-        availability: product.inStock ? 'https://schema.org/PreOrder' : 'https://schema.org/InStock',
+        price: priceValue > 0 ? String(priceValue) : undefined,
+        availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
         itemCondition: 'https://schema.org/NewCondition',
       },
     };
@@ -227,6 +239,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const productDescription = currentTranslation?.description || "";
   const productFeatures = currentTranslation?.features || "";
 
+  const toProductNumber = (value: unknown) => Number(value || 0);
+  const toVariantStatus = (item: any): ProductVariant & { hasVariantPrice: boolean; hasVariantStock: boolean; isPurchasable: boolean } => {
+    const count = toProductNumber(item?.count);
+    const amount = toProductNumber(item?.amount);
+
+    return {
+      technicalPower: item?.technicalPower || '',
+      effectiveness: item?.effectiveness || '',
+      count,
+      amount,
+      hasVariantPrice: amount > 0,
+      hasVariantStock: Boolean(product.inStock && count > 0),
+      isPurchasable: Boolean(product.inStock && count > 0 && amount > 0),
+    };
+  };
+
 
 
   // const allVariants: ProductVariant[] = [
@@ -240,13 +268,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
 
   // const currentVariant = allVariants[selectedVariantIndex];
-  const allVariants: ProductVariant[] =
-    product.productParametrs?.map((item) => ({
-      technicalPower: item.technicalPower || '',
-      effectiveness: item.effectiveness || '',
-      count: item.count || 0,
-      amount: item.amount || 0,
-    })) || [];
+  const variantsByStatus = (product.productParametrs || []).map(toVariantStatus);
+  const availableVariants = variantsByStatus.filter((variant) => variant.isPurchasable);
+  const unavailableVariants = variantsByStatus.filter((variant) => !variant.isPurchasable);
+  const allVariants = [...availableVariants, ...unavailableVariants];
 
   const currentVariant = allVariants[selectedVariantIndex] || allVariants[0] || {
     technicalPower: '',
@@ -257,9 +282,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
   const currentPrice = currentVariant?.amount;
   const currentCount= currentVariant?.count
+  const hasPrice = Number(currentPrice || 0) > 0;
+  const hasStock = Boolean(product.inStock && Number(currentCount || 0) > 0);
   const currentPower = (currentVariant?.technicalPower || '').trim();
   const currentEfficiency = currentVariant?.effectiveness || '';
   const hasTechnicalPower = Boolean(currentPower && currentPower !== '0');
+  const hasAnyTechnicalPower = allVariants.some((variant) => {
+    const power = (variant.technicalPower || '').trim();
+    return power && power !== '0';
+  });
   const hasEfficiency = Boolean(currentEfficiency && currentEfficiency !== '0');
   const datasheetItems = Array.isArray(product.productDatasheet)
     ? product.productDatasheet.filter((item: string) => typeof item === 'string' && item.trim())
@@ -332,6 +363,30 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         lang === 'ru' ? 'Заказать' :
           lang === 'tr' ? 'Sipariş ver' :
             'Order now',
+
+    requestPrice:
+      lang === 'az' ? 'Qiymət təklifi al' :
+        lang === 'ru' ? 'Запросить цену' :
+          lang === 'tr' ? 'Fiyat teklifi al' :
+            'Request price',
+
+    outOfStock:
+      lang === 'az' ? 'Stokda yoxdur' :
+        lang === 'ru' ? 'Нет в наличии' :
+          lang === 'tr' ? 'Stokta yok' :
+            'Out of stock',
+
+    availableVariants:
+      lang === 'az' ? 'Stokda və qiymətli' :
+        lang === 'ru' ? 'В наличии с ценой' :
+          lang === 'tr' ? 'Stokta ve fiyatlı' :
+            'In stock with price',
+
+    unavailableVariants:
+      lang === 'az' ? 'Stokda yoxdur / qiymətsiz' :
+        lang === 'ru' ? 'Нет в наличии / без цены' :
+          lang === 'tr' ? 'Stokta yok / fiyatsız' :
+            'Out of stock / no price',
 
     buyCredit:
       lang === 'az' ? 'Kreditlə al' :
@@ -439,8 +494,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const remainingAmount = Math.max(0, currentPrice - downPayment);
   const monthlyPayment = (remainingAmount / months).toFixed(2);
   const truncateText = (value: string, limit: number) => value.length > limit ? `${value.slice(0, limit).trim()}…` : value;
+  const primaryImage = product.productImage?.[0] || '/volt-logo.png';
+  const displayImage = hoverPreviewImage || activeImage || primaryImage;
   const handleOrderNow = () => onOrderNow(product.id, quantity, currentPower);
   const handleAddToCart = () => onAddToCart(product.id, quantity, currentPower);
+  const primaryActionLabel = !hasPrice ? t.requestPrice : !hasStock ? t.outOfStock : t.orderNow;
   const productActionControls = (compact = false) => (
     <>
       <div className={`product-quantity-control ${compact ? 'product-quantity-control--compact' : ''}`}>
@@ -474,18 +532,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         className="product-order-button"
       >
         <PackageCheck className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
-        {t.orderNow}
+        {primaryActionLabel}
       </button>
       <button
         type="button"
         onClick={handleAddToCart}
+        disabled={!hasPrice || !hasStock}
         className="product-cart-button"
         title={t.addToCart}
         aria-label={t.addToCart}
       >
         <ShoppingCart className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
-        <span className="hidden sm:inline">{t.addToCart}</span>
+        <span className="product-cart-button__label">{t.addToCart}</span>
       </button>
+      {!compact && <div className="hidden sm:block">{cartPreview}</div>}
     </>
   );
 
@@ -547,7 +607,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         <div ref={productShellRef} className="grid grid-cols-1 lg:grid-cols-[45%_1fr] gap-12 lg:gap-20">
           <div className="space-y-6">
             <div className="relative aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-gray-50 border border-gray-100 p-6 shadow-inner group">
-              <img src={activeImage || product.productImage?.[0]} alt={product.productName} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
+              <img src={displayImage} alt={product.productName} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
               <div className="absolute right-4 top-4 z-20">
                 <Share lang={lang} variant="image-mobile" />
               </div>
@@ -558,7 +618,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
                   <div
                     key={i}
                     onClick={() => setActiveImage(img)}
-                    className={`aspect-[4/3] bg-gray-50 rounded-xl border overflow-hidden cursor-pointer transition-all ${activeImage === img ? 'border-emerald-500 ring-2 ring-emerald-500/20 opacity-100' : 'border-gray-100 opacity-50 hover:opacity-100'}`}
+                    onMouseEnter={() => {
+                      if (i > 0) setHoverPreviewImage(img);
+                    }}
+                    onMouseLeave={() => {
+                      if (i > 0) setHoverPreviewImage('');
+                    }}
+                    className={`aspect-[4/3] bg-gray-50 rounded-xl border overflow-hidden cursor-pointer transition-all ${(hoverPreviewImage || activeImage || primaryImage) === img ? 'border-emerald-500 ring-2 ring-emerald-500/20 opacity-100' : 'border-gray-100 opacity-50 hover:opacity-100'}`}
                   >
                     <img src={img} className="w-full h-full object-cover" alt={`view ${i + 1}`} />
                   </div>
@@ -575,14 +641,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
               <div className="text-emerald-600 font-black uppercase tracking-widest text-xs mb-3">{product.brand}</div>
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-6">{product.productName}</h1>
               <div className="flex items-center gap-4 mb-8">
-                {currentPrice !== 0 && (
+                {hasPrice && (
                   <span className="text-2xl font-black text-emerald-600">{currentPrice} AZN</span>)}
-                {product.inStock ? (
-                  <span className="bg-[color-mix(in_srgb,var(--color-primary)_10%,white)] text-[var(--color-dark)] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{t.onOrder}</span>
-                ) : (
+                {hasStock ? (
                   <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                     {t.stock} ({currentCount})
                   </span>
+                ) : (
+                  <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{t.outOfStock}</span>
                 )}
               </div>
               <div ref={descriptionRef} className="mb-2">
@@ -611,7 +677,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-6">
 
-              {hasTechnicalPower && (
+              {hasAnyTechnicalPower && (
               allVariants.length > 1 ? (
                 <div className="p-2 md:p-3 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -637,10 +703,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         focus:border-slate-300
       "
                     >
-                      {allVariants.map((variant, index) => {
+                      {availableVariants.length > 0 && unavailableVariants.length > 0 && (
+                        <option disabled>{t.availableVariants}</option>
+                      )}
+                      {availableVariants.map((variant, index) => {
                         const optionPower = (variant.technicalPower || '').trim();
                         return optionPower ? (
-                          <option key={index} value={index}>
+                          <option key={`available-${index}`} value={index}>
+                            {optionPower}
+                          </option>
+                        ) : null;
+                      })}
+                      {unavailableVariants.length > 0 && (
+                        <option disabled>{t.unavailableVariants}</option>
+                      )}
+                      {unavailableVariants.map((variant, index) => {
+                        const optionPower = (variant.technicalPower || '').trim();
+                        const variantIndex = availableVariants.length + index;
+                        return optionPower ? (
+                          <option key={`unavailable-${index}`} value={variantIndex}>
                             {optionPower}
                           </option>
                         ) : null;
@@ -813,6 +894,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
           className={`product-floating-actions sm:hidden ${showMobileFloatingActions ? 'product-floating-actions--visible' : ''}`}
           aria-hidden={!showMobileFloatingActions}
         >
+          <div className="product-floating-actions__preview">
+            {cartPreview}
+          </div>
           {productActionControls(true)}
         </div>
 

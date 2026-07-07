@@ -6,8 +6,9 @@ interface LanguageItem {
   languageCode: number;
   title: string;
   description: string;
-  location1: string;
-  location2: string;
+  location?: string;
+  location1?: string;
+  location2?: string;
 }
 
 interface ProjectPayload {

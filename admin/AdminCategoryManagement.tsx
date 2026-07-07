@@ -3,9 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, Trash2, Check, X } from "lucide-react";
 import { useNotification } from '../contexts/NotificationContext';
 import { useCategory } from '../contexts/CategoryContext';
-import { g } from 'motion/react-client';
+import { DEFAULT_CATEGORY_CONFIG } from '../lib/categoryConfig';
 
 const AdminCategoryManagement: React.FC = () => {
+  const config = DEFAULT_CATEGORY_CONFIG;
   const { showNotification } = useNotification();
   const {
     loading,

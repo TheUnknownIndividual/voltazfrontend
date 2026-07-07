@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useRef, useState } from "react";
 import useApi from "../hooks/useApi";
 import { API_ENDPOINTS } from "../utils/constants";
 
@@ -8,16 +8,16 @@ interface ProductContextType {
   productHomeData: any;
   productCount: number;
 
-  getProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number) => Promise<any>;
+  getProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number, search?: string, stockStatus?: string) => Promise<any>;
   getHomeProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number) => Promise<any>;
-  getProductById: (id: string) => Promise<any>;
+  getProductById: (id: string | number) => Promise<any>;
   getProductCount: () => Promise<any>;
 
   createProduct: (data: any) => Promise<any>;
-  updateProduct: (id: string, data: any) => Promise<any>;
-  deleteProduct: (id: string) => Promise<any>;
+  updateProduct: (id: string | number, data: any) => Promise<any>;
+  deleteProduct: (id: string | number) => Promise<any>;
 
-  showProductOnHome: (id: string) => Promise<any>;
+  showProductOnHome: (id: string | number, show: boolean) => Promise<any>;
 }
 
 const ProductContext = createContext<ProductContextType | null>(null);
@@ -36,23 +36,33 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const [productData, setProductData] = useState<any>(null);
   const [productHomeData, setProductHomeData] = useState<any>([]);
   const [productCount, setProductCount] = useState<number>(0);
+  const productsRequestIdRef = useRef(0);
 
   // GET all products
   const getProducts = async (
   initialCategory?: number,
   initialSubCategory?: number,
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  search?: string,
+  stockStatus?: string
 ) => {
+    const requestId = productsRequestIdRef.current + 1;
+    productsRequestIdRef.current = requestId;
+
     try {
       const res = await get(API_ENDPOINTS.PRODUCT.GET_PRODUCT(
         initialCategory,
         initialSubCategory,
         page,
-        pageSize
+        pageSize,
+        search,
+        stockStatus
       ));
-      setProductData(res.data);
-      return ;
+      if (requestId === productsRequestIdRef.current) {
+        setProductData(res.data);
+      }
+      return res;
     } catch (error) {
       console.error("Get Products Error:", error);
       throw error;
@@ -88,9 +98,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 
 
   // GET product by id
-  const getProductById = async (id: string) => {
+  const getProductById = async (id: string | number) => {
     try {
-      const res = await get(API_ENDPOINTS.PRODUCT.GET_ID_PRODUCT(id));
+      const res = await get(API_ENDPOINTS.PRODUCT.GET_ID_PRODUCT(String(id)));
       return res;
     } catch (error) {
       console.error("Get Product By ID Error:", error);
@@ -110,9 +120,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // UPDATE product
-  const updateProduct = async (id: string, data: any) => {
+  const updateProduct = async (id: string | number, data: any) => {
     try {
-      const res = await put(API_ENDPOINTS.PRODUCT.UPDATE_PRODUCT(id), data);
+      const res = await put(API_ENDPOINTS.PRODUCT.UPDATE_PRODUCT(String(id)), data);
       return res;
     } catch (error) {
       console.error("Update Product Error:", error);
@@ -121,9 +131,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // DELETE product
-  const deleteProduct = async (id: string) => {
+  const deleteProduct = async (id: string | number) => {
     try {
-      const res = await del(API_ENDPOINTS.PRODUCT.DELETE_PRODUCT(id));
+      const res = await del(API_ENDPOINTS.PRODUCT.DELETE_PRODUCT(String(id)));
       return res;
     } catch (error) {
       console.error("Delete Product Error:", error);
@@ -132,7 +142,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // PUT show on home
- const showProductOnHome = async (id: string, show: boolean) => {
+ const showProductOnHome = async (id: string | number, show: boolean) => {
   try {
     const res = await put(API_ENDPOINTS.PRODUCT.SHOW_PRODUCT, {
       productId: Number(id),

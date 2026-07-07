@@ -10,7 +10,7 @@ interface Slide {
   id: number;
   title: string;
   image: string;
-  mobileImage: string;
+  mobileImage?: string;
   video?: string;
   cta?: string;
   centered?: boolean;
@@ -20,6 +20,25 @@ const slidesAZ: Slide[] = [
   { id: 1, title: "solar enerji",  image: "/sliderphoto.png", mobileImage: "/sliderphotomobile.png" ,cta: "Ətraflı Öyrən", centered: true },
   { id: 2, title: "enerji qənaəti", image: "/sliderphoto2.png",mobileImage: "/sliderphotomobile2.png", cta: "Ətraflı Öyrən", centered: true },
 ];
+
+const normalizeHeroSlides = (value: unknown): Slide[] => {
+  if (!Array.isArray(value)) return slidesAZ;
+
+  const normalized = value
+    .slice(0, 3)
+    .map((slide: any, index) => ({
+      id: Number(slide?.id) || index + 1,
+      title: String(slide?.title || `Slide ${index + 1}`),
+      image: String(slide?.image || '').trim(),
+      mobileImage: String(slide?.mobileImage || '').trim() || undefined,
+      video: String(slide?.video || '').trim() || undefined,
+      cta: slide?.cta,
+      centered: slide?.centered !== false,
+    }))
+    .filter(slide => slide.image);
+
+  return normalized.length > 0 ? normalized : slidesAZ;
+};
 
 const sideSlides = [
   { 
@@ -55,7 +74,7 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
         
         if (savedHero) {
           const parsed = JSON.parse(savedHero);
-          if (Array.isArray(parsed)) setSlides(parsed);
+          setSlides(normalizeHeroSlides(parsed));
         }
         if (savedSide) {
           const parsed = JSON.parse(savedSide);
@@ -63,6 +82,7 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
         }
       } catch (err) {
         console.error('Error loading slider data:', err);
+        setSlides(slidesAZ);
       }
     };
 
@@ -72,8 +92,15 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
   }, []);
 
   const nextSlide = useCallback(() => {
+    if (slides.length === 0) return;
     setCurrent(prev => (prev + 1) % slides.length);
   }, [slides.length]);
+
+  useEffect(() => {
+    if (current >= slides.length) {
+      setCurrent(0);
+    }
+  }, [current, slides.length]);
 
   useEffect(() => {
     const timer = setInterval(nextSlide, 7000);
@@ -99,10 +126,17 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
           return (
             <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === current ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <div className="absolute inset-0  z-10" />
-              {slide.video ? (
+              <picture>
+                {slide.mobileImage && <source media="(max-width: 768px)" srcSet={slide.mobileImage} />}
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </picture>
+              {slide.video && (
                 isYouTube ? (
-                  // <div className="absolute inset-0 w-full h-full overflow-hidden">
-                  <div className="relative w-full aspect-[16/9] overflow-hidden">
+                  <div className="absolute inset-0 w-full h-full overflow-hidden">
                     <iframe
                       src={embedUrl}
                       className={`absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 pointer-events-none transform transition-transform duration-[10000ms] ${index === current ? 'scale-110' : 'scale-100'}`}
@@ -120,17 +154,6 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
                     className={`absolute inset-0 w-full h-full object-cover transform transition-transform duration-[10000ms] ${index === current ? 'scale-110' : 'scale-100'}`}
                   />
                 )
-              ) : (
-              <img
-  // src={slide.image}
-   src={
-    window.innerWidth <= 768 && slide.mobileImage
-      ? slide.mobileImage
-      : slide.image
-  }
-  alt={slide.title}
-  className="absolute inset-0 w-full h-full object-cover"
-/>
               )}
               
               {/* <div className={`absolute inset-0 z-20 flex ${slide.centered ? 'items-center justify-center' : 'items-start pt-24 md:pt-[18vh] lg:pt-[22vh] pb-24 md:pb-32'}`}>

@@ -5,6 +5,8 @@ import { useService } from "../contexts/ServiceContext";
 interface ServicesPageProps {
   lang?: 'az' | 'en' | 'ru' | 'tr';
   onBack?: () => void;
+  initialService?: string | number;
+  focusToken?: string | number;
 }
 
 const languageReverseMap = {
@@ -13,6 +15,8 @@ const languageReverseMap = {
   3: "ru",
   4: "tr",
 } as const;
+
+type LangCode = 'az' | 'en' | 'ru' | 'tr';
 
 export const ICON_MAP = {
   "Günəş": "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z",
@@ -28,7 +32,36 @@ export const ICON_MAP = {
   "Konsultasiya": "M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
 } as const;
 
-const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack }) => {
+const serviceMatchers: Record<string, string[]> = {
+  'smart-meter-monitoring': ['smart', 'saygac', 'inteqrasiya', 'monitorinq', 'meter', 'monitoring'],
+  'finance-credit': ['maliyye', 'kredit', 'helleri', 'credit', 'finance'],
+  'legal-formalization': ['huquqi', 'texniki', 'resmilesdirme', 'legal', 'formalization'],
+  'energy-audit': ['konsultasiya', 'enerji', 'auditi', 'consultation', 'audit'],
+  installation: ['gunes', 'sistemlerinin', 'qurasdirilmasi', 'installation'],
+  'design-roi': ['sistem', 'layihelendirilmesi', 'roi', 'analizi', 'design']
+};
+
+const serviceTargetTitles: Record<string, string[]> = {
+  'design-roi': ['Sistem Layihələndirilməsi və ROI Analizi'],
+  installation: ['Günəş Sistemlərinin Quraşdırılması'],
+  'energy-audit': ['Konsultasiya və Enerji Auditi'],
+  'legal-formalization': ['Hüquqi və Texniki Rəsmiləşdirmə'],
+  'finance-credit': ['Maliyyə və Kredit Həlləri'],
+  'smart-meter-monitoring': ['Smart Sayğac İnteqrasiyası və Monitorinq']
+};
+
+const normalizeServiceText = (value: string) =>
+  value
+    .toLocaleLowerCase('az-AZ')
+    .replace(/ə/g, 'e')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ş/g, 's')
+    .replace(/ç/g, 'c')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u');
+
+const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack, initialService, focusToken }) => {
 
   const {
   services,
@@ -48,6 +81,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'none' | 'success' | 'error'>('none');
+  const [focusedServiceId, setFocusedServiceId] = useState<string | number | null>(null);
 
   const t = {
   serviceType: {
@@ -231,6 +265,48 @@ const handleSubmit = async (e: React.FormEvent) => {
       getServices();
     }, [lang]);
 
+  useEffect(() => {
+    if (!initialService || safeServices.length === 0) return;
+    const initialServiceText = String(initialService);
+    const directMatch = safeServices.find((service) => String(service.id) === initialServiceText);
+    const targetTitles = serviceTargetTitles[initialServiceText] || [];
+    const titleMatch = safeServices.find((service) => {
+      const normalizedTitle = normalizeServiceText(service.title || '');
+      return targetTitles.some((title) => normalizedTitle === normalizeServiceText(title));
+    });
+    const matchers = serviceMatchers[initialServiceText] || [];
+    const scoredMatches = safeServices.map((service) => {
+      const searchableText = normalizeServiceText(
+        [service.title, service.description, service.content1, service.content2, service.content3, service.content4, service.icon]
+          .filter(Boolean)
+          .join(' ')
+      );
+
+      return {
+        service,
+        score: matchers.reduce((sum, keyword) => sum + (searchableText.includes(normalizeServiceText(keyword)) ? 1 : 0), 0)
+      };
+    }).sort((a, b) => b.score - a.score);
+    const keywordMatch = scoredMatches[0]?.score > 0 ? scoredMatches[0].service : undefined;
+    const targetService = directMatch || titleMatch || keywordMatch;
+
+    if (!targetService) return;
+
+    setFocusedServiceId(targetService.id);
+    const clearHighlight = window.setTimeout(() => setFocusedServiceId(null), 3000);
+    const scrollTimer = window.setTimeout(() => {
+      document.getElementById(`service-${targetService.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(clearHighlight);
+      window.clearTimeout(scrollTimer);
+    };
+  }, [initialService, focusToken, services.length, lang]);
+
   return (
     <div className="bg-white min-h-screen">
       <section className="bg-emerald-950 py-4 relative overflow-hidden">
@@ -246,10 +322,17 @@ const handleSubmit = async (e: React.FormEvent) => {
       <section className="py-12 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {safeServices.map((service) => (
+            {safeServices.map((service) => {
+              const isFocused = String(focusedServiceId) === String(service.id);
+              return (
               <div 
                 key={service.id}
-                className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm hover:shadow-2xl hover:border-[var(--color-primary)] transition-all duration-500 flex flex-col group"
+                id={`service-${service.id}`}
+                className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-2xl hover:border-[var(--color-primary)] transition-all duration-500 flex flex-col group ${
+                  isFocused
+                    ? 'bg-emerald-50 border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/30 shadow-2xl shadow-emerald-900/10'
+                    : 'bg-white border-slate-100'
+                }`}
               >
                <div className="mb-6">
   <div className="flex items-center gap-4 mb-3">
@@ -300,7 +383,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Scroll Down Arrow */}

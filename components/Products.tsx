@@ -6,6 +6,12 @@ import ProductCard from './ProductCard';
 import { motion, AnimatePresence } from 'motion/react';
 import { useProduct } from '../contexts/ProductContext';
 
+const DESKTOP_PRODUCTS_QUERY = '(min-width: 1024px)';
+
+const getResponsiveItemsPerPage = () => {
+  if (typeof window === 'undefined') return 4;
+  return window.matchMedia(DESKTOP_PRODUCTS_QUERY).matches ? 4 : 2;
+};
 
 interface ProductsProps {
   onSelectProduct: (id: string) => void;
@@ -16,9 +22,10 @@ interface ProductsProps {
 }
 
 const Products: React.FC<ProductsProps> = ({ onSelectProduct, onViewAll, onOrderNow, onAddToCart, lang = 'az' }) => {
-   const { getHomeProducts, productHomeData } = useProduct();
+  const { getHomeProducts, productHomeData } = useProduct();
   const [startIndex, setStartIndex] = useState(0);
   const [direction, setDirection] = useState(0); 
+  const [itemsPerPage, setItemsPerPage] = useState(getResponsiveItemsPerPage);
    
 useEffect(() => {
   const fetchProducts = async () => {
@@ -33,42 +40,67 @@ useEffect(() => {
   fetchProducts();
 }, []);
 
-  console.log('productHomeData', productHomeData);
-const items = productHomeData?.items || [];
+useEffect(() => {
+  const mediaQuery = window.matchMedia(DESKTOP_PRODUCTS_QUERY);
+  const updateItemsPerPage = () => {
+    setItemsPerPage(mediaQuery.matches ? 4 : 2);
+    setStartIndex(0);
+  };
 
-const itemsPerPage = 4;
+  updateItemsPerPage();
+  mediaQuery.addEventListener('change', updateItemsPerPage);
+
+  return () => mediaQuery.removeEventListener('change', updateItemsPerPage);
+}, []);
+
+  console.log('productHomeData', productHomeData);
+const hasVisiblePrice = (product: Product) =>
+  (product.productParametrs || []).some((param: any) => Number(param?.amount || 0) > 0);
+
+const items = [...(productHomeData?.items || [])].sort((a, b) => {
+  const aHasPrice = hasVisiblePrice(a);
+  const bHasPrice = hasVisiblePrice(b);
+  if (aHasPrice !== bHasPrice) return aHasPrice ? -1 : 1;
+  return Number(b.id || 0) - Number(a.id || 0);
+});
 
 const totalPages = Math.ceil(items.length / itemsPerPage);
 
-const currentPage =
-  Math.floor(startIndex / itemsPerPage) % totalPages;
+const currentPage = totalPages > 0
+  ? Math.floor(startIndex / itemsPerPage) % totalPages
+  : 0;
 
 const productsToShow = items.slice(
   startIndex,
   startIndex + itemsPerPage
 );
 
+const getWrappedIndex = (nextIndex: number) => {
+  if (items.length === 0) return 0;
+  if (nextIndex >= items.length) return 0;
+  if (nextIndex < 0) return Math.max((totalPages - 1) * itemsPerPage, 0);
+  return nextIndex;
+};
+
 useEffect(() => {
   if (items.length <= itemsPerPage) return;
 
   const timer = setInterval(() => {
     setDirection(1);
-    setStartIndex((prev) => (prev + itemsPerPage) % items.length);
+    setStartIndex((prev) => getWrappedIndex(prev + itemsPerPage));
   }, 4000);
 
   return () => clearInterval(timer);
-}, [items.length]);
+}, [items.length, itemsPerPage, totalPages]);
 
 const handleNext = () => {
   setDirection(1);
-  setStartIndex((prev) => (prev + itemsPerPage) % items.length);
+  setStartIndex((prev) => getWrappedIndex(prev + itemsPerPage));
 };
 
  const handlePrev = () => {
   setDirection(-1);
-  setStartIndex(
-    (prev) => (prev - itemsPerPage + items.length) % items.length
-  );
+  setStartIndex((prev) => getWrappedIndex(prev - itemsPerPage));
 };
 
   const variants = {
@@ -144,7 +176,7 @@ const handleNext = () => {
           </AnimatePresence>
         </div>
 
-        {productHomeData.items?.length > 4 && (
+        {items.length > itemsPerPage && (
           <div className="mt-12 flex flex-col items-center gap-8">
             {/* Pagination Dots */}
             <div className="flex gap-2">
@@ -153,7 +185,7 @@ const handleNext = () => {
                   key={i}
                   onClick={() => {
                     setDirection(i > currentPage ? 1 : -1);
-                    setStartIndex(i * 4);
+                    setStartIndex(i * itemsPerPage);
                   }}
                   className={`h-1.5 transition-all rounded-full ${currentPage === i ? 'w-8 bg-emerald-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                 />

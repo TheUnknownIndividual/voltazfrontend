@@ -55,6 +55,158 @@ const languageMap = {
 
 type LangCode = typeof LANGUAGES[number]['code'];
 
+const BACKGROUND_COLOR_DISTANCE = 46;
+const BACKGROUND_EDGE_DISTANCE = 58;
+
+const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Image could not be loaded"));
+    };
+
+    image.src = objectUrl;
+  });
+};
+
+const colorDistance = (data: Uint8ClampedArray, index: number, color: [number, number, number]) => {
+  const r = data[index] - color[0];
+  const g = data[index + 1] - color[1];
+  const b = data[index + 2] - color[2];
+  return Math.sqrt(r * r + g * g + b * b);
+};
+
+const isNearWhite = (data: Uint8ClampedArray, index: number) => (
+  data[index] > 242 &&
+  data[index + 1] > 242 &&
+  data[index + 2] > 242
+);
+
+const removePlainImageBackground = async (file: File): Promise<File> => {
+  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+    return file;
+  }
+
+  try {
+    const image = await loadImageFromFile(file);
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+
+    if (!width || !height) {
+      return file;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      return file;
+    }
+
+    context.drawImage(image, 0, 0);
+
+    const imageData = context.getImageData(0, 0, width, height);
+    const { data } = imageData;
+    const cornerIndexes = [
+      0,
+      (width - 1) * 4,
+      (height - 1) * width * 4,
+      ((height - 1) * width + (width - 1)) * 4,
+    ];
+
+    const background = cornerIndexes.reduce<[number, number, number]>((sum, index) => {
+      sum[0] += data[index];
+      sum[1] += data[index + 1];
+      sum[2] += data[index + 2];
+      return sum;
+    }, [0, 0, 0]).map(value => Math.round(value / cornerIndexes.length)) as [number, number, number];
+
+    const cornerSpread = Math.max(...cornerIndexes.map(index => colorDistance(data, index, background)));
+    const lightBackground = background.every(value => value > 210);
+
+    if (!lightBackground && cornerSpread > BACKGROUND_COLOR_DISTANCE) {
+      return file;
+    }
+
+    const visited = new Uint8Array(width * height);
+    const queue: number[] = [];
+
+    const canRemovePixel = (pixelIndex: number, tolerance = BACKGROUND_EDGE_DISTANCE) => {
+      const dataIndex = pixelIndex * 4;
+      return data[dataIndex + 3] < 16 ||
+        isNearWhite(data, dataIndex) ||
+        colorDistance(data, dataIndex, background) <= tolerance;
+    };
+
+    const enqueue = (x: number, y: number) => {
+      const pixelIndex = y * width + x;
+      if (visited[pixelIndex] || !canRemovePixel(pixelIndex)) {
+        return;
+      }
+
+      visited[pixelIndex] = 1;
+      queue.push(pixelIndex);
+    };
+
+    for (let x = 0; x < width; x++) {
+      enqueue(x, 0);
+      enqueue(x, height - 1);
+    }
+
+    for (let y = 1; y < height - 1; y++) {
+      enqueue(0, y);
+      enqueue(width - 1, y);
+    }
+
+    let removedPixels = 0;
+
+    while (queue.length > 0) {
+      const pixelIndex = queue.pop()!;
+      const dataIndex = pixelIndex * 4;
+      data[dataIndex + 3] = 0;
+      removedPixels++;
+
+      const x = pixelIndex % width;
+      const y = Math.floor(pixelIndex / width);
+
+      if (x > 0) enqueue(x - 1, y);
+      if (x < width - 1) enqueue(x + 1, y);
+      if (y > 0) enqueue(x, y - 1);
+      if (y < height - 1) enqueue(x, y + 1);
+    }
+
+    if (removedPixels === 0) {
+      return file;
+    }
+
+    context.putImageData(imageData, 0, 0);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/png");
+    });
+
+    if (!blob) {
+      return file;
+    }
+
+    const cleanedName = file.name.replace(/\.[^.]+$/, "") + ".png";
+    return new File([blob], cleanedName, { type: "image/png", lastModified: Date.now() });
+  } catch (error) {
+    console.error("BACKGROUND REMOVAL ERROR:", error);
+    return file;
+  }
+};
+
 const AdminWarehouse: React.FC = () => {
   const { showNotification, confirm } = useNotification();
   const {
@@ -82,12 +234,15 @@ const AdminWarehouse: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<'on_site' | 'in_warehouse'>('on_site');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState<'All' | 'OutOfStock'>('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<WarehouseProduct | null>(null);
   const [categoryConfig, setCategoryConfig] = useState(DEFAULT_CATEGORY_CONFIG);
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(10);
+const normalizedSearch = searchQuery.trim();
+const selectedCategoryId = typeFilter === 'all' ? undefined : Number(typeFilter);
 
   useEffect(() => {
     getCategories();
@@ -95,8 +250,12 @@ const [pageSize, setPageSize] = useState(10);
   }, []);
 
 useEffect(() => {
-  getProducts(undefined, undefined, page, pageSize);
-}, [page, pageSize]);
+  const timer = window.setTimeout(() => {
+    getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
+  }, 300);
+
+  return () => window.clearTimeout(timer);
+}, [page, pageSize, normalizedSearch, stockFilter, selectedCategoryId]);
 
 const totalPages = productData?.totalPages || 0;
 
@@ -114,6 +273,12 @@ const getPagination = (current, total, windowSize = 5) => {
 
   return pages;
 };
+
+const getProductCountValue = (product: any) =>
+  Number(product?.productParametrs?.reduce((sum: number, item: any) => sum + Number(item?.count || 0), 0) || 0);
+
+const getProductValue = (product: any) =>
+  Number(product?.productParametrs?.reduce((sum: number, item: any) => sum + Number(item?.count || 0) * Number(item?.amount || 0), 0) || 0);
 
 
 
@@ -196,7 +361,7 @@ const getPagination = (current, total, windowSize = 5) => {
     variants: [] as ProductVariant[]
   };
 
-  const [newProduct, setNewProduct] = useState(initialNewProduct);
+  const [newProduct, setNewProduct] = useState<any>(initialNewProduct);
 
   // Load from localStorage
   const [products, setProducts] = useState<WarehouseProduct[]>([]);
@@ -275,7 +440,7 @@ const getPagination = (current, total, windowSize = 5) => {
         );
       }
 
-      await getProducts(undefined, undefined, page, pageSize);
+      await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
       await getProductCount();
 
       setShowAddModal(false);
@@ -407,7 +572,7 @@ const getPagination = (current, total, windowSize = 5) => {
   };
 
 
-const handleDelete = async (id: number) => {
+const handleDelete = async (id: number | string) => {
   if (!(await confirm("Bu məhsulu silmək istədiyinizə əminsiniz?"))) return;
 
   try {
@@ -416,7 +581,7 @@ const handleDelete = async (id: number) => {
     showNotification("Məhsul silindi", "success");
 
     // list refresh
-   await getProducts(undefined, undefined, page, pageSize);
+   await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
    await getProductCount();
 
   } catch (error) {
@@ -431,7 +596,7 @@ const handleDelete = async (id: number) => {
 const handleToggleHome = async (product: any) => {
   try {
     await showProductOnHome(product.id, !product.inHomePage);
-    await getProducts(undefined, undefined, page, pageSize);
+    await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
     await getProductCount();
   } catch (err) {
     console.error(err);
@@ -440,18 +605,12 @@ const handleToggleHome = async (product: any) => {
 
 
   const types = useMemo(() => {
-    const configTypes = Object.keys(categoryConfig.subCategories);
-    return ['all', ...configTypes];
-  }, [categoryConfig]);
+    return ['all', ...categories.map((category: any) => String(category.id))];
+  }, [categories]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const categoryMatch = p.status === activeCategory;
-      const typeMatch = typeFilter === 'all' || p.type === typeFilter;
-      const searchMatch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return categoryMatch && typeMatch && searchMatch;
-    });
-  }, [products, activeCategory, typeFilter, searchQuery]);
+    return Array.isArray(productData?.items) ? productData.items : [];
+  }, [productData?.items]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -462,7 +621,8 @@ const handleToggleHome = async (product: any) => {
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const url = await uploadImage(file); // 👈 backend upload
+        const cleanedFile = await removePlainImageBackground(file);
+        const url = await uploadImage(cleanedFile); // 👈 backend upload
         uploadedUrls.push(url.data.path);
       }
 
@@ -629,6 +789,20 @@ const updateVariant = (
 
         <div className="flex flex-wrap items-center gap-4">
           <button
+            type="button"
+            onClick={() => {
+              setStockFilter((current) => current === 'OutOfStock' ? 'All' : 'OutOfStock');
+              setPage(1);
+            }}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${
+              stockFilter === 'OutOfStock'
+                ? 'bg-red-600 text-white hover:bg-slate-900'
+                : 'bg-white text-red-600 border border-red-100 hover:bg-red-50'
+            }`}
+          >
+            Stokda olmayanlar
+          </button>
+          <button
             onClick={async () => {
               setShowAddModal(true);
               await getPromotions();
@@ -646,7 +820,7 @@ const updateVariant = (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ümumi Məhsul Sayı</div>
-          <div className="text-3xl font-black text-slate-900">{filteredProducts.reduce((sum, p) => sum + p.count, 0)}</div>
+          <div className="text-3xl font-black text-slate-900">{filteredProducts.reduce((sum, p) => sum + getProductCountValue(p), 0)}</div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Məhsul Çeşidi</div>
@@ -655,7 +829,7 @@ const updateVariant = (
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ümumi Dəyər</div>
           <div className="text-3xl font-black text-blue-600">
-            {filteredProducts.reduce((sum, p) => sum + (p.count * p.price), 0).toLocaleString()} AZN
+            {filteredProducts.reduce((sum, p) => sum + getProductValue(p), 0).toLocaleString()} AZN
           </div>
         </div>
       </div>
@@ -667,7 +841,10 @@ const updateVariant = (
             type="text"
             placeholder="Məhsul adı ilə axtar..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
           />
           <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -675,12 +852,15 @@ const updateVariant = (
         <div className="md:w-64">
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
             className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
           >
             <option value="all">Bütün Tiplər</option>
             {types.filter(t => t !== 'all').map(t => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>{getItemName(categories.find((category: any) => String(category.id) === t)) || t}</option>
             ))}
           </select>
         </div>
@@ -700,7 +880,12 @@ const updateVariant = (
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {productData?.items?.map((product) => (
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center text-slate-400 text-xs font-black uppercase tracking-widest">Yüklənir...</td>
+                </tr>
+              )}
+              {!loading && filteredProducts.map((product) => (
                 <tr key={product.id} className="group hover:bg-slate-50 transition-colors">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
@@ -788,7 +973,7 @@ const updateVariant = (
                   </td>
                 </tr>
               ))}
-              {productData?.length === 0 && (
+              {!loading && filteredProducts.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-8 py-20 text-center text-slate-400 text-xs italic">Axtarışa uyğun məhsul tapılmadı.</td>
                 </tr>
@@ -868,8 +1053,18 @@ const updateVariant = (
 
       {/* Add Product Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              handleCloseModal();
+            }
+          }}
+        >
+          <div
+            className="bg-white w-full max-w-xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">
                 {editingProduct ? 'Məhsulu Redaktə Et' : 'Yeni Məhsul Daxil Et'}
@@ -1390,7 +1585,7 @@ const updateVariant = (
                       onChange={e => setNewProduct({ ...newProduct, isOnOrder: e.target.checked })}
                       className="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                     />
-                    <label htmlFor="isOnOrder" className="text-[10px] font-black text-slate-700 uppercase tracking-widest cursor-pointer">Sifarişlə (Stokda yoxdur)</label>
+                    <label htmlFor="isOnOrder" className="text-[10px] font-black text-slate-700 uppercase tracking-widest cursor-pointer">Stokda var</label>
                   </div>
                 </div>
               </div>

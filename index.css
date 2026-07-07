@@ -113,9 +113,51 @@ a.bg-slate-900 { background-color: var(--color-dark); }
 button.hover\:bg-slate-900:hover,
 a.hover\:bg-slate-900:hover { background-color: var(--color-dark); }
 
+.volt-verse-line {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 45%, var(--color-dark)), transparent);
+  transform-origin: left center;
+  animation: voltVerseLineFill 1.25s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.volt-verse-line::after {
+  content: "";
+  position: absolute;
+  inset: -3px auto -3px 0;
+  width: 26px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, white, var(--color-primary), transparent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 70%, transparent));
+  animation: voltVerseStarSweep 1.25s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes voltVerseLineFill {
+  0% { transform: scaleX(0); opacity: .45; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes voltVerseStarSweep {
+  0% { transform: translateX(-30px) translateY(-7px) rotate(-14deg); opacity: 0; }
+  14% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateX(96px) translateY(0) rotate(-14deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .volt-verse-line,
+  .volt-verse-line::after {
+    animation: none;
+  }
+
+  .volt-verse-line::after {
+    opacity: 0;
+  }
+}
+
 .mobile-utility-button {
-  height: 40px;
-  padding: 0 11px;
+  height: 35px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -177,15 +219,16 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 /* Product detail mobile actions. Desktop keeps the wider, calmer layout. */
 .product-action-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   gap: 16px;
 }
 .product-quantity-control {
   display: flex;
-  width: 100%;
+  width: fit-content;
   align-items: center;
-  justify-content: space-between;
-  align-self: center;
+  justify-content: center;
+  align-self: auto;
   flex-shrink: 0;
   padding: 4px;
   border-radius: 16px;
@@ -259,7 +302,8 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 .product-order-button:active { transform: scale(.98); }
 .product-cart-button {
   display: flex;
-  width: 100%;
+  width: auto;
+  min-width: 155px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -299,6 +343,12 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   transform: translateY(18px);
   transition: opacity .2s ease, transform .2s ease;
   backdrop-filter: blur(18px);
+}
+.product-floating-actions__preview {
+  grid-column: 1 / -1;
+}
+.product-floating-actions__preview:empty {
+  display: none;
 }
 .product-floating-actions--visible {
   opacity: 1;
@@ -357,10 +407,12 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   .product-order-button svg { width: 17px; height: 17px; }
   .product-cart-button {
     width: 54px;
+    min-width: 54px;
     height: 54px;
     padding: 0;
     border-radius: 16px;
   }
+  .product-cart-button__label { display: none; }
   .product-cart-button svg { width: 20px; height: 20px; }
   .product-floating-actions .product-quantity-control,
   .product-floating-actions .product-order-button,
@@ -597,6 +649,22 @@ input[type="number"] {
 .theme-css-row { background: #17211f; color: #cbd5d1; display: flex; align-items: stretch; border-radius: 6px; overflow: hidden; }
 .theme-css-row code { padding: 15px 18px; font-size: 9px; white-space: pre; overflow: auto; flex: 1; }
 .theme-css-row button { border: 0; padding: 0 22px; color: #10201d; background: var(--lab-accent); font-size: 9px; font-weight: 850; letter-spacing: .08em; cursor: pointer; }
+
+.checkout-step-panel {
+  animation: checkout-step-panel-in .28s ease both;
+  transform-origin: top center;
+}
+
+@keyframes checkout-step-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 @media (max-width: 1120px) {
   .theme-preview-eco, .theme-preview-login { display: none; }

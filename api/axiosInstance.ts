@@ -1,9 +1,20 @@
 import axios from "axios";
 import { STORAGE_KEYS } from "../utils/constants";
 
+const resolveApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) {
+      return "http://localhost:5001/api/";
+    }
+  }
+  return "https://test.api.volt.az/api/";
+};
+
 const axiosInstance = axios.create({
   // baseURL: "https://api.volt.az/api/",
-  baseURL: "https://preprod.api.volt.az/api/",
+  baseURL: resolveApiBaseUrl(),
   headers: {
     "Content-Type": "application/json",
   },

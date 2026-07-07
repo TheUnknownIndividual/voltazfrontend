@@ -37,20 +37,17 @@ const CartPage: React.FC<CartPageProps> = ({ cart, onRemoveFromCart, onUpdateCar
 
   if (cart.length > 0) {
     loadCartProducts();
+  } else {
+    setProducts([]);
   }
 }, [cart]);
 
 const cartProducts = products.map(item => {
-  const basePrice = item.productParametrs?.[0]?.amount || 0;
-
-  let price = basePrice;
-
-  if (item.selectedPower && item.variants) {
-    const variant = item.variants.find(
-      (v: any) => v.power === item.selectedPower
-    );
-    if (variant) price = variant.price;
-  }
+  const parameters = Array.isArray(item.productParametrs) ? item.productParametrs : [];
+  const selectedParam = item.selectedPower
+    ? parameters.find((param: any) => String(param?.technicalPower || '').trim() === item.selectedPower)
+    : null;
+  const price = Number(selectedParam?.amount ?? parameters[0]?.amount ?? item.price ?? 0);
 
   return {
     ...item,
@@ -96,7 +93,7 @@ const totalAmount = cartProducts.reduce(
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
               {cartProducts.map((item) => (
-                <div key={item.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-6 group">
+                <div key={`${item.id}-${item.selectedPower || 'base'}`} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-6 group">
                   <div className="w-24 h-24 bg-slate-50 rounded-2xl p-2 flex items-center justify-center shrink-0">
                     <img src={item.productImage[0]} alt={item.productName} className="w-full h-full object-contain" />
                   </div>
@@ -105,7 +102,10 @@ const totalAmount = cartProducts.reduce(
                     <h4 className="text-sm font-black text-slate-900 leading-tight mb-2 truncate">
                       {item.productName} 
                     </h4>
-                    <div className="text-emerald-600 font-black text-sm">{item.productParametrs?.[0]?.amount || 0} AZN</div>
+                    {item.selectedPower && (
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.selectedPower}</div>
+                    )}
+                    <div className="text-emerald-600 font-black text-sm">{item.currentPrice.toFixed(2)} AZN</div>
                   </div>
                   <div className="flex flex-col items-end gap-4">
                     <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
@@ -117,8 +117,12 @@ const totalAmount = cartProducts.reduce(
                       </button>
                       <input 
                         type="number" 
+                        min={0}
                         value={item.quantity} 
-                        onChange={(e) => onUpdateCartQuantity(item.id, parseInt(e.target.value) || 1, item.selectedPower)}
+                        onChange={(e) => {
+                          const nextValue = Number.parseInt(e.target.value, 10);
+                          onUpdateCartQuantity(item.id, Number.isNaN(nextValue) ? 0 : Math.max(0, nextValue), item.selectedPower);
+                        }}
                         className="w-10 text-center bg-transparent font-black text-slate-900 text-sm outline-none"
                       />
                       <button 
@@ -146,6 +150,18 @@ const totalAmount = cartProducts.reduce(
                    <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-slate-400 uppercase">Məhsul sayı</span>
                       <span className="text-sm font-black text-slate-900">{cartProducts.reduce((acc, i) => acc + i.quantity, 0)}</span>
+                   </div>
+                   <div className="space-y-3 border-y border-slate-50 py-4">
+                      {cartProducts.map((item) => (
+                        <div key={`${item.id}-${item.selectedPower || 'base'}-summary`} className="rounded-2xl bg-slate-50 p-3">
+                          <div className="line-clamp-2 text-[11px] font-black text-slate-900">{item.productName}</div>
+                          {item.selectedPower && <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-slate-400">{item.selectedPower}</div>}
+                          <div className="mt-2 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500">
+                            <span>{item.currentPrice.toFixed(2)} AZN x {item.quantity}</span>
+                            <span className="font-black text-emerald-600">{(item.currentPrice * item.quantity).toFixed(2)} AZN</span>
+                          </div>
+                        </div>
+                      ))}
                    </div>
                    <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                       <span className="text-xs font-black text-slate-900 uppercase">Yekun</span>

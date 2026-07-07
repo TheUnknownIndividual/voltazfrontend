@@ -6,13 +6,14 @@ interface LegislationSection {
   id: string;
   title: string;
   desc: string;
+  quote?: string;
   details: string[];
   icon: React.ReactNode;
   links?: { label: string; url: string }[];
 }
 
 interface LegislationPageProps {
-  lang?: 'az' | 'en' | 'ru';
+  lang?: 'az' | 'en' | 'ru' | 'tr';
   onBack?: () => void;
   sectionId?: string;
 }

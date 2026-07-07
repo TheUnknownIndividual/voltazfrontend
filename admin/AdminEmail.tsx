@@ -5,7 +5,7 @@ import { useEmail } from '../contexts/EmailContext';
 import { useNotification } from '../contexts/NotificationContext';
 
 
-const AdminEmail: React.FC = () => {
+const AdminEmail: React.FC<{ onBack?: () => void }> = () => {
     const { loading, applicationTypes, getApplicationTypes, getApplicationTypeById, createApplicationType, updateApplicationType, deleteApplicationType } = useEmail();
     const { showNotification } = useNotification();
 

@@ -1,23 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
+import axiosInstance from '../api/axiosInstance';
 import { useNotification } from '../contexts/NotificationContext';
+import { API_ENDPOINTS } from '../utils/constants';
 import AdminStats from './AdminStats';
+import AdminAnalytics from './AdminAnalytics';
 import AdminOrders from './AdminOrders';
 import AdminRequests from './AdminRequests';
 import AdminWarehouse from './AdminWarehouse';
 import AdminPermissions from './AdminPermissions';
 import AdminMasters from './AdminMasters';
 import AdminServiceRequests from './AdminServiceRequests';
+import AdminSolarCalculator from './AdminSolarCalculator';
 import AdminSliders from './AdminSliders';
 import AdminCategoryManagement from './AdminCategoryManagement';
 import AdminServices from './AdminServices';
 import AdminProjects from './AdminProjects';
+import AdminProjectTracker from './AdminProjectTracker';
 import AdminNews from './AdminNews';
 import AdminAbout from './AdminAbout';
 import AdminContact from './AdminContact';
 import AdminEmail from './AdminEmail';
 import AdminPartnershipDirections from './AdminPartnershipDirections';
-import MasterForum from './MasterForum';
+import MasterForum from '../components/MasterForum';
 import { AboutProvider } from '@/contexts/AboutContext';
 import { NewsProvider } from '@/contexts/NewsContext';
 import { BlogProvider } from '@/contexts/BlogContext';
@@ -36,7 +41,7 @@ import AdminPartnershipRequests from './AdminPartnershipRequests';
 interface UserRecord {
   email: string;
   name: string;
-  role: 'customer' | 'master' | 'admin';
+  role: string;
   isApproved: boolean;
   registrationDate: string;
   city?: string;
@@ -47,11 +52,13 @@ interface UserRecord {
 
 interface AdminDashboardProps {
   onBack: () => void;
+  lang?: 'az' | 'en' | 'ru' | 'tr';
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) => {
   const { showNotification, confirm } = useNotification();
-  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'orders' | 'requests' | 'service-requests'| 'partnership-requests' | 'warehouse' | 'permissions'>('stats');
+  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'analytics' | 'orders' | 'requests' | 'service-requests'| 'partnership-requests' | 'warehouse' | 'permissions' | 'solar-calculator' | 'project-tracker'>('stats');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership'>('main');
 
   useEffect(() => {
@@ -63,6 +70,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [counts, setCounts] = useState({ orders: 0, requests: 0, serviceRequests: 0 });
+  const [orderUnreadCount, setOrderUnreadCount] = useState(0);
+  const [adminOrders, setAdminOrders] = useState<any[]>([]);
+  const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
 
   const SERVICE_TYPES = [
     "Günəş Paneli Quraşdırılması",
@@ -96,6 +106,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadOrderUnreadCount = async () => {
+      try {
+        const response = await axiosInstance.get(API_ENDPOINTS.ORDER.GET_ORDERS());
+        const apiOrders = response.data?.success && Array.isArray(response.data.data) ? response.data.data : [];
+        if (!cancelled) {
+          setAdminOrders(apiOrders);
+          setOrderUnreadCount(apiOrders.filter((order: any) => !order.isViewedByAdmin).length);
+        }
+      } catch {
+        if (!cancelled) {
+          setAdminOrders([]);
+          setOrderUnreadCount(0);
+        }
+      }
+    };
+
+    loadOrderUnreadCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
   const [selectedMaster, setSelectedMaster] = useState<any | null>(null);
 
   const handleApprove = (email: string) => {
@@ -117,19 +151,109 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
   };
 
+  const orderStatusLabel = (status: number) => {
+    const labels: Record<number, string> = {
+      1: 'Yeni',
+      2: 'Təsdiqləndi',
+      3: 'Hazırlanır',
+      4: 'Göndərildi',
+      5: 'Tamamlandı',
+      6: 'Ləğv edildi',
+    };
+    return labels[status] || 'Naməlum';
+  };
+
+  const orderIntentLabel = (intent: number) => {
+    const labels: Record<number, string> = {
+      1: 'Satış',
+      2: 'Qiymət sorğusu',
+      3: 'Stok sorğusu',
+    };
+    return labels[intent] || 'Sorğu';
+  };
+
+  const customerRows = React.useMemo(() => {
+    const localCustomers = (Array.isArray(users) ? users : []).filter((user) => user.role === 'customer');
+    const rows = new Map<string, UserRecord & { orders: any[]; pendingOrders: number; requestCount: number; totalSpent: number }>();
+
+    localCustomers.forEach((user) => {
+      rows.set(user.email.toLowerCase(), {
+        ...user,
+        orders: [],
+        pendingOrders: 0,
+        requestCount: 0,
+        totalSpent: Number(user.totalSpent || 0),
+      });
+    });
+
+    adminOrders.forEach((order) => {
+      const email = String(order.email || '').trim().toLowerCase();
+      if (!email) return;
+
+      const existing = rows.get(email);
+      if (!existing) {
+        rows.set(email, {
+          email,
+          name: order.fullName || email,
+          role: 'customer',
+          isApproved: true,
+          registrationDate: order.createdAt || new Date().toISOString(),
+          city: order.cityOrRegion || order.district || '',
+          totalSpent: 0,
+          orders: [order],
+          pendingOrders: order.status !== 5 && order.status !== 6 ? 1 : 0,
+          requestCount: order.intent === 2 || order.intent === 3 ? 1 : 0,
+        });
+        return;
+      }
+
+      existing.orders.push(order);
+      if (order.status !== 5 && order.status !== 6) existing.pendingOrders += 1;
+      if (order.intent === 2 || order.intent === 3) existing.requestCount += 1;
+      if (order.intent === 1) existing.totalSpent += Number(order.finalTotal || 0);
+      if (!existing.city && order.cityOrRegion) existing.city = order.cityOrRegion;
+    });
+
+    return Array.from(rows.values()).map((row) => ({
+      ...row,
+      orders: row.orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
+    }));
+  }, [adminOrders, users]);
+
+  const searchedCustomerRows = customerRows.filter((user) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return user.name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q);
+  });
+
+  const customerPendingOrders = customerRows.reduce((sum, user) => sum + user.pendingOrders, 0);
+  const customerRequestCount = customerRows.reduce((sum, user) => sum + user.requestCount, 0);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-72 bg-slate-900 text-white flex flex-col pt-10">
-        <div className="px-8 mb-10">
+      <aside className="w-full md:w-72 bg-slate-900 text-white flex flex-col pt-5 md:pt-10">
+        <div className="px-8 mb-5 md:mb-10">
           <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Yüksək Səlahiyyət</div>
-          <h2 className="text-xl font-black">Admin Panel</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-black">Admin Panel</h2>
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen((value) => !value)}
+              className="md:hidden rounded-xl border border-white/10 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300"
+            >
+              Səhifələr
+            </button>
+          </div>
         </div>
 
-        <nav className="flex-grow space-y-1 px-4">
-          {[
-            { id: 'stats', label: 'Statistika', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-            { id: 'orders', label: 'Sifarişlər', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+        <nav className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block md:flex-grow space-y-1 px-4`}>
+            {[
+              { id: 'stats', label: 'Statistika', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+              { id: 'analytics', label: 'Analytics', icon: 'M3 3v18h18M7 16l3-3 3 2 5-7' },
+              { id: 'project-tracker', label: 'Projects', icon: 'M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 012-2z' },
+              { id: 'solar-calculator', label: 'Solar Kalkulyator', icon: 'M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m12.728 0l-1.414-1.414M7.05 7.05L5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z' },
+              { id: 'orders', label: 'Sifarişlər', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
             { id: 'requests', label: 'Müraciətlər', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
             { id: 'service-requests', label: 'Xidmət Müraciətləri', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
             { id: 'partnership-requests', label: 'Tərəfdaşlıq Müraciətləri', icon: 'M20 13V7a2 2 0 00-2-2h-3V4a2 2 0 00-2-2h-2a2 2 0 00-2 2v1H6a2 2 0 00-2 2v6m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-4m-8 0H4m8 0v1m0-1V9' },
@@ -144,6 +268,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               onClick={() => {
                 setActiveTab(tab.id as any);
                 if (tab.id === 'settings') setSettingsView('main');
+                setIsMobileNavOpen(false);
               }}
               className={`w-full flex items-center justify-between px-2 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
             >
@@ -151,11 +276,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tab.icon} /></svg>
                 {tab.label}
               </div>
+              {tab.id === 'orders' && orderUnreadCount > 0 && (
+                <span className={`ml-3 rounded-full px-2 py-0.5 text-[8px] font-black ${activeTab === tab.id ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'}`}>
+                  {orderUnreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
 
-        <div className="p-8 border-t border-white/10">
+        <div className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block p-8 border-t border-white/10`}>
           <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-black text-[10px] uppercase tracking-widest">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Ana Səhifəyə Qayıt
@@ -177,9 +307,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
-                { label: 'Ümumi Müştəri', val: users.filter(u => u.role === 'customer').length, color: 'emerald' },
-                { label: 'Yeni Qeydiyyatlar', val: users.filter(u => u.role === 'customer' && new Date(u.registrationDate) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length, color: 'blue' },
-                { label: 'Aktiv Sifarişlər', val: 5, color: 'amber' }
+                { label: 'Ümumi Müştəri', val: customerRows.length, color: 'emerald' },
+                { label: 'Sorğu Sayı', val: customerRequestCount, color: 'blue' },
+                { label: 'Aktiv Sifarişlər', val: customerPendingOrders, color: 'amber' }
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</div>
@@ -211,37 +341,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <th className="px-8 py-4">Ad / Email</th>
-                      <th className="px-8 py-4">Rol / Tip</th>
-                      <th className="px-8 py-4">Şəhər</th>
+                      <th className="px-8 py-4">Şəhər / Əlaqə</th>
+                      <th className="px-8 py-4">Sifarişlər</th>
+                      <th className="px-8 py-4">Aktiv / Sorğu</th>
                       <th className="px-8 py-4">Ümumi Alış-veriş</th>
                       <th className="px-8 py-4">Status</th>
                       <th className="px-8 py-4 text-right">Əməliyyat</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {users && users
-                      .filter(u => u.role === 'customer')
-                      .filter(u => {
-                        if (!searchQuery) return true;
-                        const q = searchQuery.toLowerCase();
-                        return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-                      })
-                      .map((user: any) => (
-                        <tr key={user.email} className="group hover:bg-slate-50 transition-colors">
+                    {searchedCustomerRows.map((user: any) => (
+                      <React.Fragment key={user.email}>
+                        <tr className="group hover:bg-slate-50 transition-colors">
                           <td className="px-8 py-5">
                             <div className="text-sm font-black text-slate-900">{user.name}</div>
                             <div className="text-xs text-slate-400">{user.email}</div>
                           </td>
                           <td className="px-8 py-5">
-                            <span className="w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-600">
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="px-8 py-5">
                             <span className="text-xs font-medium text-slate-600">{user.city || '-'}</span>
                           </td>
                           <td className="px-8 py-5">
-                            <span className="text-sm font-black text-emerald-600">{user.totalSpent || 0} AZN</span>
+                            <span className="text-sm font-black text-slate-900">{user.orders.length}</span>
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="flex flex-wrap gap-2">
+                              <span className="rounded-full bg-amber-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-700">
+                                {user.pendingOrders} aktiv
+                              </span>
+                              <span className="rounded-full bg-blue-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700">
+                                {user.requestCount} sorğu
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5">
+                            <span className="text-sm font-black text-emerald-600">{Number(user.totalSpent || 0).toLocaleString()} AZN</span>
                           </td>
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-2">
@@ -252,7 +385,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                             </div>
                           </td>
                           <td className="px-8 py-5 text-right">
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => setExpandedCustomerEmail((current) => current === user.email ? null : user.email)}
+                                className="px-3 py-2 bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-[9px] font-black uppercase tracking-widest"
+                              >
+                                Bax
+                              </button>
                               <button
                                 onClick={() => handleBlock(user.email)}
                                 className="p-2 bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
@@ -263,7 +402,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        {expandedCustomerEmail === user.email && (
+                          <tr>
+                            <td colSpan={7} className="bg-slate-50 px-8 py-6">
+                              <div className="grid gap-3">
+                                {user.orders.slice(0, 8).map((order: any) => (
+                                  <div key={order.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-4">
+                                    <div>
+                                      <div className="text-xs font-black text-slate-900">#{order.orderNumber || order.id}</div>
+                                      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                        {order.createdAt ? new Date(order.createdAt).toLocaleString('az-AZ') : '-'}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-600">{orderIntentLabel(order.intent)}</span>
+                                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-700">{orderStatusLabel(order.status)}</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900">{Number(order.finalTotal || 0).toLocaleString()} AZN</div>
+                                  </div>
+                                ))}
+                                {user.orders.length === 0 && (
+                                  <div className="rounded-2xl bg-white p-6 text-center text-xs font-bold text-slate-400">Bu istifadəçiyə bağlı sifariş tapılmadı.</div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    {searchedCustomerRows.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-8 py-16 text-center text-xs font-bold text-slate-400">İstifadəçi tapılmadı.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -273,7 +444,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
         {activeTab === 'stats' && <AdminStats users={users} />}
 
-        {activeTab === 'orders' && <AdminOrders />}
+        {activeTab === 'analytics' && <AdminAnalytics lang={lang} orders={adminOrders} />}
+
+        {activeTab === 'project-tracker' && <AdminProjectTracker lang={lang} />}
+
+        {activeTab === 'solar-calculator' && <AdminSolarCalculator lang={lang} />}
+
+        {activeTab === 'orders' && (
+          <AdminOrders
+            unreadCount={orderUnreadCount}
+            onOrderViewed={() => setOrderUnreadCount((count) => Math.max(0, count - 1))}
+          />
+        )}
 
         {activeTab === 'requests' && <ContactProvider><EmailProvider><AdminRequests /></EmailProvider></ContactProvider>}
 
@@ -371,7 +553,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* <button 
+                  <button 
                     onClick={() => setSettingsView('sliders')}
                     className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-emerald-600 transition-all duration-500"
                   >
@@ -380,7 +562,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     </div>
                     <h4 className="text-lg font-black text-slate-900 group-hover:text-white mb-2">Slider İdarəetməsi</h4>
                     <p className="text-xs text-slate-500 group-hover:text-emerald-100 leading-relaxed">Hero və yan sliderlərin məzmununu, şəkillərini və keçidlərini buradan idarə edin.</p>
-                  </button> */}
+                  </button>
                   <button
                     onClick={() => setSettingsView('contact')}
                     className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-emerald-600 transition-all duration-500"
