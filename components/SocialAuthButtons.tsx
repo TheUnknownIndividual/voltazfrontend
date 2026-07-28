@@ -12,13 +12,16 @@ interface SocialAuthButtonsProps {
   onSuccess: (user: AppUser) => void;
 }
 
-const GOOGLE_CLIENT_ID = '315961150370-d8j6iq8gbqt72sp1l7o9tt2q8o21fj0r.apps.googleusercontent.com';
-const APPLE_CLIENT_ID = 'az.volt.app';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '315961150370-d8j6iq8gbqt72sp1l7o9tt2q8o21fj0r.apps.googleusercontent.com';
+const APPLE_CLIENT_ID = import.meta.env.VITE_APPLE_CLIENT_ID || 'az.volt.log';
 const AUTH_ICONS = {
   google: '/auth-icons/google.png',
   apple: '/auth-icons/apple.png',
   passkey: '/auth-icons/passkey.png',
 };
+
+const getAppleRedirectUri = () =>
+  import.meta.env.VITE_APPLE_REDIRECT_URI || 'https://test.volt.az/api/auth/callback/apple';
 
 const copy = {
   az: {
@@ -219,7 +222,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ mode, lang = 'az'
       apple.auth.init({
         clientId: APPLE_CLIENT_ID,
         scope: 'name email',
-        redirectURI: window.location.origin,
+        redirectURI: getAppleRedirectUri(),
         usePopup: true,
       });
 

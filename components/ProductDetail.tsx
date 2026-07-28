@@ -5,12 +5,11 @@ import { ProductVariant } from '../types';
 import { useProduct } from "../contexts/ProductContext";
 import { useCategory } from '@/contexts/CategoryContext';
 import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
 import Share from "../components/Share";
 
 interface ProductDetailProps {
   productId: string;
-  onBack: () => void;
+  onBack: (productCategory?: { category?: string | number; subCategory?: string | number }) => void;
   onOrderNow: (id: string, quantity: number, power: string) => void;
   onAddToCart: (id: string, quantity: number, power: string) => void;
   cartPreview?: React.ReactNode;
@@ -20,7 +19,6 @@ interface ProductDetailProps {
 const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, cartPreview, lang }) => {
   const { getProductById } = useProduct();
   const { getBrandById, getTechnologyById } = useCategory();
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [brand, setBrand] = useState<any>(null);
   const [technology, setTechnology] = useState<any>(null);
@@ -545,7 +543,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         <ShoppingCart className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
         <span className="product-cart-button__label">{t.addToCart}</span>
       </button>
-      {!compact && <div className="hidden sm:block">{cartPreview}</div>}
     </>
   );
 
@@ -591,7 +588,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     <div className="bg-white min-h-screen relative pb-20">
       <section className="bg-emerald-950 py-4 border-b border-emerald-900/50 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-12 flex items-center justify-between relative z-10">
-          <button onClick={() => { navigate('/') }} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
+          <button
+            onClick={() => onBack({
+              category: product.productCategoryId,
+              subCategory: product.productSubCategoryId,
+            })}
+            className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest"
+          >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             {t.back}
           </button>
@@ -897,7 +900,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
           <div className="product-floating-actions__preview">
             {cartPreview}
           </div>
-          {productActionControls(true)}
+          <div className="product-floating-actions__controls">
+            {productActionControls(true)}
+          </div>
         </div>
 
         {/* Documents Section */}

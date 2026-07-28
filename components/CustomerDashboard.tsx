@@ -15,6 +15,7 @@ interface CustomerDashboardProps {
   user: any;
   lang: 'az' | 'en' | 'ru' | 'tr';
   onBack: () => void;
+  onContinueShopping?: () => void;
   onUpdateUser: (updatedUser: any) => void;
   cart?: { id: string; quantity: number; power?: string }[];
   onRemoveFromCart?: (id: string, power?: string) => void;
@@ -27,6 +28,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   user, 
   lang, 
   onBack, 
+  onContinueShopping,
   onUpdateUser,
   cart = [],
   onRemoveFromCart,
@@ -377,7 +379,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
         </nav>
 
         <div className="px-8 mt-12">
-          <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest">
+          <button onClick={onContinueShopping || onBack} className="flex items-center gap-2 text-slate-400 hover:text-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Alış-verişə davam et
           </button>

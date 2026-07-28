@@ -684,6 +684,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
 
+          <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
+
           {/* VOLT Mobile Dropdown */}
           <div className="flex flex-col border-b border-gray-50">
             <button
@@ -696,7 +698,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {openMobileSubMenu === 'volt' && (
               <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {/* <button onClick={() => handleItemClick('projects')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.projects}</button> */}
-                <button onClick={() => handleItemClick('about')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.about}</button>
                 <button onClick={() => handleItemClick('news')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.news}</button>
                 {/* <button onClick={() => handleItemClick('reels')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.reels}</button> */}
                 <button onClick={() => handleItemClick('blog')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.blog}</button>
@@ -885,6 +886,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           <button onClick={() => handleItemClick('services')} className={getLinkClass('services')}>{t.services}</button>
 
+          <button onClick={() => handleItemClick('about')} className={getLinkClass('about')}>{t.about}</button>
+
           {/* VOLT Dropdown */}
           <div className="relative h-14 flex items-center group/nav" onMouseEnter={() => setActiveDropdown('volt')} onMouseLeave={() => setActiveDropdown('none')}>
             <button className={getLinkClass('volt')}>
@@ -894,7 +897,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {activeDropdown === 'volt' && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
                 {/* <DropdownItem label={t.projects} onClick={() => handleItemClick('projects')} /> */}
-                <DropdownItem label={t.about} onClick={() => handleItemClick('about')} />
                 <DropdownItem label={t.news} onClick={() => handleItemClick('news')} />
                 {/* <DropdownItem label={t.reels} onClick={() => handleItemClick('reels')} /> */}
                 <DropdownItem label={t.blog} onClick={() => handleItemClick('blog')} />

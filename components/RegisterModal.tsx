@@ -70,9 +70,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onKeyDown={handleModalKeyDown}>
+    <div className="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto p-3 py-6 sm:items-center sm:p-4" onKeyDown={handleModalKeyDown}>
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl animate-in zoom-in-95 duration-300 sm:rounded-[2.5rem] sm:p-8 md:p-12">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-black text-slate-900 mb-2">{lang === 'az' ? 'Yeni Hesab Yarat' : 'Create Account'}</h2>
           <p className="text-slate-500 text-sm">Müştəri kabinetinə giriş üçün qeydiyyatdan keçin.</p>

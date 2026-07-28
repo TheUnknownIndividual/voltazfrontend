@@ -10,6 +10,16 @@
   --color-text: #334155;
 }
 
+/* The project tracker is intentionally distinct from the rest of the admin UI. */
+.admin-project-tracker,
+.admin-project-tracker input,
+.admin-project-tracker select,
+.admin-project-tracker textarea,
+.admin-project-tracker button {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+}
+
 html {
   scrollbar-color: var(--color-primary) var(--color-surface);
   scrollbar-width: thin;
@@ -112,6 +122,19 @@ button.bg-slate-900,
 a.bg-slate-900 { background-color: var(--color-dark); }
 button.hover\:bg-slate-900:hover,
 a.hover\:bg-slate-900:hover { background-color: var(--color-dark); }
+
+/* Keep the dense operational admin UI comfortably readable without letting
+   dashboard headings, cards, and tables dominate the available workspace. */
+.admin-dashboard .text-4xl { font-size: 1.875rem; line-height: 2.25rem; }
+.admin-dashboard .text-3xl { font-size: 1.5rem; line-height: 1.9rem; }
+.admin-dashboard .text-2xl { font-size: 1.25rem; line-height: 1.65rem; }
+.admin-dashboard .text-xl { font-size: 1.125rem; line-height: 1.5rem; }
+.admin-dashboard .text-lg { font-size: 1rem; line-height: 1.4rem; }
+
+@media (max-width: 767px) {
+  .admin-dashboard .text-4xl { font-size: 1.625rem; line-height: 2rem; }
+  .admin-dashboard .text-3xl { font-size: 1.375rem; line-height: 1.75rem; }
+}
 
 .volt-verse-line {
   position: relative;
@@ -329,6 +352,23 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   left: 12px;
   z-index: 70;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.product-floating-actions__preview {
+  position: absolute;
+  right: 9px;
+  bottom: calc(100% + 10px);
+  display: flex;
+  justify-content: flex-end;
+}
+.product-floating-actions__preview:empty {
+  display: none;
+}
+.product-floating-actions__controls {
   display: grid;
   grid-template-columns: minmax(104px, .75fr) minmax(0, 1.36fr) 54px;
   gap: 8px;
@@ -338,22 +378,16 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   border-radius: 22px;
   background: color-mix(in srgb, white 91%, var(--color-surface));
   box-shadow: 0 22px 55px rgba(23, 43, 39, .18);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(18px);
-  transition: opacity .2s ease, transform .2s ease;
   backdrop-filter: blur(18px);
-}
-.product-floating-actions__preview {
-  grid-column: 1 / -1;
-}
-.product-floating-actions__preview:empty {
-  display: none;
 }
 .product-floating-actions--visible {
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translateY(0);
+}
+.product-floating-actions--visible .product-floating-actions__preview,
+.product-floating-actions--visible .product-floating-actions__controls {
+  pointer-events: auto;
 }
 
 @media (min-width: 640px) {
@@ -414,13 +448,22 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   }
   .product-cart-button__label { display: none; }
   .product-cart-button svg { width: 20px; height: 20px; }
-  .product-floating-actions .product-quantity-control,
-  .product-floating-actions .product-order-button,
-  .product-floating-actions .product-cart-button {
+  .product-floating-cart-button {
+    width: 54px;
+    min-width: 54px;
+    height: 54px;
+    min-height: 54px;
+    padding: 0;
+    border-radius: 16px;
+  }
+  .product-floating-cart-button svg { width: 20px; height: 20px; }
+  .product-floating-actions__controls .product-quantity-control,
+  .product-floating-actions__controls .product-order-button,
+  .product-floating-actions__controls .product-cart-button {
     height: 50px;
     border-radius: 15px;
   }
-  .product-floating-actions .product-order-button {
+  .product-floating-actions__controls .product-order-button {
     font-size: 9px;
     box-shadow: none;
   }
@@ -515,6 +558,18 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+.admin-product-select {
+  color: #0f172a;
+  background-color: #f8fafc;
+  color-scheme: light;
+  -webkit-text-fill-color: #0f172a;
+}
+
+.admin-product-select option {
+  color: #0f172a;
+  background-color: #ffffff;
 }
 
 /* Temporary logo / colour lab */

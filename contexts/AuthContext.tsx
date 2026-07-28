@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useState, useEffect } from "react";
 import useApi from "../hooks/useApi";
-import { API_ENDPOINTS, STORAGE_KEYS } from "../utils/constants";
+import { API_ENDPOINTS, AUTH_EXPIRED_EVENT, AUTH_EXPIRY_WARNING_KEY, STORAGE_KEYS } from "../utils/constants";
 import { jwtDecode } from "jwt-decode";
+import { refreshAccessToken } from "../api/axiosInstance";
 
 export type AppUser = {
   id?: number;
@@ -57,6 +58,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const clearStoredAuth = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+  sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
+  sessionStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+  localStorage.removeItem("volt_current_user");
+};
+
+const getTokenExpiry = (accessToken: string) => {
+  try {
+    const decoded = jwtDecode<{ exp?: number }>(accessToken);
+    return typeof decoded.exp === "number" ? decoded.exp * 1000 : null;
+  } catch {
+    return 0;
+  }
+};
+
+const getValidStoredToken = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedToken = sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+  if (!storedToken) {
+    return null;
+  }
+
+  if (getTokenExpiry(storedToken) === 0) {
+    clearStoredAuth();
+    return null;
+  }
+
+  return storedToken;
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -68,12 +107,12 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { post, loading } = useApi();
 
-  const [role, setRole] = useState<string | null>(
-    sessionStorage.getItem(STORAGE_KEYS.USER_DATA)
+  const [token, setToken] = useState<string | null>(
+    () => getValidStoredToken()
   );
 
-  const [token, setToken] = useState<string | null>(
-    sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  const [role, setRole] = useState<string | null>(() =>
+    token ? sessionStorage.getItem(STORAGE_KEYS.USER_DATA) : null
   );
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
@@ -90,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const persistAuth = (accessToken: string, nextRole: string, user?: AppUser) => {
     sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, accessToken);
+    sessionStorage.removeItem(AUTH_EXPIRY_WARNING_KEY);
     sessionStorage.setItem(STORAGE_KEYS.USER_DATA, nextRole);
     sessionStorage.setItem(STORAGE_KEYS.USER_ROLE, nextRole);
     if (user) localStorage.setItem("volt_current_user", JSON.stringify(user));
@@ -251,25 +291,83 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 🔥 LOGOUT
-  const logout = () => {
-    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    sessionStorage.removeItem(STORAGE_KEYS.USER_ROLE);
-    localStorage.removeItem("volt_current_user");
-
+  const clearAuthState = useCallback((redirect = true) => {
+    clearStoredAuth();
     setToken(null);
     setRole(null);
     setIsAuthenticated(false);
 
-    window.location.href = "/";
-  };
+    if (redirect && typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  }, []);
+
+  // 🔥 LOGOUT
+  const logout = useCallback(() => {
+    void post(API_ENDPOINTS.AUTH.LOGOUT)
+      .catch(() => undefined)
+      .finally(() => clearAuthState(true));
+  }, [clearAuthState, post]);
 
   useEffect(() => {
-    if (token) {
-      setIsAuthenticated(true);
+    const handleAuthExpired = () => {
+      clearAuthState(false);
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [clearAuthState]);
+
+  useEffect(() => {
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
     }
-  }, [token]);
+
+    const expiresAt = getTokenExpiry(token);
+    if (expiresAt === 0) {
+      clearAuthState(false);
+      return;
+    }
+
+    setIsAuthenticated(true);
+
+    if (expiresAt === null) {
+      return;
+    }
+
+    let cancelled = false;
+    const refreshSession = async () => {
+      const refreshed = await refreshAccessToken();
+      if (cancelled) return;
+
+      if (!refreshed?.accessToken) {
+        clearAuthState(false);
+        return;
+      }
+
+      const decoded: any = jwtDecode(refreshed.accessToken);
+      const nextRole =
+        decoded.role ||
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+      const nextUser = nextRole === "Customer" && refreshed.user
+        ? normalizeCustomer(refreshed.user)
+        : undefined;
+
+      persistAuth(refreshed.accessToken, nextRole, nextUser);
+    };
+
+    const remaining = expiresAt - Date.now();
+    const refreshTimeoutId = window.setTimeout(
+      refreshSession,
+      Math.max(0, remaining - 60 * 1000)
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(refreshTimeoutId);
+    };
+  }, [clearAuthState, token]);
 
   return (
     <AuthContext.Provider

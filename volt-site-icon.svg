@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Volt.az</title>
+  <rect width="512" height="512" fill="rgb(179,211,69)" />
+  <g fill="#303236">
+    <rect x="235" y="106" width="34" height="98" />
+    <rect x="116" y="137" width="34" height="105" transform="rotate(-45 133 189.5)" />
+    <rect x="362" y="137" width="34" height="105" transform="rotate(45 379 189.5)" />
+    <rect x="65" y="260" width="105" height="33" />
+    <rect x="333" y="260" width="105" height="33" />
+    <rect x="45" y="333" width="411" height="30" />
+  </g>
+</svg>

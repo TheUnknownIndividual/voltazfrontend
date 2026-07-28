@@ -2,6 +2,7 @@
 import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Header from './components/Header';
+import LoginModal from './components/LoginModal';
 import HeroSlider from './components/HeroSlider';
 import Calculator from './components/Calculator';
 import Projects from './components/Projects';
@@ -10,6 +11,7 @@ import InfoSection from './components/InfoSection';
 import Footer from './components/Footer';
 import PartnersSlider from './components/PartnersSlider';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AUTH_EXPIRED_EVENT } from './utils/constants';
 import axiosInstance from './api/axiosInstance';
 import { API_ENDPOINTS } from './utils/constants';
 import { UploadProvider } from './contexts/UploadContext';
@@ -387,6 +389,7 @@ interface FloatingCartPreviewProps {
   user: User | null;
   mode?: 'fixed' | 'inline';
   onOpenCart: () => void;
+  onOpenProduct?: (id: string) => void;
   onRemoveFromCart: (id: string, power?: string) => void;
   onUpdateCartQuantity: (id: string, quantity: number, power?: string) => void;
 }
@@ -402,7 +405,7 @@ const getCartLinePrice = (product: any, selectedPower?: string) => {
   return Number(selectedParam?.amount ?? parameters[0]?.amount ?? product?.price ?? 0);
 };
 
-const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, user, mode = 'fixed', onOpenCart, onRemoveFromCart, onUpdateCartQuantity }) => {
+const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, user, mode = 'fixed', onOpenCart, onOpenProduct, onRemoveFromCart, onUpdateCartQuantity }) => {
   const { getProductById } = useProduct();
   const [isOpen, setIsOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
@@ -482,6 +485,12 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
     onOpenCart();
   };
 
+  const handleProductOpen = (item: any) => {
+    const id = String(item.cartId ?? item.id);
+    setIsOpen(false);
+    onOpenProduct?.(id);
+  };
+
   const changePreviewQuantity = (item: any, nextQuantity: number) => {
     const id = String(item.cartId ?? item.id);
     if (nextQuantity < 0) {
@@ -539,9 +548,17 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
                 const price = getCartLinePrice(item, item.selectedPower);
                 return (
                   <div key={`${item.id}-${item.selectedPower || 'base'}`} className="flex items-center gap-3 rounded-xl bg-slate-50 p-2 transition-all hover:bg-slate-100">
-                    <div className="h-14 w-14 shrink-0 rounded-lg bg-white p-1.5">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleProductOpen(item);
+                      }}
+                      className="h-14 w-14 shrink-0 rounded-lg bg-white p-1.5 transition-all hover:-translate-y-0.5 hover:ring-2 hover:ring-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      aria-label={`${item.productName} product page`}
+                    >
                       <img src={getProductImage(item)} alt={item.productName} className="h-full w-full object-contain" />
-                    </div>
+                    </button>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-black text-slate-900">{item.productName}</div>
                       {item.selectedPower && <div className="text-[10px] font-bold text-slate-400">{item.selectedPower}</div>}
@@ -617,7 +634,7 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
         type="button"
         onClick={handleMainClick}
         className={isInline
-          ? "group flex h-full min-h-12 items-center justify-center rounded-xl bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-slate-900 active:scale-95"
+          ? "product-floating-cart-button group flex h-full min-h-12 items-center justify-center rounded-xl bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-slate-900 active:scale-95"
           : "group rounded-full bg-emerald-600 p-4 text-white shadow-2xl shadow-emerald-600/40 transition-all hover:bg-slate-900 active:scale-95 animate-in fade-in zoom-in duration-300"}
         aria-expanded={isOpen}
         aria-label={label}
@@ -748,8 +765,20 @@ const AppContent: React.FC = () => {
   );
   const [cart, setCart] = useState<{ id: string; quantity: number; power?: string }[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [authReLoginOpen, setAuthReLoginOpen] = useState(false);
   const [pendingCartTransfer, setPendingCartTransfer] = useState<PendingCartTransfer | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+      setPendingCartTransfer(null);
+      setAuthReLoginOpen(true);
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, []);
 
   useEffect(() => {
     const defaults = { primary: '#99c21c', accent: '#a0ae5e', dark: '#172b27', surface: '#f7faf9', text: '#334155' };
@@ -864,7 +893,21 @@ const AppContent: React.FC = () => {
         const query = params.toString();
         return query ? `/products?${query}` : '/products';
       }
-      case 'product-detail': return `/product/${id || ''}`;
+      case 'product-detail': {
+        const params = new URLSearchParams();
+        if (extra?.returnToProducts) params.set('return', 'products');
+        if (extra?.returnCategory !== undefined && extra?.returnCategory !== null) {
+          params.set('returnCategory', String(extra.returnCategory));
+        }
+        if (extra?.returnSubCategory !== undefined && extra?.returnSubCategory !== null) {
+          params.set('returnSubCategory', String(extra.returnSubCategory));
+        }
+        if (extra?.returnSearch !== undefined && extra?.returnSearch !== null && String(extra.returnSearch).trim()) {
+          params.set('returnSearch', String(extra.returnSearch).trim());
+        }
+        const query = params.toString();
+        return query ? `/product/${id || ''}?${query}` : `/product/${id || ''}`;
+      }
       case 'contact': return '/contact';
       case 'news': return id ? `/news/${id}` : '/news';
       case 'blog': return id ? `/blog/${id}` : '/blog';
@@ -910,7 +953,19 @@ const AppContent: React.FC = () => {
       const productSearch = params.get('search') || undefined;
       return { page: 'products', extra: { category, subCategory, search: productSearch } };
     }
-    if (parts[0] === 'product' && parts[1]) return { page: 'product-detail', id: parts[1] };
+    if (parts[0] === 'product' && parts[1]) {
+      const params = new URLSearchParams(search);
+      return {
+        page: 'product-detail',
+        id: parts[1],
+        extra: {
+          returnToProducts: params.get('return') === 'products',
+          returnCategory: params.get('returnCategory') || undefined,
+          returnSubCategory: params.get('returnSubCategory') || undefined,
+          returnSearch: params.get('returnSearch') || undefined,
+        },
+      };
+    }
     if (parts[0] === 'contact') return { page: 'contact' };
     if (parts[0] === 'news' && parts[1]) return { page: 'news', id: parts[1] };
     if (parts[0] === 'news') return { page: 'news' };
@@ -1034,7 +1089,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleLogin = async (userData: User) => {
+  const handleLogin = async (userData: User, options: { preserveLocation?: boolean } = {}) => {
     const wasGuest = !user;
     const pendingGuestCart = wasGuest ? normalizeCart(cart.length > 0 ? cart : getGuestCart()) : [];
     const hydratedUser = await mergeCheckoutContactIntoUser(userData);
@@ -1047,7 +1102,7 @@ const AppContent: React.FC = () => {
       if (pendingGuestCart.length > 0) saveGuestCart(pendingGuestCart);
       setCart([]);
       saveVisibleCart([]);
-      navigateTo('admin-dashboard');
+      if (!options.preserveLocation) navigateTo('admin-dashboard');
       return;
     }
 
@@ -1078,9 +1133,9 @@ const AppContent: React.FC = () => {
     }
 
     if (hydratedUser.role === 'master') {
-      navigateTo('pro-club-dashboard');
+      if (!options.preserveLocation) navigateTo('pro-club-dashboard');
     } else {
-      navigateTo('customer-dashboard');
+      if (!options.preserveLocation) navigateTo('customer-dashboard');
     }
   };
 
@@ -1559,6 +1614,7 @@ const AppContent: React.FC = () => {
             onRemoveFromCart={(id, power) => handleRemoveFromCart(id, power)}
             onUpdateCartQuantity={(id, quantity, power) => handleUpdateCartQuantity(id, quantity, power)}
             onBack={handleBack}
+            onContinueShopping={() => navigateTo('products')}
             lang={lang as any}
             onCheckout={handleCheckoutFromCart}
           />
@@ -1576,6 +1632,7 @@ const AppContent: React.FC = () => {
             user={user}
             lang={lang as any}
             onBack={handleBack}
+            onContinueShopping={() => navigateTo('products')}
             cart={cart}
             onRemoveFromCart={handleRemoveFromCart}
             onUpdateCartQuantity={handleUpdateCartQuantity}
@@ -1608,8 +1665,12 @@ const AppContent: React.FC = () => {
         <ProductProvider>
           <CategoryProvider>
             <ProductsPage
-              // onSelectProduct={(id) => navigateTo('product-detail', id)} 
-              onSelectProduct={(id) => navigate(`/product/${id}`)}
+              onSelectProduct={(id, returnContext) => navigateTo('product-detail', id, {
+                returnToProducts: true,
+                returnCategory: returnContext?.category,
+                returnSubCategory: returnContext?.subCategory,
+                returnSearch: returnContext?.search,
+              })}
               onOrderNow={(id, quantity) => navigateTo('order', id, { quantity })}
               onAddToCart={handleAddToCart}
               lang={lang as any}
@@ -1634,7 +1695,7 @@ const AppContent: React.FC = () => {
                   onViewAll={() => navigateTo('products')}
                   onOrderNow={(id, quantity) => navigateTo('order', id, { quantity })}
                   onAddToCart={handleAddToCart}
-                    lang={lang === 'az' ? 'az' : 'en'}
+                    lang={lang}
                 />
               </CategoryProvider>
             </ProductProvider>
@@ -1676,7 +1737,7 @@ const AppContent: React.FC = () => {
           onLogin={handleLogin}
         />
       </CategoryProvider>}
-      <main className="flex-grow overflow-x-hidden">
+      <main className="flex-grow">
         {/* <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           {renderContent()}
         </Suspense> */}
@@ -1705,7 +1766,18 @@ const AppContent: React.FC = () => {
                 <CategoryProvider>
                   <ProductDetail
                     productId={view.id || ''}
-                    onBack={handleBack}
+                    onBack={(productCategory) => {
+                      const fromProducts = view.extra?.returnToProducts === true;
+                      navigateTo('products', undefined, {
+                        category: fromProducts
+                          ? view.extra?.returnCategory
+                          : productCategory?.category,
+                        subCategory: fromProducts
+                          ? view.extra?.returnSubCategory
+                          : productCategory?.subCategory,
+                        search: fromProducts ? view.extra?.returnSearch : undefined,
+                      });
+                    }}
                     onOrderNow={(id, quantity, power) =>
                       navigateTo('order', id, { quantity, power })
                     }
@@ -1717,6 +1789,7 @@ const AppContent: React.FC = () => {
                         lang={lang}
                         user={user}
                         onOpenCart={() => navigateTo('cart')}
+                        onOpenProduct={(id) => navigateTo('product-detail', id)}
                         onRemoveFromCart={handleRemoveFromCart}
                         onUpdateCartQuantity={handleUpdateCartQuantity}
                       />
@@ -1741,17 +1814,20 @@ const AppContent: React.FC = () => {
         </Routes>
       </main>
 
-      {!isSimplifiedCheckout && view.page !== 'cart' && !isProductDetailPage && (
-        <ProductProvider>
-          <FloatingCartPreview
-            cart={cart}
-            lang={lang}
-            user={user}
-            onOpenCart={() => navigateTo('cart')}
-            onRemoveFromCart={handleRemoveFromCart}
-            onUpdateCartQuantity={handleUpdateCartQuantity}
-          />
-        </ProductProvider>
+      {!isSimplifiedCheckout && view.page !== 'cart' && (
+        <div className={isProductDetailPage ? 'hidden sm:block' : undefined}>
+          <ProductProvider>
+            <FloatingCartPreview
+              cart={cart}
+              lang={lang}
+              user={user}
+              onOpenCart={() => navigateTo('cart')}
+              onOpenProduct={(id) => navigateTo('product-detail', id)}
+              onRemoveFromCart={handleRemoveFromCart}
+              onUpdateCartQuantity={handleUpdateCartQuantity}
+            />
+          </ProductProvider>
+        </div>
       )}
 
       {pendingCartTransfer && (
@@ -1762,6 +1838,23 @@ const AppContent: React.FC = () => {
           onCancel={handleCancelCartTransfer}
         />
       )}
+
+      <LoginModal
+        isOpen={authReLoginOpen}
+        onClose={() => {
+          setAuthReLoginOpen(false);
+          navigateTo('home');
+        }}
+        lang={lang === 'az' ? 'az' : 'en'}
+        showRegisterLink={false}
+        message={lang === 'az'
+          ? 'Sessiyanız başa çatıb. Davam etmək üçün yenidən daxil olun.'
+          : 'Your session has expired. Please log in again to continue.'}
+        onCustomerLogin={async (nextUser) => {
+          await handleLogin(nextUser, { preserveLocation: true });
+          setAuthReLoginOpen(false);
+        }}
+      />
 
       {location.pathname !== '/theme-lab' && !isSimplifiedCheckout && <Footer onNavigate={(p, id, extra) => navigateTo(p as PageView, id, extra)} lang={lang} logoSrc={previewLogo || '/volt-logo.png'} />}
     </div>

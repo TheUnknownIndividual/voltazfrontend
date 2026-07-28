@@ -1,6 +1,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { logPublicSolarCalculation, logPublicWhatsappClick } from '../api/solarAnalytics';
+import AbifCreditEstimateCard, {
+  calculateAbifCreditEstimate,
+  getAbifCreditWhatsappSummary
+} from './AbifCreditEstimate';
 
 interface CalculatorProps {
   lang: 'az' | 'en' | 'ru' | 'tr';
@@ -18,6 +22,15 @@ const DEFAULT_BILL = 150;
 const DEFAULT_SAVING_TARGET = 100;
 const DEFAULT_ELECTRICITY_TARIFF = 0.15;
 
+// Enables the ABIF and EBRD banners, financing actions, and related calculator UI.
+const ABIF_NONRESIDENTIAL_CREDIT_ENABLED = false;
+type FinanceSource = 'abif' | 'ebrd';
+
+const FINANCE_BANNERS: Array<{ source: FinanceSource; image: string }> = [
+  { source: 'abif', image: '/abif-business-credit-banner.png' },
+  { source: 'ebrd', image: '/ebrd-business-finance-banner.png' }
+];
+
 const cityProfiles: Record<string, { lat: number; lon: number; yield: number }> = {
   'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1380 },
   'Sumqayıt': { lat: 40.5897, lon: 49.6686, yield: 1370 },
@@ -32,14 +45,6 @@ const cityProfiles: Record<string, { lat: number; lon: number; yield: number }> 
   'Şirvan': { lat: 39.9321, lon: 48.9203, yield: 1400 },
   'Quba': { lat: 41.3611, lon: 48.5134, yield: 1300 },
   'Qusar': { lat: 41.4275, lon: 48.4302, yield: 1290 }
-};
-
-const extraDeviceAnnualKWh: Record<string, number> = {
-  'ev-charger': 3000,
-  pool: 2000,
-  ac: 2500,
-  heater: 1800,
-  oven: 1200
 };
 
 const getOptimalTilt = (lat: number) => Math.round(Math.abs(lat));
@@ -74,12 +79,14 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   // New states
   const [city, setCity] = useState<string>('Bakı');
   const [roofArea, setRoofArea] = useState<string>('');
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
   const [maxRoofArea, setMaxRoofArea] = useState<string>('');
   const [tiltAngle, setTiltAngle] = useState<number>(35);
   const [orientation, setOrientation] = useState<number>(180);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [showCreditEstimate, setShowCreditEstimate] = useState(false);
+  const [financeSource, setFinanceSource] = useState<FinanceSource | null>(null);
+  const [activeFinanceBanner, setActiveFinanceBanner] = useState(0);
   const lastLoggedCalculationRef = useRef<string>('');
 
   const cities = [
@@ -87,29 +94,13 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     'Naxçıvan', 'Mingəçevir', 'Xırdalan', 'Şirvan', 'Quba', 'Qusar'
   ];
 
-  const extraDevicesList: Array<{ id: string; label: LocalizedText }> = [
-    { id: 'ev-charger', label: { az: 'Şarj stansiyası', en: 'EV charger', ru: 'Зарядная станция', tr: 'Şarj istasyonu' } },
-    { id: 'pool', label: { az: 'Hovuz', en: 'Pool', ru: 'Бассейн', tr: 'Havuz' } },
-    { id: 'ac', label: { az: 'Kondisioner', en: 'Air conditioner', ru: 'Кондиционер', tr: 'Klima' } },
-    { id: 'heater', label: { az: 'Su qızdırıcısı', en: 'Water heater', ru: 'Водонагреватель', tr: 'Su ısıtıcı' } },
-    { id: 'oven', label: { az: 'Elektrikli soba', en: 'Electric oven', ru: 'Электрическая печь', tr: 'Elektrikli fırın' } }
-  ];
-
-  const toggleDevice = (id: string) => {
-    setHasInteracted(true);
-    setSelectedDevices(prev => 
-      prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
-    );
-  };
-
   const markCalculatorInteraction = () => setHasInteracted(true);
 
   const results = useMemo(() => {
     const tariff = DEFAULT_ELECTRICITY_TARIFF;
     const annualConsumptionFromBill = (bill / tariff) * 12 * (savingTarget / 100);
-    const extraConsumption = selectedDevices.reduce((total, device) => total + (extraDeviceAnnualKWh[device] || 0), 0);
     const offGridBuffer = systemType === 'off-grid' ? 1.15 : 1;
-    const annualConsumption = (annualConsumptionFromBill + extraConsumption) * offGridBuffer;
+    const annualConsumption = annualConsumptionFromBill * offGridBuffer;
 
     const cityProfile = cityProfiles[city] || cityProfiles['Bakı'];
     const optimalTilt = getOptimalTilt(cityProfile.lat);
@@ -149,7 +140,12 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
       coverage: Math.min(100, Math.round((annualProduction / annualConsumption) * 100)),
       limitedByRoof: Boolean(roofLimit && neededArea > roofLimit)
     };
-  }, [bill, propertyType, savingTarget, selectedDevices, systemType, city, roofArea, isAdvancedOpen, maxRoofArea, tiltAngle, orientation]);
+  }, [bill, propertyType, savingTarget, systemType, city, roofArea, isAdvancedOpen, maxRoofArea, tiltAngle, orientation]);
+
+  const abifCreditEstimate = useMemo(
+    () => calculateAbifCreditEstimate(results.price),
+    [results.price]
+  );
 
   const t = {
     eyebrow: { az: 'Ağıllı hesablama', en: 'Smart calculation', ru: 'Умный расчет', tr: 'Akıllı hesaplama' },
@@ -188,11 +184,10 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     city: { az: 'Şəhər seçin', en: 'Select city', ru: 'Выберите город', tr: 'Şehir seçin' },
     roofArea: { az: 'Damın sahəsi (m²)', en: 'Roof area (m²)', ru: 'Площадь крыши (м²)', tr: 'Çatı alanı (m²)' },
     roofPlaceholder: { az: 'Məsələn: 50', en: 'Example: 50', ru: 'Например: 50', tr: 'Örnek: 50' },
-    extraDevices: { az: 'Əlavə yüksək sərfiyyatlı cihazlar', en: 'Extra high-consumption devices', ru: 'Дополнительные энергоемкие устройства', tr: 'Ek yüksek tüketimli cihazlar' },
-    optional: { az: 'varsa seçin', en: 'select if any', ru: 'если есть, выберите', tr: 'varsa seçin' },
     monthlyBill: { az: 'Aylıq ödəniş', en: 'Monthly bill', ru: 'Ежемесячный счет', tr: 'Aylık fatura' },
     savingTarget: { az: 'Qənaət hədəfi', en: 'Saving target', ru: 'Цель экономии', tr: 'Tasarruf hedefi' },
-    advanced: { az: 'Təkmilləşdirilmiş', en: 'Advanced', ru: 'Расширенные', tr: 'Gelişmiş' },
+    creditView: { az: 'Kredit ilə bax', en: 'View credit', ru: 'Посмотреть кредит', tr: 'Krediyi gör' },
+    creditHide: { az: 'Krediti gizlət', en: 'Hide credit', ru: 'Скрыть кредит', tr: 'Krediyi gizlət' },
     maxRoofArea: { az: 'Maksimum dam sahəsi (m²)', en: 'Maximum roof area (m²)', ru: 'Максимальная площадь крыши (м²)', tr: 'Maksimum çatı alanı (m²)' },
     tiltAngle: { az: 'Meyl bucağı (°)', en: 'Tilt angle (°)', ru: 'Угол наклона (°)', tr: 'Eğim açısı (°)' },
     orientation: { az: 'İstiqamət (°)', en: 'Orientation (°)', ru: 'Ориентация (°)', tr: 'Yön (°)' },
@@ -220,21 +215,69 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     notSelected: { az: 'Seçilməyib', en: 'Not selected', ru: 'Не выбрано', tr: 'Seçilmedi' },
     yes: { az: 'Bəli', en: 'Yes', ru: 'Да', tr: 'Evet' },
     no: { az: 'Xeyr', en: 'No', ru: 'Нет', tr: 'Hayır' },
-    advancedMode: { az: 'Təkmilləşdirilmiş rejim', en: 'Advanced mode', ru: 'Расширенный режим', tr: 'Gelişmiş mod' },
     annualProduction: { az: 'İllik istehsal', en: 'Annual production', ru: 'Годовая выработка', tr: 'Yıllık üretim' },
     neededRoofArea: { az: 'Tələb olunan dam sahəsi', en: 'Required roof area', ru: 'Необходимая площадь крыши', tr: 'Gerekli çatı alanı' },
     solarYield: { az: 'Günəş göstəricisi', en: 'Solar yield', ru: 'Солнечная выработка', tr: 'Güneş verimi' },
     coverage: { az: 'Enerji əhatəsi', en: 'Energy coverage', ru: 'Покрытие энергии', tr: 'Enerji karşılama' },
-    roofLimited: { az: 'Dam sahəsi limiti', en: 'Roof space limited', ru: 'Ограничение площади крыши', tr: 'Çatı alanı sınırı' }
+    roofLimited: { az: 'Dam sahəsi limiti', en: 'Roof space limited', ru: 'Ограничение площади крыши', tr: 'Çatı alanı sınırı' },
+    creditBannerTitle: {
+      az: '5%-dək güzəştli kredit imkanı',
+      en: 'Concessional credit up to 5%',
+      ru: 'Льготный кредит до 5%',
+      tr: "%5'e kadar avantajlı kredi"
+    },
+    creditBannerAction: {
+      az: 'Biznes üçün hesabla',
+      en: 'Calculate for business',
+      ru: 'Рассчитать для бизнеса',
+      tr: 'İşletme için hesapla'
+    },
+    ebrdBannerTitle: {
+      az: 'Biznes üçün yaşıl maliyyələşmə',
+      en: 'Green financing for business',
+      ru: 'Зеленое финансирование для бизнеса',
+      tr: 'İşletmeler için yeşil finansman'
+    },
+    ebrdBannerAction: {
+      az: 'Layihəni doldurun',
+      en: 'Fill in your project',
+      ru: 'Заполнить данные проекта',
+      tr: 'Proje bilgilerini doldurun'
+    },
+    ebrdContactTitle: {
+      az: 'EBRD maliyyələşməsi haqqında ətraflı məlumat alın',
+      en: 'Get EBRD financing details',
+      ru: 'Получите подробности финансирования EBRD',
+      tr: 'EBRD finansman ayrıntılarını alın'
+    },
+    ebrdContactDescription: {
+      az: 'Hesablamanızla birlikdə müraciət edin. Komandamız uyğun maliyyələşmə şərtləri barədə məlumat verəcək.',
+      en: 'Apply with your calculation. Our team will provide the applicable financing terms.',
+      ru: 'Подайте заявку вместе с расчетом. Наша команда сообщит вам о применимых условиях финансирования.',
+      tr: 'Hesaplamanızla birlikte başvurun. Ekibimiz uygun finansman koşulları hakkında bilgi verecektir.'
+    },
+    ebrdContactButton: {
+      az: 'Müraciət et',
+      en: 'Apply now',
+      ru: 'Подать заявку',
+      tr: 'Başvur'
+    },
+    creditWhatsappSource: {
+      az: 'Maliyyələşmə mənbəyi: Azərbaycan Biznesinin İnkişafı Fondu (ABİF)',
+      en: 'Financing source: Azerbaijan Business Development Fund (ABIF)',
+      ru: 'Источник финансирования: Азербайджанский фонд развития бизнеса (АБИФ)',
+      tr: 'Finansman kaynağı: Azerbaycan İş Geliştirme Fonu (ABİF)'
+    },
+    ebrdWhatsappSource: {
+      az: 'Maliyyələşmə mənbəyi: EBRD və Bank Respublika',
+      en: 'Financing source: EBRD and Bank Respublika',
+      ru: 'Источник финансирования: ЕБРР и Bank Respublika',
+      tr: 'Finansman kaynağı: EBRD ve Bank Respublika'
+    }
   };
 
   const propertyLabel = propertyType === 'home' ? getText(t.residential, lang) : getText(t.commercial, lang);
   const systemLabel = systemType === 'on-grid' ? getText(t.onGrid, lang) : getText(t.offGrid, lang);
-  const selectedDeviceLabels = selectedDevices
-    .map((id) => extraDevicesList.find((device) => device.id === id))
-    .filter(Boolean)
-    .map((device) => getText(device!.label, lang))
-    .join(', ');
   const isDefaultRequest =
     bill === DEFAULT_BILL &&
     savingTarget === DEFAULT_SAVING_TARGET &&
@@ -242,12 +285,16 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     systemType === 'on-grid' &&
     city === 'Bakı' &&
     !roofArea.trim() &&
-    selectedDevices.length === 0 &&
     !isAdvancedOpen;
+  const abifCreditWhatsappSummary =
+    ABIF_NONRESIDENTIAL_CREDIT_ENABLED && financeSource === 'abif' && propertyType === 'business' && showCreditEstimate && abifCreditEstimate.status === 'eligible'
+      ? getAbifCreditWhatsappSummary(abifCreditEstimate, lang)
+      : '';
   const quoteDetails = [
+    financeSource === 'abif' && propertyType === 'business' && getText(t.creditWhatsappSource, lang),
+    financeSource === 'ebrd' && propertyType === 'business' && getText(t.ebrdWhatsappSource, lang),
     city !== 'Bakı' && `${getText(t.city, lang)}: ${city}`,
     parsePositiveNumber(roofArea) && `${getText(t.roofArea, lang)}: ${roofArea.trim()} m²`,
-    selectedDeviceLabels && `${getText(t.extraDevices, lang)}: ${selectedDeviceLabels}`,
     bill > 0 && bill !== DEFAULT_BILL && `${getText(t.monthlyBill, lang)}: ${bill} AZN`,
     savingTarget > 0 && savingTarget !== DEFAULT_SAVING_TARGET && `${getText(t.savingTarget, lang)}: ${savingTarget}%`,
     propertyType !== 'home' && `${getText(t.propertyType, lang)}: ${propertyLabel}`,
@@ -262,7 +309,8 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     results.area > 0 && `${getText(t.neededRoofArea, lang)}: ${results.area} m²`,
     results.yield > 0 && `${getText(t.solarYield, lang)}: ${results.yield} kWh/kWp/year`,
     results.coverage > 0 && `${getText(t.coverage, lang)}: ${results.coverage}%`,
-    results.limitedByRoof && `${getText(t.roofLimited, lang)}: ${getText(t.yes, lang)}`
+    results.limitedByRoof && `${getText(t.roofLimited, lang)}: ${getText(t.yes, lang)}`,
+    abifCreditWhatsappSummary
   ].filter(Boolean).join('\n');
   const quoteMessage = isDefaultRequest
     ? getText(t.defaultQuoteMessage, lang)
@@ -281,13 +329,16 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
       savingTarget,
       city,
       roofArea,
-      selectedDevices,
       isAdvancedOpen,
       maxRoofArea,
       tiltAngle,
       orientation
     },
     result: results,
+    creditEstimate:
+      ABIF_NONRESIDENTIAL_CREDIT_ENABLED && financeSource === 'abif' && propertyType === 'business' && showCreditEstimate && abifCreditEstimate.status === 'eligible'
+        ? abifCreditEstimate
+        : undefined,
     quoteDetails: eventType === 'whatsapp' ? quoteDetails : undefined
   });
 
@@ -309,42 +360,105 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     }, 900);
 
     return () => window.clearTimeout(timeout);
-  }, [bill, city, hasInteracted, isAdvancedOpen, lang, maxRoofArea, orientation, propertyType, quoteDetails, results, roofArea, savingTarget, selectedDevices, systemType, tiltAngle]);
+  }, [bill, city, hasInteracted, isAdvancedOpen, lang, maxRoofArea, orientation, propertyType, quoteDetails, results, roofArea, savingTarget, systemType, tiltAngle]);
 
   const handleWhatsappClick = () => {
     setHasInteracted(true);
     logPublicWhatsappClick(lang, buildTrackingPayload('whatsapp')).catch(() => undefined);
   };
 
+  const openBusinessCredit = () => {
+    markCalculatorInteraction();
+    setPropertyType('business');
+    setFinanceSource('abif');
+    setShowCreditEstimate(true);
+  };
+
+  const openEbrdFinance = () => {
+    markCalculatorInteraction();
+    setPropertyType('business');
+    setFinanceSource('ebrd');
+    setShowCreditEstimate(false);
+  };
+
+  useEffect(() => {
+    if (!ABIF_NONRESIDENTIAL_CREDIT_ENABLED) {
+      return;
+    }
+
+    const rotation = window.setInterval(() => {
+      setActiveFinanceBanner((current) => (current + 1) % FINANCE_BANNERS.length);
+    }, 5000);
+
+    return () => window.clearInterval(rotation);
+  }, []);
+
+  const activeBanner = FINANCE_BANNERS[activeFinanceBanner];
+  const isAbifBanner = activeBanner.source === 'abif';
+
   return (
-    <section id="calculator" className="py-12 md:py-24 bg-[var(--color-surface)] overflow-hidden relative">
+    <section id="calculator" className="relative overflow-hidden bg-[var(--color-surface)] py-12 md:py-24">
       <div className="max-w-[1440px] mx-auto px-4 md:px-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-stretch">
-          
-          <div className="lg:col-span-5 flex flex-col justify-center space-y-6 md:space-y-8">
+        <div className="grid grid-cols-1 items-stretch gap-8 md:gap-12 lg:grid-cols-12">
+          <div className="flex flex-col justify-center space-y-6 md:space-y-8 lg:col-span-5">
             <header className="text-left">
-              <h2 className="text-[var(--color-primary)] font-bold tracking-[0.2em] uppercase mb-1 md:mb-2 text-[9px] md:text-[10px]">{getText(t.eyebrow, lang)}</h2>
-              <h3 className="text-2xl md:text-5xl font-black text-slate-900 leading-tight mb-3 md:mb-4">{getText(t.title, lang)}</h3>
-              <p className="text-slate-500 text-[10px] md:text-sm leading-relaxed max-w-sm">{getText(t.subtitle, lang)}</p>
+              <h2 className="mb-1 text-[var(--color-primary)] text-[9px] font-bold uppercase tracking-[0.2em] md:mb-2 md:text-[10px]">{getText(t.eyebrow, lang)}</h2>
+              <h1 className="mb-3 text-2xl font-black leading-tight text-slate-900 md:mb-4 md:text-5xl">{getText(t.title, lang)}</h1>
+              <p className="max-w-sm text-[10px] leading-relaxed text-slate-500 md:text-sm">{getText(t.subtitle, lang)}</p>
             </header>
-            
+
             <div className="grid gap-3">
-              {t.steps[lang].map((item, idx) => (
-                <div key={idx} className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm flex gap-4 items-center group transition-all hover:bg-white">
-                  <div className="w-8 h-8 rounded-xl bg-[var(--color-primary)] text-[var(--color-dark)] flex items-center justify-center text-xs font-black">{idx + 1}</div>
-                  <div>
-                    <h4 className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1">{item.t}</h4>
-                    <p className="text-[10px] text-slate-400 font-medium leading-tight">{item.d}</p>
-                  </div>
+            {t.steps[lang].map((item, idx) => (
+              <div key={idx} className="group flex items-center gap-4 rounded-2xl border border-white bg-white/60 p-4 shadow-sm backdrop-blur-sm transition-all hover:bg-white">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-xs font-black text-[var(--color-dark)]">{idx + 1}</div>
+                <div>
+                  <h3 className="mb-1 text-[11px] font-black uppercase leading-none text-slate-800">{item.t}</h3>
+                  <p className="text-[10px] font-medium leading-tight text-slate-400">{item.d}</p>
                 </div>
-              ))}
+            </div>
+            ))}
             </div>
           </div>
 
           <div className="lg:col-span-7">
-            <div className="h-full bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 p-6 md:p-10">
+            {ABIF_NONRESIDENTIAL_CREDIT_ENABLED && (
+              <>
+                <div className="relative aspect-[4/1] w-full overflow-hidden rounded-[1.5rem] border border-slate-800/10 bg-[var(--color-dark)] shadow-lg shadow-slate-900/10">
+                  {FINANCE_BANNERS.map((banner, index) => (
+                    <img
+                      key={banner.source}
+                      src={banner.image}
+                      alt={activeFinanceBanner === index ? getText(banner.source === 'abif' ? t.creditBannerTitle : t.ebrdBannerTitle, lang) : ''}
+                      aria-hidden={activeFinanceBanner !== index}
+                      className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-700 ${banner.source === 'ebrd' ? 'object-[center_8%]' : 'object-center'} ${activeFinanceBanner === index ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={isAbifBanner ? openBusinessCredit : openEbrdFinance}
+                    className="absolute bottom-3 right-3 hidden items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-3 py-2 text-[8px] font-black uppercase tracking-[0.1em] text-[var(--color-dark)] shadow-lg transition-all hover:bg-[var(--color-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:bottom-4 sm:right-4 sm:inline-flex sm:px-4 sm:py-2.5 sm:text-[9px]"
+                  >
+                    {getText(isAbifBanner ? t.creditBannerAction : t.ebrdBannerAction, lang)}
+                    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mt-3 flex justify-center sm:hidden">
+                  <button
+                    type="button"
+                    onClick={isAbifBanner ? openBusinessCredit : openEbrdFinance}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--color-dark)] shadow-lg transition-all hover:bg-[var(--color-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-dark)]"
+                  >
+                    {getText(isAbifBanner ? t.creditBannerAction : t.ebrdBannerAction, lang)}
+                    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                </div>
+              </>
+            )}
+            <div className={`${ABIF_NONRESIDENTIAL_CREDIT_ENABLED ? 'mt-3' : ''} h-full rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl md:rounded-[2.5rem] md:p-10`}>
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <button onClick={() => { markCalculatorInteraction(); setPropertyType('home'); }} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'home' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.residential, lang)}</button>
+                <button onClick={() => { markCalculatorInteraction(); setPropertyType('home'); setFinanceSource(null); setShowCreditEstimate(false); }} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'home' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.residential, lang)}</button>
                 <button onClick={() => { markCalculatorInteraction(); setPropertyType('business'); }} className={`py-3 md:py-3.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${propertyType === 'business' ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{getText(t.commercial, lang)}</button>
               </div>
 
@@ -384,27 +498,6 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest mb-3">
-                    {getText(t.extraDevices, lang)} <span className="text-slate-400 normal-case font-medium ml-1">({getText(t.optional, lang)})</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {extraDevicesList.map(device => (
-                      <button
-                        key={device.id}
-                        type="button"
-                        onClick={() => toggleDevice(device.id)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all border ${
-                          selectedDevices.includes(device.id)
-                            ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-md'
-                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-[var(--color-primary)]'
-                        }`}
-                      >
-                        {getText(device.label, lang)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-8 md:space-y-10 mb-8">
@@ -425,24 +518,23 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                 </div>
               </div>
 
-              <div className="mb-8 flex justify-center">
-                <button 
-                  type="button"
-                  onClick={() => { markCalculatorInteraction(); setIsAdvancedOpen(!isAdvancedOpen); }}
-                  className={`group flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all border-2 ${
-                    isAdvancedOpen 
-                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-dark)] shadow-xl scale-105' 
-                      : 'bg-white border-[var(--color-primary)] text-[var(--color-dark)] hover:border-[var(--color-primary)] hover:shadow-lg hover:-translate-y-0.5'
-                  }`}
-                >
-                  <span className="relative">
-                    {getText(t.advanced, lang)}
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform duration-500 ${isAdvancedOpen ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
+              {ABIF_NONRESIDENTIAL_CREDIT_ENABLED && propertyType === 'business' && financeSource !== 'ebrd' && (
+                <div className="mb-8 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      markCalculatorInteraction();
+                      setFinanceSource('abif');
+                      setShowCreditEstimate((visible) => !visible);
+                    }}
+                    aria-expanded={showCreditEstimate}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--color-primary)] bg-white px-8 py-3 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--color-dark)] transition-all hover:bg-[var(--color-primary)] hover:shadow-lg md:text-[11px] ${showCreditEstimate ? 'font-black' : 'font-extrabold'}`}
+                  >
+                    {getText(showCreditEstimate ? t.creditHide : t.creditView, lang)}
+                    <svg className={`h-4 w-4 transition-transform duration-300 ease-out ${showCreditEstimate ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 9l6 6 6-6" /></svg>
+                  </button>
+                </div>
+              )}
 
               {isAdvancedOpen && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8 pt-8 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -496,10 +588,20 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                 </div>
               </div>
 
+              {ABIF_NONRESIDENTIAL_CREDIT_ENABLED && financeSource === 'abif' && propertyType === 'business' && showCreditEstimate && (
+                <AbifCreditEstimateCard
+                  lang={lang}
+                  estimate={abifCreditEstimate}
+                  estimatedAnnualSavings={Number(results.yearly)}
+                  whatsappHref={quoteHref}
+                  onWhatsappClick={handleWhatsappClick}
+                />
+              )}
+
               <div className="mt-6 rounded-[1.5rem] border border-[var(--color-primary)] bg-[var(--color-surface)] p-5 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h4 className="text-base md:text-lg font-black text-[var(--color-dark)] leading-tight">{getText(t.quoteTitle, lang)}</h4>
-                  <p className="text-xs md:text-sm text-slate-500 font-medium mt-1 max-w-md">{getText(t.quoteDesc, lang)}</p>
+                  <h4 className="text-base md:text-lg font-black text-[var(--color-dark)] leading-tight">{getText(financeSource === 'ebrd' && propertyType === 'business' ? t.ebrdContactTitle : t.quoteTitle, lang)}</h4>
+                  <p className="text-xs md:text-sm text-slate-500 font-medium mt-1 max-w-md">{getText(financeSource === 'ebrd' && propertyType === 'business' ? t.ebrdContactDescription : t.quoteDesc, lang)}</p>
                 </div>
                 <a
                   href={quoteHref}
@@ -508,7 +610,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   onClick={handleWhatsappClick}
                   className="inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-6 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest text-[var(--color-dark)] shadow-lg shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:bg-[var(--color-accent)]"
                 >
-                  {getText(t.quoteButton, lang)}
+                  {getText(financeSource === 'ebrd' && propertyType === 'business' ? t.ebrdContactButton : t.quoteButton, lang)}
                 </a>
               </div>
             </div>

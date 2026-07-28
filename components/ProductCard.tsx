@@ -2,17 +2,59 @@
 import React from 'react';
 import { Product } from '../types';
 import { useCategory } from '@/contexts/CategoryContext';
-import { useNavigate } from "react-router-dom";
+
+export interface ProductReturnContext {
+  category?: string | number;
+  subCategory?: string | number;
+  search?: string;
+}
 
 interface ProductCardProps {
   product: Product;
-  onSelectProduct: (id: string) => void;
+  onSelectProduct: (id: string, returnContext?: ProductReturnContext) => void;
   onAddToCart?: (id: string, quantity: number) => void;
   onOrderNow?: (id: string, quantity: number) => void;
   lang?: 'az' | 'en' | 'ru' | 'tr';
+  search?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onAddToCart, onOrderNow, lang = 'az' }) => {
+const parsePowerInWatts = (value: string) => {
+  const match = value.trim().match(/^(\d+(?:[.,]\d+)?)\s*(kw|w)?$/i);
+  if (!match) return null;
+
+  const parsed = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(parsed)) return null;
+  return match[2]?.toLowerCase() === 'kw' ? parsed * 1000 : parsed;
+};
+
+const matchesVariantSearch = (technicalPower: string | undefined, search: string) => {
+  const variantValue = technicalPower?.trim();
+  const query = search.trim();
+  if (!variantValue || !query) return false;
+
+  const normalizedVariant = variantValue.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (normalizedVariant === normalizedQuery) return true;
+  if (/[a-z]/.test(normalizedQuery) && normalizedVariant.includes(normalizedQuery)) return true;
+
+  const powerQuery = query.match(/(\d+(?:[.,]\d+)?)\s*(kw|w)\b/i);
+  if (powerQuery) {
+    const queryWatts = parsePowerInWatts(`${powerQuery[1]}${powerQuery[2]}`);
+    const variantWatts = parsePowerInWatts(variantValue);
+    return queryWatts !== null && variantWatts === queryWatts;
+  }
+
+  if (/^\d+(?:[.,]\d+)?$/.test(query)) {
+    const numericQuery = Number(query.replace(',', '.'));
+    const variantWatts = parsePowerInWatts(variantValue);
+    return Number.isFinite(numericQuery)
+      && (variantWatts === numericQuery || variantWatts === numericQuery * 1000);
+  }
+
+  return false;
+};
+
+const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onAddToCart, onOrderNow, lang = 'az', search = '' }) => {
   const t = {
     onOrder: lang === 'az' ? 'Sifarişlə' : lang === 'en' ? 'On Order' : lang === 'ru' ? 'Под заказ' : 'Sipariş üzerine',
     inStock: lang === 'az' ? 'Stokda' : lang === 'en' ? 'In Stock' : lang === 'ru' ? 'В наличии' : 'Stokta',
@@ -25,12 +67,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
   const {
     brands,
   } = useCategory();
-  const navigate = useNavigate();
   const parameters = Array.isArray(product.productParametrs) ? product.productParametrs : [];
+  const matchingParam = parameters.find((item) =>
+    matchesVariantSearch(item?.technicalPower, search)
+  );
   const purchasableParam = parameters.find((item) =>
     Boolean(product.inStock && Number(item?.count || 0) > 0 && Number(item?.amount || 0) > 0)
   );
-  const displayParam = purchasableParam || parameters[0];
+  const displayParam = matchingParam || purchasableParam || parameters[0];
   const productSpecBadge = displayParam?.technicalPower?.trim();
   const firstAmount = Number(displayParam?.amount || 0);
   const firstCount = Number(displayParam?.count || 0);
@@ -64,8 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
         {/* Image Container */}
         <div
-          // onClick={() => onSelectProduct(product.id)}
-          onClick={() => navigate(`/product/${product.id}`)}
+          onClick={() => onSelectProduct(product.id)}
           className="relative aspect-[4/4.5] rounded-[1.25rem] bg-slate-50 overflow-hidden cursor-pointer group-hover:bg-emerald-50/50 transition-colors duration-500"
         >
           <img

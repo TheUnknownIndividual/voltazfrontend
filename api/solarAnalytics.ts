@@ -6,6 +6,8 @@ export interface SolarProjectOption {
   name: string;
   createdAt: string;
   updatedAt?: string | null;
+  latestPayloadJson?: string | null;
+  adminTrackedProjectId?: number | null;
 }
 
 export interface SolarAnalyticsDashboard {
@@ -29,6 +31,7 @@ export interface SolarAnalyticsDashboard {
     documentNumber?: string | null;
     documentCode?: string | null;
     createdAt: string;
+    payloadJson?: string | null;
   }>;
 }
 
@@ -55,9 +58,10 @@ export const searchSolarProjects = async (query: string) => {
   return unwrap<SolarProjectOption[]>(response) || [];
 };
 
-export const logAdminPdfExport = async (projectName: string, language: string, payload: unknown) => {
+export const logAdminPdfExport = async (projectName: string, language: string, payload: unknown, adminTrackedProjectId: number) => {
   const response = await axiosInstance.post(API_ENDPOINTS.SOLAR_ANALYTICS.ADMIN_PDF_EXPORT, {
     projectName,
+    adminTrackedProjectId,
     language,
     sessionId: getSessionId(),
     payload
@@ -65,15 +69,16 @@ export const logAdminPdfExport = async (projectName: string, language: string, p
   return unwrap<{ projectId: number; calculationLogId: number }>(response);
 };
 
-export const issueAdminDocxExport = async (projectName: string, documentCode: string, language: string, payload: unknown) => {
+export const issueAdminDocxExport = async (projectName: string, documentCode: string, language: string, payload: unknown, adminTrackedProjectId: number) => {
   const response = await axiosInstance.post(API_ENDPOINTS.SOLAR_ANALYTICS.ADMIN_DOCX_EXPORT, {
     projectName,
     documentCode,
+    adminTrackedProjectId,
     language,
     sessionId: getSessionId(),
     payload
   });
-  return unwrap<{ projectId: number; calculationLogId: number; documentLogId: number; documentCode: string; documentNumber: string }>(response);
+  return unwrap<{ projectId: number; adminTrackedProjectId: number; calculationLogId: number; documentLogId: number; documentCode: string; documentNumber: string; verificationToken: string; verificationUrl: string }>(response);
 };
 
 export const logPublicSolarCalculation = async (language: string, payload: unknown) => {

@@ -11,6 +11,7 @@ interface AdminStatsProps {
 const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   const [dynamicProducts, setDynamicProducts] = useState<string[]>([]);
   const [warehouseProducts, setWarehouseProducts] = useState<any[]>([]);
+  const [productTotalCount, setProductTotalCount] = useState(0);
   const [requests, setRequests] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
 
@@ -98,6 +99,16 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
     'Monitorinq və İdarəetmə'
   ];
   
+  const unwrapList = (response: any) => (
+    response?.data?.success && Array.isArray(response.data.data) ? response.data.data : []
+  );
+
+  const productStockCount = (product: any) =>
+    Number(product?.productParametrs?.reduce((sum: number, item: any) => sum + Number(item?.count || 0), 0) || 0);
+
+  const productStockValue = (product: any) =>
+    Number(product?.productParametrs?.reduce((sum: number, item: any) => sum + Number(item?.count || 0) * Number(item?.amount || 0), 0) || 0);
+
   useEffect(() => {
     const loadOrders = async () => {
       try {
@@ -109,8 +120,77 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
       }
     };
 
+    const loadProducts = async () => {
+      try {
+        const response = await axiosInstance.get(API_ENDPOINTS.PRODUCT.GET_PRODUCT(undefined, undefined, 1, 100));
+        const data = response.data?.success ? response.data.data : null;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        setProductTotalCount(Number(data?.totalCount || items.length));
+        setDynamicProducts(items.map((item: any) => item.productName).filter(Boolean));
+        setWarehouseProducts(items.map((item: any) => ({
+          id: item.id,
+          name: item.productName,
+          type: String(item.productCategoryId || '-'),
+          count: productStockCount(item),
+          price: Number(item.productParametrs?.[0]?.amount || 0),
+          value: productStockValue(item),
+        })));
+      } catch {
+        setProductTotalCount(0);
+        setWarehouseProducts([]);
+      }
+    };
+
+    const loadRequests = async () => {
+      const endpoints = [
+        { type: 'Əlaqə', url: API_ENDPOINTS.CONTACT_REQUEST.GET_CONTACT_REQUEST() },
+        { type: 'Xidmət', url: API_ENDPOINTS.SERVICE_REQUEST.GET_SERVICE_REQUEST() },
+        { type: 'Tərəfdaşlıq', url: API_ENDPOINTS.PARTNERSHIP_REQUEST.GET_PARTNERSHIP_REQUEST() },
+      ];
+
+      const settled = await Promise.allSettled(endpoints.map((endpoint) => axiosInstance.get(endpoint.url)));
+      const rows = settled.flatMap((result, index) => {
+        if (result.status !== 'fulfilled') return [];
+        return unwrapList(result.value).map((item: any) => ({
+          id: `${endpoints[index].type}-${item.id}`,
+          name: item.fullName || item.name || item.companyName || item.contactPerson || '-',
+          email: item.email || item.contactEmail || '-',
+          type: endpoints[index].type,
+          date: item.createdAt || item.requestDate || item.date || new Date().toISOString(),
+          status: item.status === 1 ? 'contacted' : item.status === 2 ? 'closed' : 'new',
+        }));
+      });
+      setRequests(rows);
+    };
+
     loadOrders();
+    loadProducts();
+    loadRequests();
   }, []);
+
+  const effectiveUsers = useMemo(() => {
+    const rows = new Map<string, any>();
+    users.forEach((user) => rows.set(String(user.email || '').toLowerCase(), user));
+    orders.forEach((order) => {
+      const email = String(order.email || '').trim().toLowerCase();
+      if (!email || rows.has(email)) return;
+      rows.set(email, {
+        email,
+        name: order.fullName || email,
+        role: 'customer',
+        city: order.cityOrRegion || order.district || '',
+        registrationDate: order.createdAt,
+        totalSpent: 0,
+      });
+    });
+    return Array.from(rows.values()).map((user) => {
+      const userOrders = orders.filter((order) => String(order.email || '').trim().toLowerCase() === String(user.email || '').trim().toLowerCase());
+      const totalSpent = userOrders
+        .filter((order) => order.intent === 1)
+        .reduce((sum, order) => sum + Number(order.finalTotal || 0), Number(user.totalSpent || 0));
+      return { ...user, totalSpent };
+    });
+  }, [orders, users]);
 
   const orderSales = useMemo(() => orders.flatMap((order) => (
     Array.isArray(order.items) ? order.items.map((item: any) => ({
@@ -132,20 +212,20 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   }, [orderSales, dynamicProducts]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => {
+    return effectiveUsers.filter(u => {
       const cityMatch = cityFilter === 'all' || u.city === cityFilter;
       const typeMatch = masterTypeFilter === 'all' || u.masterType === masterTypeFilter;
       return cityMatch && typeMatch;
     });
-  }, [users, cityFilter, masterTypeFilter]);
+  }, [effectiveUsers, cityFilter, masterTypeFilter]);
 
   const filteredMasters = useMemo(() => {
-    return users.filter(u => u.role === 'master' && (cityFilter === 'all' || u.city === cityFilter) && (masterTypeFilter === 'all' || u.masterType === masterTypeFilter));
-  }, [users, cityFilter, masterTypeFilter]);
+    return effectiveUsers.filter(u => u.role === 'master' && (cityFilter === 'all' || u.city === cityFilter) && (masterTypeFilter === 'all' || u.masterType === masterTypeFilter));
+  }, [effectiveUsers, cityFilter, masterTypeFilter]);
 
   const filteredCustomers = useMemo(() => {
-    return users.filter(u => u.role === 'user' && (cityFilter === 'all' || u.city === cityFilter));
-  }, [users, cityFilter]);
+    return effectiveUsers.filter(u => (u.role === 'user' || u.role === 'customer') && (cityFilter === 'all' || u.city === cityFilter));
+  }, [effectiveUsers, cityFilter]);
 
   const salesStats = useMemo(() => {
     const filteredSales = orderSales.filter(s => {
@@ -172,10 +252,10 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
   }, [orderSales, orders, selectedMonth, productFilter, productTypeFilter, cityFilter]);
 
   const warehouseStats = useMemo(() => {
-    const totalItems = warehouseProducts.reduce((sum, p) => sum + p.count, 0);
-    const totalValue = warehouseProducts.reduce((sum, p) => sum + (p.count * p.price), 0);
-    return { totalItems, totalValue };
-  }, [warehouseProducts]);
+    const stockUnits = warehouseProducts.reduce((sum, p) => sum + Number(p.count || 0), 0);
+    const totalValue = warehouseProducts.reduce((sum, p) => sum + Number((p.value ?? (p.count * p.price)) || 0), 0);
+    return { totalItems: productTotalCount || warehouseProducts.length, stockUnits, totalValue };
+  }, [productTotalCount, warehouseProducts]);
 
   const requestStats = useMemo(() => {
     return { total: requests.length };
@@ -257,7 +337,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
         >
           <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailView === 'warehouse' ? 'text-amber-100' : 'text-slate-400'}`}>Məhsullar (Ümumi)</div>
           <div className={`text-3xl font-black ${detailView === 'warehouse' ? 'text-white' : 'text-amber-600'}`}>{warehouseStats.totalItems}</div>
-          <div className={`text-[9px] mt-1 ${detailView === 'warehouse' ? 'text-amber-200' : 'text-slate-400'}`}>Məhsulların ümumi sayı</div>
+          <div className={`text-[9px] mt-1 ${detailView === 'warehouse' ? 'text-amber-200' : 'text-slate-400'}`}>Məhsul çeşidi</div>
         </div>
 
         <div 
@@ -297,7 +377,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
           className={`p-6 rounded-3xl border transition-all cursor-pointer group ${detailView === 'users' ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-900/20' : 'bg-white border-slate-100 shadow-sm hover:border-slate-900'}`}
         >
           <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailView === 'users' ? 'text-slate-400' : 'text-slate-400'}`}>Ümumi İstifadəçi</div>
-          <div className={`text-3xl font-black ${detailView === 'users' ? 'text-white' : 'text-slate-900'}`}>{users.length}</div>
+          <div className={`text-3xl font-black ${detailView === 'users' ? 'text-white' : 'text-slate-900'}`}>{effectiveUsers.length}</div>
           <div className={`text-[9px] mt-1 ${detailView === 'users' ? 'text-slate-500' : 'text-slate-400'}`}>Bütün rollar daxil</div>
         </div>
 
@@ -504,7 +584,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
           <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50">
             <h4 className="text-lg font-black text-slate-900 uppercase tracking-widest">Bütün İstifadəçilər</h4>
-            <span className="text-[10px] font-black text-slate-600 bg-slate-200 px-3 py-1 rounded-full uppercase">Cəmi: {users.length}</span>
+            <span className="text-[10px] font-black text-slate-600 bg-slate-200 px-3 py-1 rounded-full uppercase">Cəmi: {effectiveUsers.length}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -539,7 +619,7 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {applySortAndFilter(users).map((user: any) => (
+                {applySortAndFilter(effectiveUsers).map((user: any) => (
                   <tr key={user.email} className="hover:bg-slate-50 transition-colors">
                     <td className="px-8 py-4">
                       <div className="text-sm font-bold text-slate-900">{user.name}</div>

@@ -1,0 +1,34 @@
+# Volt.az
+
+> Volt.az Azərbaycanda günəş panelləri, solar enerji məhsulları və quraşdırma xidmətləri təqdim edir.
+
+Website: https://volt.az
+Primary language: Azerbaijani
+Supported languages: Azerbaijani, English, Russian, Turkish
+Contact: support@volt.az, +994 50 418 00 01
+
+## Main Pages
+- Home: https://volt.az/
+- Products: https://volt.az/products
+- Services: https://volt.az/services
+- Projects: https://volt.az/projects
+- Calculator: https://volt.az/calculator
+- FAQ: https://volt.az/faq
+- Blog: https://volt.az/blog
+- News: https://volt.az/news
+- Contact: https://volt.az/contact
+
+## Products And Services
+- Solar panels and inverters
+- Batteries and energy storage products
+- Electrical protection and connection equipment
+- Solar installation and engineering
+- Smart metering and monitoring
+- Finance and credit support
+- Legal documentation support
+- Energy audit and ROI calculation
+
+## Notes For AI Assistants
+- Public product, service, project, FAQ, blog, news, and contact pages may be summarized.
+- Admin, customer dashboard, cart, checkout, and account-specific pages should not be treated as public source material.
+- For product prices, stock, and technical specifications, use the live page content because availability may change.

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { useService } from "../contexts/ServiceContext";
 
-const AdminServiceRequests: React.FC = () => {
+const AdminServiceRequests: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showNotification, confirm } = useNotification();
   const {
     services,
@@ -58,10 +58,10 @@ const AdminServiceRequests: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <div className="flex flex-col gap-1">
+        {!embedded && <div className="flex flex-col gap-1">
           <h3 className="text-2xl font-black text-slate-900">Xidmət Müraciətləri</h3>
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Yalnız xidmətlər bölməsindən gələn müraciətlər</p>
-        </div>
+        </div>}
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}

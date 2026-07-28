@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /admin-dashboard
+Disallow: /customer-dashboard
+Disallow: /pro-club/dashboard
+Disallow: /cart
+Disallow: /checkout
+Disallow: /order
+Disallow: /theme-lab
+
+Content-Signal: ai-train=no, search=yes, ai-input=no
+
+Sitemap: https://volt.az/sitemap.xml

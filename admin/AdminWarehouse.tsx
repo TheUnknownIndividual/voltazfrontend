@@ -222,6 +222,7 @@ const AdminWarehouse: React.FC = () => {
   } = useCategory();
   const { productData,
     getProducts,
+    prefetchProducts,
     getHomeProducts,
     getProductById,
     createProduct,
@@ -242,6 +243,7 @@ const AdminWarehouse: React.FC = () => {
   const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(10);
 const normalizedSearch = searchQuery.trim();
+const [debouncedSearch, setDebouncedSearch] = useState(normalizedSearch);
 const selectedCategoryId = typeFilter === 'all' ? undefined : Number(typeFilter);
 
   useEffect(() => {
@@ -251,11 +253,21 @@ const selectedCategoryId = typeFilter === 'all' ? undefined : Number(typeFilter)
 
 useEffect(() => {
   const timer = window.setTimeout(() => {
-    getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
-  }, 300);
+    setDebouncedSearch(normalizedSearch);
+    setPage(1);
+  }, 250);
 
   return () => window.clearTimeout(timer);
-}, [page, pageSize, normalizedSearch, stockFilter, selectedCategoryId]);
+}, [normalizedSearch]);
+
+useEffect(() => {
+  getProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, stockFilter);
+}, [page, pageSize, debouncedSearch, stockFilter, selectedCategoryId]);
+
+useEffect(() => {
+  const oppositeStock = stockFilter === 'OutOfStock' ? 'All' : 'OutOfStock';
+  prefetchProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, oppositeStock).catch(() => undefined);
+}, [page, pageSize, debouncedSearch, stockFilter, selectedCategoryId]);
 
 const totalPages = productData?.totalPages || 0;
 
@@ -440,7 +452,7 @@ const getProductValue = (product: any) =>
         );
       }
 
-      await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
+      await getProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, stockFilter);
       await getProductCount();
 
       setShowAddModal(false);
@@ -581,7 +593,7 @@ const handleDelete = async (id: number | string) => {
     showNotification("Məhsul silindi", "success");
 
     // list refresh
-   await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
+   await getProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, stockFilter);
    await getProductCount();
 
   } catch (error) {
@@ -596,7 +608,7 @@ const handleDelete = async (id: number | string) => {
 const handleToggleHome = async (product: any) => {
   try {
     await showProductOnHome(product.id, !product.inHomePage);
-    await getProducts(selectedCategoryId, undefined, page, pageSize, normalizedSearch, stockFilter);
+    await getProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, stockFilter);
     await getProductCount();
   } catch (err) {
     console.error(err);
@@ -856,7 +868,7 @@ const updateVariant = (
               setTypeFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+            className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
           >
             <option value="all">Bütün Tiplər</option>
             {types.filter(t => t !== 'all').map(t => (
@@ -1128,7 +1140,7 @@ const updateVariant = (
                     <select
                       value={newProduct.type}
                       onChange={handleCategoryChange}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
                     >
                       <option value="" disabled>Seçin...</option>
                       {categories?.map((category) => (
@@ -1143,7 +1155,7 @@ const updateVariant = (
                     <select
                       value={newProduct.subCategory}
                       onChange={e => setNewProduct({ ...newProduct, subCategory: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
                     >
                       <option value="" disabled>Seçin...</option>
                       {subcategories?.map((subCategory) => (
@@ -1160,7 +1172,7 @@ const updateVariant = (
                     <select
                       value={String(newProduct.brand || "")}
                       onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
                     >
                       <option value="" disabled>Seçin...</option>
                       {brands?.map((brand) => (
@@ -1175,7 +1187,7 @@ const updateVariant = (
                     <select
                       value={newProduct.technology}
                       onChange={e => setNewProduct({ ...newProduct, technology: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
                     >
                       <option value="" disabled>Seçin...</option>
                       {technologies?.map((tech) => (

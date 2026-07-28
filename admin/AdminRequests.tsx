@@ -5,7 +5,7 @@ import { useContact } from "../contexts/ContactContext";
 import { useEmail } from '../contexts/EmailContext';
 
 
-const AdminRequests: React.FC = () => {
+const AdminRequests: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showNotification, confirm } = useNotification();
   const { applicationTypes, getApplicationTypes } = useEmail();
   const { getContactRequests, updateContactRequestStatus } = useContact();
@@ -80,7 +80,7 @@ const AdminRequests: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-black text-slate-900">Müraciətlər</h3>
+        {!embedded && <h3 className="text-2xl font-black text-slate-900">Müraciətlər</h3>}
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}

@@ -4,7 +4,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { usePartnership } from '@/contexts/PartnershipContext';
 
 
-const AdminPartnershipRequests: React.FC = () => {
+const AdminPartnershipRequests: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showNotification, confirm } = useNotification();
   const { partnershipTypes, getPartnershipTypes, getPartnershipRequests, getPartnershipRequestById, updatePartnershipRequestStatus } = usePartnership();
   const [partnerships, setPartnerships] = useState<any[]>([]);
@@ -79,7 +79,7 @@ const AdminPartnershipRequests: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-black text-slate-900">Müraciətlər</h3>
+        {!embedded && <h3 className="text-2xl font-black text-slate-900">Müraciətlər</h3>}
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}

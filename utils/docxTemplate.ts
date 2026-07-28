@@ -3,7 +3,10 @@ export type SolarSystemType = 'on-grid' | 'off-grid' | 'hybrid';
 export interface InitialAssessmentDocxData {
   date: Date;
   documentNumber?: string;
+  verificationUrl?: string;
+  projectName: string;
   address: string;
+  recipient: string;
   mountDescription: string;
   mountType: 'roof' | 'ground';
   systemType: SolarSystemType;
@@ -20,6 +23,7 @@ export interface InitialAssessmentDocxData {
   inverterSpec: string;
   inverterCount: number;
   basePriceAzn: number;
+  includesAdv: boolean;
   vatAzn: number;
   totalPriceAzn: number;
   installationDays: number;
@@ -44,10 +48,21 @@ interface ZipEntry {
 }
 
 const TEMPLATE_URL = '/templates/solarix-ilkin-qiymetlendirme.docx';
+let templateBytesPromise: Promise<ArrayBuffer> | null = null;
 const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const XML_NS = 'http://www.w3.org/XML/1998/namespace';
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+const verificationQrRelationshipId = 'rIdVoltVerificationQr';
+const verificationLinkRelationshipId = 'rIdVoltVerificationLink';
+const verificationQrImageName = 'word/media/volt-verification-qr.png';
+const escapeXml = (value: string) => value.replace(/[<>&"']/g, (character) => ({
+  '<': '&lt;',
+  '>': '&gt;',
+  '&': '&amp;',
+  '"': '&quot;',
+  "'": '&apos;'
+}[character] || character));
 
 const azMonths = [
   'Yanvar',
@@ -212,31 +227,57 @@ const crc32 = (data: Uint8Array) => {
   return (crc ^ 0xffffffff) >>> 0;
 };
 
-const buildZip = (entries: Array<Omit<ZipEntry, 'method' | 'compressedData' | 'uncompressedSize'> & { data: Uint8Array }>) => {
+const compressEntry = async (data: Uint8Array) => {
+  const CompressionStreamCtor = (globalThis as typeof globalThis & {
+    CompressionStream?: new (format: string) => TransformStream<Uint8Array, Uint8Array>;
+  }).CompressionStream;
+
+  if (!CompressionStreamCtor) {
+    return { method: 0, data };
+  }
+
+  const stream = new Blob([toArrayBuffer(data)]).stream().pipeThrough(new CompressionStreamCtor('deflate-raw'));
+  const buffer = await new Response(stream).arrayBuffer();
+  return { method: 8, data: new Uint8Array(buffer) };
+};
+
+const buildZip = async (entries: Array<Omit<ZipEntry, 'method' | 'compressedData' | 'uncompressedSize'> & { data: Uint8Array }>) => {
+  const preparedEntries = await Promise.all(entries.map(async (entry) => {
+    const compressed = await compressEntry(entry.data);
+
+    return {
+      name: entry.name,
+      modTime: entry.modTime,
+      modDate: entry.modDate,
+      method: compressed.method,
+      compressedData: compressed.data,
+      uncompressedSize: entry.data.length,
+      checksum: crc32(entry.data)
+    };
+  }));
   const fileChunks: Uint8Array[] = [];
   const centralChunks: Uint8Array[] = [];
   let offset = 0;
 
-  entries.forEach((entry) => {
+  preparedEntries.forEach((entry) => {
     const nameBytes = textEncoder.encode(entry.name);
-    const checksum = crc32(entry.data);
     const localHeader = new Uint8Array(30 + nameBytes.length);
     const localView = new DataView(localHeader.buffer);
 
     writeUInt32(localView, 0, 0x04034b50);
     writeUInt16(localView, 4, 20);
     writeUInt16(localView, 6, 0x0800);
-    writeUInt16(localView, 8, 0);
+    writeUInt16(localView, 8, entry.method);
     writeUInt16(localView, 10, entry.modTime);
     writeUInt16(localView, 12, entry.modDate);
-    writeUInt32(localView, 14, checksum);
-    writeUInt32(localView, 18, entry.data.length);
-    writeUInt32(localView, 22, entry.data.length);
+    writeUInt32(localView, 14, entry.checksum);
+    writeUInt32(localView, 18, entry.compressedData.length);
+    writeUInt32(localView, 22, entry.uncompressedSize);
     writeUInt16(localView, 26, nameBytes.length);
     writeUInt16(localView, 28, 0);
     localHeader.set(nameBytes, 30);
 
-    fileChunks.push(localHeader, entry.data);
+    fileChunks.push(localHeader, entry.compressedData);
 
     const centralHeader = new Uint8Array(46 + nameBytes.length);
     const centralView = new DataView(centralHeader.buffer);
@@ -245,12 +286,12 @@ const buildZip = (entries: Array<Omit<ZipEntry, 'method' | 'compressedData' | 'u
     writeUInt16(centralView, 4, 20);
     writeUInt16(centralView, 6, 20);
     writeUInt16(centralView, 8, 0x0800);
-    writeUInt16(centralView, 10, 0);
+    writeUInt16(centralView, 10, entry.method);
     writeUInt16(centralView, 12, entry.modTime);
     writeUInt16(centralView, 14, entry.modDate);
-    writeUInt32(centralView, 16, checksum);
-    writeUInt32(centralView, 20, entry.data.length);
-    writeUInt32(centralView, 24, entry.data.length);
+    writeUInt32(centralView, 16, entry.checksum);
+    writeUInt32(centralView, 20, entry.compressedData.length);
+    writeUInt32(centralView, 24, entry.uncompressedSize);
     writeUInt16(centralView, 28, nameBytes.length);
     writeUInt16(centralView, 30, 0);
     writeUInt16(centralView, 32, 0);
@@ -261,7 +302,7 @@ const buildZip = (entries: Array<Omit<ZipEntry, 'method' | 'compressedData' | 'u
     centralHeader.set(nameBytes, 46);
 
     centralChunks.push(centralHeader);
-    offset += localHeader.length + entry.data.length;
+    offset += localHeader.length + entry.compressedData.length;
   });
 
   const centralDirectory = concatBytes(centralChunks);
@@ -269,8 +310,8 @@ const buildZip = (entries: Array<Omit<ZipEntry, 'method' | 'compressedData' | 'u
   const eocdView = new DataView(eocd.buffer);
 
   writeUInt32(eocdView, 0, 0x06054b50);
-  writeUInt16(eocdView, 8, entries.length);
-  writeUInt16(eocdView, 10, entries.length);
+  writeUInt16(eocdView, 8, preparedEntries.length);
+  writeUInt16(eocdView, 10, preparedEntries.length);
   writeUInt32(eocdView, 12, centralDirectory.length);
   writeUInt32(eocdView, 16, offset);
   writeUInt16(eocdView, 20, 0);
@@ -288,6 +329,14 @@ const formatDecimal = (value: number, maximumFractionDigits = 1) => {
     maximumFractionDigits,
     minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1
   });
+};
+
+export const formatPaybackPeriod = (paybackYears: number, yearLabel = 'il', monthLabel = 'ay') => {
+  const totalMonths = Math.floor(Math.max(0, paybackYears) * 12 + Number.EPSILON);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  return `${years} ${yearLabel} ${months} ${monthLabel}`;
 };
 
 const formatMoney = (value: number) => `${formatInteger(value)} AZN`;
@@ -421,7 +470,7 @@ const setParagraphSegments = (paragraph: Element, segments: Array<{ text: string
 };
 
 const updateDateParagraph = (paragraphs: Element[], date: Date, documentNumber?: string) => {
-  const paragraph = paragraphs.find((item) => getParagraphText(item).startsWith('№  T-'));
+  const paragraph = paragraphs.find((item) => getParagraphText(item).trim().startsWith('№'));
 
   if (!paragraph) {
     return;
@@ -457,6 +506,93 @@ const updateFirstParagraph = (paragraphs: Element[], predicate: (text: string) =
 
   if (paragraph) {
     setParagraphText(paragraph, text);
+  }
+};
+
+const removeParagraphs = (paragraphs: Element[], predicate: (text: string) => boolean) => {
+  paragraphs
+    .filter((paragraph) => predicate(getParagraphText(paragraph)))
+    .forEach((paragraph) => paragraph.parentNode?.removeChild(paragraph));
+};
+
+const setKeepNext = (paragraph: Element) => {
+  const dom = paragraph.ownerDocument;
+  let properties = paragraph.getElementsByTagNameNS(W_NS, 'pPr')[0];
+
+  if (!properties) {
+    properties = dom.createElementNS(W_NS, 'w:pPr');
+    paragraph.insertBefore(properties, paragraph.firstChild);
+  }
+
+  if (!properties.getElementsByTagNameNS(W_NS, 'keepNext').length) {
+    const propertyOrder = [
+      'pStyle',
+      'keepNext',
+      'keepLines',
+      'pageBreakBefore',
+      'framePr',
+      'widowControl',
+      'numPr',
+      'suppressLineNumbers',
+      'pBdr',
+      'shd',
+      'tabs',
+      'suppressAutoHyphens',
+      'kinsoku',
+      'wordWrap',
+      'overflowPunct',
+      'topLinePunct',
+      'autoSpaceDE',
+      'autoSpaceDN',
+      'bidi',
+      'adjustRightInd',
+      'snapToGrid',
+      'spacing',
+      'ind',
+      'contextualSpacing',
+      'mirrorInd',
+      'suppressOverlap',
+      'jc',
+      'textDirection',
+      'textAlignment',
+      'textboxTightWrap',
+      'outlineLvl',
+      'divId',
+      'cnfStyle',
+      'rPr'
+    ];
+    const keepNextOrder = propertyOrder.indexOf('keepNext');
+    const keepNext = dom.createElementNS(W_NS, 'w:keepNext');
+    const insertBefore = Array.from(properties.children).find((child) => {
+      const order = propertyOrder.indexOf(child.localName);
+      return order >= 0 && order > keepNextOrder;
+    });
+
+    if (insertBefore) {
+      properties.insertBefore(keepNext, insertBefore);
+    } else {
+      properties.appendChild(keepNext);
+    }
+  }
+};
+
+const keepParagraphWithFollowingTable = (paragraphs: Element[], predicate: (text: string) => boolean) => {
+  const index = paragraphs.findIndex((paragraph) => predicate(getParagraphText(paragraph)));
+
+  if (index < 0) {
+    return;
+  }
+
+  setKeepNext(paragraphs[index]);
+
+  for (let nextIndex = index + 1; nextIndex < paragraphs.length; nextIndex += 1) {
+    const nextParagraph = paragraphs[nextIndex];
+
+    if (getParagraphText(nextParagraph).trim().length > 0) {
+      break;
+    }
+
+    setKeepNext(nextParagraph);
   }
 };
 
@@ -509,11 +645,27 @@ const updateTableRowByAnchor = (paragraphs: Element[], anchor: string, updates: 
   });
 };
 
+const removeTableRowByAnchor = (dom: Document, anchor: string) => {
+  const row = Array.from(dom.getElementsByTagNameNS(W_NS, 'tr'))
+    .find((item) => getParagraphText(item).trim().startsWith(anchor));
+
+  row?.parentNode?.removeChild(row);
+};
+
 const setTableCellText = (cell: Element, text: string) => {
   const paragraph = cell.getElementsByTagNameNS(W_NS, 'p')[0];
 
   if (paragraph) {
     setParagraphText(paragraph, text);
+  }
+};
+
+const removeSignatureAboveSignatory = (paragraphs: Element[]) => {
+  const signatory = paragraphs.find((paragraph) => getParagraphText(paragraph).includes('Rəcəbov'));
+  const precedingParagraph = signatory?.previousElementSibling as Element | null;
+
+  if (precedingParagraph?.localName === 'p' && precedingParagraph.getElementsByTagNameNS(W_NS, 'drawing').length > 0) {
+    precedingParagraph.remove();
   }
 };
 
@@ -570,18 +722,32 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
   updateFirstParagraph(
     paragraphs,
     (text) => text.startsWith('Biz nə vəd edirik'),
-    'Biz nə vəd edirik?'
+    'Biz nə vəd edirik? Uzunmüddətli iqtisadi səmərəlilik'
   );
   updateFirstParagraph(
     paragraphs,
     (text) => text.startsWith('Malların (işlərin və xidmətlərin) qiymət cədvəli'),
     ' Malların (işlərin və xidmətlərin) qiymət cədvəli'
   );
+  keepParagraphWithFollowingTable(
+    paragraphs,
+    (text) => text.trim().startsWith('Malların (işlərin və xidmətlərin) qiymət cədvəli')
+  );
   removeEmptyParagraphBefore(paragraphs, (text) => text.trim().startsWith('Qeyd'));
   updateFirstParagraph(
     paragraphs,
-    (text) => text.startsWith('Layihənin adı:'),
-    `Layihənin adı: Günəş Elektrik Stansiyasının (${system.short}) Quraşdırılması / Ünvan: ${data.address}. ${data.mountDescription}. Sistemin növü: ${system.system}/ Ümumi güc : ${systemKw} kW`
+    (text) => text.startsWith('Layihənin adı'),
+    `Layihənin adı : ${data.projectName}`
+  );
+  updateFirstParagraph(
+    paragraphs,
+    (text) => text.startsWith('Layihənin ünvanı'),
+    `Layihənin ünvanı : ${data.address}`
+  );
+  updateFirstParagraph(
+    paragraphs,
+    (text) => text.startsWith('Kimə'),
+    `Kimə : ${data.recipient}`
   );
   updateFirstParagraphSegments(
     paragraphs,
@@ -609,11 +775,15 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
         bold: true
       },
       { text: ' elektrik enerjisi istehsal etməsi gözlənilir. Layihənin ümumi dəyərini nəzərə alsaq, sistem investisiyasının təxmini geri dönüş müddəti: ' },
-      { text: `${formatDecimal(paybackYears, 1)} il`, bold: true },
+      { text: formatPaybackPeriod(paybackYears), bold: true },
       { text: ` təşkil edir. Bu isə ${tariffAudience} üçün tətbiq olunan ${tariffBasis} əsasən ildə təxminən ` },
       { text: `${formatPlainMoney(data.annualSavingsAzn)} (aylıq ≈ ${formatPlainInteger(monthlySavings)})`, bold: true },
       { text: ' həcmində elektrik xərclərinə qənaət deməkdir.' }
     ]
+  );
+  removeParagraphs(
+    paragraphs,
+    (text) => text.trim() === 'Bu mövcud kommersiya elektrik tariflərinə əsasən ildə təxminən (hesablanmış tarif 0.125) 10 140 AZN həcmində elektrik xərclərinə qənaət deməkdir.'
   );
   updateFirstParagraphSegments(
     paragraphs,
@@ -630,6 +800,10 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
       { text: ' təşkil edə bilər. Bu isə layihənin ilkin investisiyadan dəfələrlə artıq iqtisadi fayda verdiyini göstərir və onu uzunmüddətli və yüksək səmərəli investisiya kimi qiymətləndirməyə imkan yaradır. ' }
     ]
   );
+  removeParagraphs(
+    paragraphs,
+    (text) => text.trim() === 'Bu isə layihənin ilkin investisiyadan dəfələrlə artıq iqtisadi fayda verdiyini göstərir və onu uzunmüddətli və yüksək səmərəli investisiya kimi qiymətləndirməyə imkan yaradır.'
+  );
   insertCustomBoqRows(dom, data.customBoqItems);
   if (data.mountType === 'ground') {
     updateTableRowByAnchor(paragraphs, 'Damüstü montaj', [
@@ -645,7 +819,7 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
     { offset: 1, text: data.panelSpec },
     { offset: 3, text: String(data.panelCount) }
   ]);
-  updateTableRowByAnchor(paragraphs, 'Growatt MID 15KTL3-X', [
+  updateTableRowByAnchor(paragraphs, 'Growatt ', [
     { offset: 0, text: data.inverterModel },
     { offset: 1, text: data.inverterSpec },
     { offset: 3, text: String(data.inverterCount) }
@@ -656,7 +830,11 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
     `Konstruksiya, ${data.panelCount} modul, DC/AC kabelləşmə, inverter və şit montajı, torpaqlama, kabel idarəetməsi və suizolyasiya`
   );
   updateParagraphAfter(paragraphs, 'Qiymət', formatMoney(data.basePriceAzn));
-  updateParagraphAfter(paragraphs, 'ƏDV 18%', formatMoney(data.vatAzn));
+  if (data.includesAdv) {
+    updateParagraphAfter(paragraphs, 'ƏDV 18%', formatMoney(data.vatAzn));
+  } else {
+    removeTableRowByAnchor(dom, 'ƏDV 18%');
+  }
   updateParagraphAfter(paragraphs, 'Yekun', formatMoney(data.totalPriceAzn));
   updateFirstParagraph(
     paragraphs,
@@ -668,24 +846,111 @@ const patchDocumentXml = (xml: string, data: InitialAssessmentDocxData) => {
     (text) => text.startsWith('Quraşdırılan günəş panelləri'),
     `Quraşdırılan günəş panelləri və invertorlar ümumi ${systemKw} kVt gərginlik üçün nəzərdə tutulmuşdur və gələcəkdə dəyişdirilməsi (və ya artırılması) mümkündür`
   );
+  updateFirstParagraph(
+    paragraphs,
+    (text) => text.startsWith('2 il işçilik zəmanəti'),
+    'Şirkətimiz tərəfindən yerinə yetirilmiş montaj, kabel çəkilişi, elektrik birləşmələri təhvil-təslim tarixindən etibarən 2 il zəmanət verilir. Zəmanət kənar müdaxilə və düzgün olmayan istismar nəticəsində yaranan nasazlıqlara şamil edilmir.'
+  );
+
+  removeSignatureAboveSignatory(paragraphs);
+
+  if (data.verificationUrl) {
+    const body = dom.getElementsByTagNameNS(W_NS, 'body')[0];
+    if (body) {
+      const sectionProperties = body.getElementsByTagNameNS(W_NS, 'sectPr')[0] || null;
+      const link = createVerificationLinkParagraph(dom);
+      const qr = createVerificationQrParagraph(dom, data.verificationUrl);
+      body.insertBefore(link, sectionProperties);
+      body.insertBefore(qr, sectionProperties);
+    }
+  }
 
   return new XMLSerializer().serializeToString(dom);
 };
 
-export const buildInitialAssessmentDocx = async (data: InitialAssessmentDocxData) => {
-  const response = await fetch(TEMPLATE_URL);
+const createVerificationLinkParagraph = (dom: Document) => {
+  const fragment = new DOMParser().parseFromString(`
+    <w:p xmlns:w="${W_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <w:hyperlink r:id="${verificationLinkRelationshipId}" w:history="1"><w:r><w:rPr><w:color w:val="167447"/><w:u w:val="single"/></w:rPr><w:t>Sənədin rəsmi təsdiqini yoxlayın</w:t></w:r></w:hyperlink>
+    </w:p>`, 'application/xml').documentElement;
+  return dom.importNode(fragment, true);
+};
 
-  if (!response.ok) {
-    throw new Error('İlkin qiymətləndirmə şablonu yüklənmədi.');
+const createVerificationQrParagraph = (dom: Document, url: string) => {
+  const fragment = new DOMParser().parseFromString(`
+    <w:p xmlns:w="${W_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+      <w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">
+        <wp:extent cx="1100000" cy="1100000"/><wp:effectExtent l="0" t="0" r="0" b="0"/>
+        <wp:docPr id="701" name="Volt verification QR" descr="${escapeXml(url)}"/><wp:cNvGraphicFramePr/>
+        <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>
+          <pic:nvPicPr><pic:cNvPr id="0" name="volt-verification-qr.png"/><pic:cNvPicPr/></pic:nvPicPr>
+          <pic:blipFill><a:blip r:embed="${verificationQrRelationshipId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+          <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1100000" cy="1100000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+        </pic:pic></a:graphicData></a:graphic>
+      </wp:inline></w:drawing></w:r>
+    </w:p>`, 'application/xml').documentElement;
+
+  return dom.importNode(fragment, true);
+};
+
+const patchDocumentRelationships = (xml: string, verificationUrl: string) => {
+  let patched = xml;
+  if (!patched.includes(`Id="${verificationQrRelationshipId}"`)) {
+    patched = patched.replace('</Relationships>', `<Relationship Id="${verificationQrRelationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/volt-verification-qr.png"/></Relationships>`);
   }
+  if (!patched.includes(`Id="${verificationLinkRelationshipId}"`)) {
+    patched = patched.replace('</Relationships>', `<Relationship Id="${verificationLinkRelationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${escapeXml(verificationUrl)}" TargetMode="External"/></Relationships>`);
+  }
+  return patched;
+};
 
-  const entries = parseZip(new Uint8Array(await response.arrayBuffer()));
+const patchContentTypesForVerificationQr = (xml: string) =>
+  xml.includes('Extension="png"')
+    ? xml
+    : xml.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>');
+
+const buildVerificationQr = async (url: string) => {
+  const dataUrl = await QRCode.toDataURL(url, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width: 260,
+    color: { dark: '#0f172a', light: '#ffffffff' }
+  });
+  const encoded = dataUrl.split(',')[1];
+  if (!encoded) throw new Error('Verification QR could not be encoded.');
+  const binary = atob(encoded);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+const loadTemplateBytes = () => {
+  if (!templateBytesPromise) {
+    templateBytesPromise = fetch(TEMPLATE_URL).then(async (response) => {
+      if (!response.ok) throw new Error('İlkin qiymətləndirmə şablonu yüklənmədi.');
+      return response.arrayBuffer();
+    }).catch((error) => {
+      templateBytesPromise = null;
+      throw error;
+    });
+  }
+  return templateBytesPromise;
+};
+
+export const buildInitialAssessmentDocx = async (data: InitialAssessmentDocxData) => {
+  const [templateBytes, verificationQr] = await Promise.all([
+    loadTemplateBytes(),
+    data.verificationUrl ? buildVerificationQr(data.verificationUrl) : Promise.resolve(null)
+  ]);
+  const entries = parseZip(new Uint8Array(templateBytes));
   const outputEntries = await Promise.all(
     entries.map(async (entry) => {
       const originalData = await decompressEntry(entry);
       const patchedData =
         entry.name === 'word/document.xml'
           ? textEncoder.encode(patchDocumentXml(textDecoder.decode(originalData), data))
+          : verificationQr && entry.name === 'word/_rels/document.xml.rels'
+            ? textEncoder.encode(patchDocumentRelationships(textDecoder.decode(originalData), data.verificationUrl!))
+            : verificationQr && entry.name === '[Content_Types].xml'
+              ? textEncoder.encode(patchContentTypesForVerificationQr(textDecoder.decode(originalData)))
           : originalData;
 
       return {
@@ -697,7 +962,17 @@ export const buildInitialAssessmentDocx = async (data: InitialAssessmentDocxData
     })
   );
 
-  return new Blob([toArrayBuffer(buildZip(outputEntries))], {
+  if (verificationQr) {
+    outputEntries.push({
+      name: verificationQrImageName,
+      modTime: 0,
+      modDate: 0,
+      data: verificationQr
+    });
+  }
+
+  return new Blob([toArrayBuffer(await buildZip(outputEntries))], {
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   });
 };
+import QRCode from 'qrcode';

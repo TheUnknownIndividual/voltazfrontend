@@ -198,6 +198,22 @@ const partnerGroups: PartnerGroup[] = [
     accent: 'border-violet-500',
     partners: [
       {
+        name: {
+          az: 'Azərbaycan İnformasiya və Kommunikasiya Texnologiyaları Sənayesi Assosiasiyası',
+          en: 'Azerbaijan Information and Communication Technologies Industry Association',
+          ru: 'Ассоциация индустрии информационных и коммуникационных технологий Азербайджана',
+          tr: 'Azerbaycan Bilgi ve İletişim Teknolojileri Sanayisi Derneği'
+        },
+        logo: AIKTSA_LOGO,
+        logoScale: 1.1,
+        description: {
+          az: 'Azərbaycan İKT sənayesi və assosiasiya ekosistemi ilə əlaqə',
+          en: 'Connection with Azerbaijan’s ICT industry and association ecosystem',
+          ru: 'Связь с ИКТ-индустрией и ассоциационной экосистемой Азербайджана',
+          tr: 'Azerbaycan ICT sektörü ve dernek ekosistemi ile bağlantı'
+        }
+      },
+      {
         name: 'visiontv.az',
         logo: 'https://i.ibb.co/gF4W3m5j/image-removebg-preview-3-2.png',
         description: {
@@ -205,17 +221,6 @@ const partnerGroups: PartnerGroup[] = [
           en: 'Media distribution and visual communication support through visiontv.az',
           ru: 'Медиа и визуальная коммуникация через visiontv.az',
           tr: 'visiontv.az üzerinden medya yayını ve görsel iletişim desteği'
-        }
-      },
-      {
-        name: 'Timesoft',
-        logo: 'https://i.ibb.co/7dGzTzjj/timesoft.png',
-        logoScale: 1.12,
-        description: {
-          az: 'Rəqəmsal proseslər və proqram təminatı tərəfdaşlığı',
-          en: 'Digital process and software partnership',
-          ru: 'Партнерство по цифровым процессам и программному обеспечению',
-          tr: 'Dijital süreçler ve yazılım ortaklığı'
         }
       }
     ]
@@ -259,19 +264,14 @@ const partnerGroups: PartnerGroup[] = [
         }
       },
       {
-        name: {
-          az: 'Azərbaycan İnformasiya və Kommunikasiya Texnologiyaları Sənayesi Assosiasiyası',
-          en: 'Azerbaijan Information and Communication Technologies Industry Association',
-          ru: 'Ассоциация индустрии информационных и коммуникационных технологий Азербайджана',
-          tr: 'Azerbaycan Bilgi ve İletişim Teknolojileri Sanayisi Derneği'
-        },
-        logo: AIKTSA_LOGO,
-        logoScale: 1.1,
+        name: 'Timesoft',
+        logo: 'https://i.ibb.co/7dGzTzjj/timesoft.png',
+        logoScale: 1.12,
         description: {
-          az: 'Azərbaycan İKT sənayesi və assosiasiya ekosistemi ilə əlaqə',
-          en: 'Connection with Azerbaijan’s ICT industry and association ecosystem',
-          ru: 'Связь с ИКТ-индустрией и ассоциационной экосистемой Азербайджана',
-          tr: 'Azerbaycan ICT sektörü ve dernek ekosistemi ile bağlantı'
+          az: 'Rəqəmsal proseslər və proqram təminatı tərəfdaşlığı',
+          en: 'Digital process and software partnership',
+          ru: 'Партнерство по цифровым процессам и программному обеспечению',
+          tr: 'Dijital süreçler ve yazılım ortaklığı'
         }
       }
     ]
@@ -299,6 +299,11 @@ const partnerGroups: PartnerGroup[] = [
     accent: 'border-amber-500',
     partners: [
       {
+        name: 'Northwest',
+        logo: 'https://i.ibb.co/KxScXBwz/NW-Construction.png',
+        logoScale: 1.2
+      },
+      {
         name: 'PROES',
         logo: 'https://i.ibb.co/BHfZYcgf/image-removebg-preview-1.png',
         logoScale: 1.45,
@@ -308,11 +313,6 @@ const partnerGroups: PartnerGroup[] = [
           ru: 'Основной партнер по монтажу и установке',
           tr: 'Kurulum ve montaj için ana uygulama ortağı'
         }
-      },
-      {
-        name: 'Northwest',
-        logo: 'https://i.ibb.co/KxScXBwz/NW-Construction.png',
-        logoScale: 1.2
       }
     ]
   }
@@ -745,8 +745,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
     const card = formCardRef.current || document.querySelector<HTMLDivElement>('[data-partnership-form-card]');
     if (card) {
       card.classList.remove('partnership-form-pulse');
-      void card.offsetWidth;
-      card.classList.add('partnership-form-pulse');
+      window.requestAnimationFrame(() => card.classList.add('partnership-form-pulse'));
       window.setTimeout(() => card.classList.remove('partnership-form-pulse'), 5000);
     }
   };
@@ -1015,9 +1014,9 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
             <aside className="space-y-6 lg:col-span-5">
               <SectionDivider>{getText(translations.localDivider, lang)}</SectionDivider>
               <PartnerGroupCard group={financeGroup} lang={lang} index={2} />
-              <PartnerGroupCard group={mediaGroup} lang={lang} index={3} />
-              <PartnerGroupCard group={ictGroup} lang={lang} index={4} />
-              <PartnerGroupCard group={constructionGroup} lang={lang} index={5} />
+              <PartnerGroupCard group={constructionGroup} lang={lang} index={3} />
+              <PartnerGroupCard group={mediaGroup} lang={lang} index={4} />
+              <PartnerGroupCard group={ictGroup} lang={lang} index={5} />
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                   {getText(translations.badge, lang)}

@@ -17,6 +17,8 @@ const URL = API_BASE_URL.endsWith("/") ? API_BASE_URL : `${API_BASE_URL}/`;
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${URL}AdminAuth/login`,
+    REFRESH: `${URL}Auth/refresh`,
+    LOGOUT: `${URL}Auth/logout`,
     CUSTOMER_LOGIN: `${URL}CustomerAuth/login`,
     CUSTOMER_REGISTER: `${URL}CustomerAuth/register`,
     CUSTOMER_ME: `${URL}CustomerAuth/me`,
@@ -69,6 +71,13 @@ export const API_ENDPOINTS = {
     UPDATE_PROJECT: (id: string) => `${URL}Projects/${id}`,
     DELETE_PROJECT: (id: string) => `${URL}Projects/${id}`,
     GET_ID_PROJECT: (id: string) => `${URL}Projects/${id}`,
+  },
+  ADMIN_PROJECT_TRACKER: {
+    GET_PROJECTS: `${URL}AdminProjectTracker`,
+    CREATE_PROJECT: `${URL}AdminProjectTracker`,
+    UPDATE_PROJECT: (id: string | number) => `${URL}AdminProjectTracker/${id}`,
+    DELETE_PROJECT: (id: string | number) => `${URL}AdminProjectTracker/${id}`,
+    GET_PROJECT: (id: string | number) => `${URL}AdminProjectTracker/${id}`,
   },
   SERVICE: {
     GET_SERVICE: `${URL}ServicesManagement`,
@@ -213,6 +222,10 @@ export const API_ENDPOINTS = {
     GET_ID_PRODUCT: (id: string | number) => `${URL}Products/${id}`,
     GET_PRODUCT_COUNT: `${URL}Products/ShowHomePageProductCount`,
   },
+  SOLAR_INVERTERS: {
+    GET_ALL: (systemType: string, phase: string) =>
+      `${URL}SolarInverters?systemType=${encodeURIComponent(systemType)}&phase=${encodeURIComponent(phase)}`,
+  },
   CONTACT_REQUEST:{
     CREATE_CONTACT_REQUEST: `${URL}ContactRequsts`,
     GET_CONTACT_REQUEST: (status?: string) =>`${URL}ContactRequsts${status ? `?status=${status}` : ''}`,
@@ -259,3 +272,6 @@ export const STORAGE_KEYS = {
   USER_ROLE: 'userRole',
   LANGUAGE: 'language'
 };
+
+export const AUTH_EXPIRED_EVENT = 'volt-auth-expired';
+export const AUTH_EXPIRY_WARNING_KEY = 'volt-auth-expiry-warning-shown';

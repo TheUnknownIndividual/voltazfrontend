@@ -5,9 +5,11 @@ import SocialAuthButtons from "./SocialAuthButtons";
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToRegister: () => void;
+  onSwitchToRegister?: () => void;
   lang?: "az" | "en";
   onCustomerLogin?: (user: any) => void;
+  showRegisterLink?: boolean;
+  message?: string;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
@@ -16,6 +18,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onSwitchToRegister,
   lang = "az",
   onCustomerLogin,
+  showRegisterLink = true,
+  message,
 }) => {
   const { login, loading } = useAuth();
 
@@ -58,16 +62,22 @@ const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6" onKeyDown={handleModalKeyDown}>
+    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto p-3 py-6 sm:items-center sm:p-6" onKeyDown={handleModalKeyDown}>
       <div
         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
         onClick={onClose}
       />
 
-      <div className="relative bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl">
+      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl sm:rounded-[2.5rem] sm:p-10">
         <h2 className="text-2xl font-black mb-6">
           {lang === "az" ? "Giriş" : "Login"}
         </h2>
+
+        {message && (
+          <p className="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">
+            {message}
+          </p>
+        )}
 
         <div className="mb-6">
           <SocialAuthButtons
@@ -122,12 +132,14 @@ const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         </form>
 
-        <p className="mt-4 text-sm text-center">
-          {lang === "az" ? "Hesabın yoxdur?" : "No account?"}{" "}
-          <button onClick={onSwitchToRegister} className="text-emerald-600">
-            {lang === "az" ? "Qeydiyyat" : "Register"}
-          </button>
-        </p>
+        {showRegisterLink && onSwitchToRegister && (
+          <p className="mt-4 text-sm text-center">
+            {lang === "az" ? "Hesabın yoxdur?" : "No account?"}{" "}
+            <button onClick={onSwitchToRegister} className="text-emerald-600">
+              {lang === "az" ? "Qeydiyyat" : "Register"}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

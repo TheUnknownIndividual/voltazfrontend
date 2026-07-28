@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useRef, useState } from "react";
 import useApi from "../hooks/useApi";
 import { API_ENDPOINTS } from "../utils/constants";
+import axiosInstance from "../api/axiosInstance";
 
 interface ProductContextType {
   loading: boolean;
@@ -9,6 +10,7 @@ interface ProductContextType {
   productCount: number;
 
   getProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number, search?: string, stockStatus?: string) => Promise<any>;
+  prefetchProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number, search?: string, stockStatus?: string) => Promise<any>;
   getHomeProducts: (initialCategory?: number, initialSubCategory?: number, page?: number, pageSize?: number) => Promise<any>;
   getProductById: (id: string | number) => Promise<any>;
   getProductCount: () => Promise<any>;
@@ -37,6 +39,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const [productHomeData, setProductHomeData] = useState<any>([]);
   const [productCount, setProductCount] = useState<number>(0);
   const productsRequestIdRef = useRef(0);
+  const productsCacheRef = useRef(new Map<string, any>());
 
   // GET all products
   const getProducts = async (
@@ -49,16 +52,23 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 ) => {
     const requestId = productsRequestIdRef.current + 1;
     productsRequestIdRef.current = requestId;
+    const url = API_ENDPOINTS.PRODUCT.GET_PRODUCT(
+      initialCategory,
+      initialSubCategory,
+      page,
+      pageSize,
+      search,
+      stockStatus
+    );
+    const cached = productsCacheRef.current.get(url);
+
+    if (cached && requestId === productsRequestIdRef.current) {
+      setProductData(cached);
+    }
 
     try {
-      const res = await get(API_ENDPOINTS.PRODUCT.GET_PRODUCT(
-        initialCategory,
-        initialSubCategory,
-        page,
-        pageSize,
-        search,
-        stockStatus
-      ));
+      const res = await get(url);
+      productsCacheRef.current.set(url, res.data);
       if (requestId === productsRequestIdRef.current) {
         setProductData(res.data);
       }
@@ -67,6 +77,33 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
       console.error("Get Products Error:", error);
       throw error;
     }
+  };
+
+  const prefetchProducts = async (
+    initialCategory?: number,
+    initialSubCategory?: number,
+    page?: number,
+    pageSize?: number,
+    search?: string,
+    stockStatus?: string
+  ) => {
+    const url = API_ENDPOINTS.PRODUCT.GET_PRODUCT(
+      initialCategory,
+      initialSubCategory,
+      page,
+      pageSize,
+      search,
+      stockStatus
+    );
+
+    if (productsCacheRef.current.has(url)) {
+      return productsCacheRef.current.get(url);
+    }
+
+    const res = await axiosInstance.get(url);
+    const data = res.data?.data ?? res.data;
+    productsCacheRef.current.set(url, data);
+    return data;
   };
 
   // GET home products
@@ -174,6 +211,7 @@ const getProductCount = async () => {
         productData,
         productHomeData,
         getProducts,
+        prefetchProducts,
         getHomeProducts,
         getProductById,
         createProduct,

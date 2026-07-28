@@ -14,11 +14,29 @@ interface LanguageItem {
 interface ProjectPayload {
   languages: LanguageItem[];
   imagePaths: string[];
+  attachments?: Array<{
+    filePath: string;
+    label?: string | null;
+  }>;
+  offers?: Array<{
+    power: number;
+    powerType: number;
+    areaType: string;
+  }>;
   totalPower: number;
   powerType: number;
   annualProduction: number;
   annualProductionType: number;
   systemType: number;
+  contactFullName?: string | null;
+  contactPhone?: string | null;
+  projectDate?: string | null;
+  inquiryReceivedAt?: string | null;
+  offerSentAt?: string | null;
+  responseExpectedAt?: string | null;
+  currentStatus?: string | null;
+  shortNote?: string | null;
+  offerAmountAzn?: number | null;
 }
 
 interface ProjectContextType {

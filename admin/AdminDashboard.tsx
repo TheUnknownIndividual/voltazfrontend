@@ -6,17 +6,21 @@ import { API_ENDPOINTS } from '../utils/constants';
 import AdminStats from './AdminStats';
 import AdminAnalytics from './AdminAnalytics';
 import AdminOrders from './AdminOrders';
-import AdminRequests from './AdminRequests';
+import AdminInquiries from './AdminInquiries';
 import AdminWarehouse from './AdminWarehouse';
-import AdminPermissions from './AdminPermissions';
+import AdminUsers from './AdminUsers';
 import AdminMasters from './AdminMasters';
-import AdminServiceRequests from './AdminServiceRequests';
 import AdminSolarCalculator from './AdminSolarCalculator';
+import AdminSolarInverterQa from './AdminSolarInverterQa';
 import AdminSliders from './AdminSliders';
 import AdminCategoryManagement from './AdminCategoryManagement';
 import AdminServices from './AdminServices';
 import AdminProjects from './AdminProjects';
 import AdminProjectTracker from './AdminProjectTracker';
+import AdminExecutionProjects from './AdminExecutionProjects';
+import AdminAccounting from './AdminAccounting';
+import AdminHumanResources from './AdminHumanResources';
+import AdminTelegramProfile from './AdminTelegramProfile';
 import AdminNews from './AdminNews';
 import AdminAbout from './AdminAbout';
 import AdminContact from './AdminContact';
@@ -34,9 +38,10 @@ import { CategoryProvider } from '@/contexts/CategoryContext';
 import AdminPromotion from './AdminPromotion';
 import { PromotionProvider } from '@/contexts/PromotionContext';
 import { ProductProvider } from '@/contexts/ProductContext';
-import { EmailProvider} from '@/contexts/EmailContext';
+import { EmailProvider } from '@/contexts/EmailContext';
 import { PartnershipProvider } from '@/contexts/PartnershipContext';
-import AdminPartnershipRequests from './AdminPartnershipRequests';
+import AdminVerification from './AdminVerification';
+import { AdminPage, getAdminSession, type AdminUser } from '../api/adminUsers';
 
 interface UserRecord {
   email: string;
@@ -57,8 +62,10 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) => {
   const { showNotification, confirm } = useNotification();
-  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'analytics' | 'orders' | 'requests' | 'service-requests'| 'partnership-requests' | 'warehouse' | 'permissions' | 'solar-calculator' | 'project-tracker'>('stats');
+  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'analytics' | 'orders' | 'requests' | 'warehouse' | 'permissions' | 'verification' | 'solar-calculator' | 'solar-inverter-qa' | 'project-tracker' | 'execution-projects' | 'accounting' | 'human-resources' | 'telegram-profile'>('stats');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [adminSession, setAdminSession] = useState<AdminUser | null>(null);
+  const [activityUserId, setActivityUserId] = useState<number | null>(null);
   const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership'>('main');
 
   useEffect(() => {
@@ -104,6 +111,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
       setUsers(initialUsers);
       localStorage.setItem('volt_users', JSON.stringify(initialUsers));
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAdminSession().then((session) => { if (!cancelled) setAdminSession(session); }).catch(() => undefined);
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -230,13 +243,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
   const customerRequestCount = customerRows.reduce((sum, user) => sum + user.requestCount, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="admin-dashboard min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-72 bg-slate-900 text-white flex flex-col pt-5 md:pt-10">
-        <div className="px-8 mb-5 md:mb-10">
+      <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col pt-5 md:pt-7">
+        <div className="px-6 mb-5 md:mb-7">
           <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Yüksək Səlahiyyət</div>
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-black">Admin Panel</h2>
+            <h2 className="text-lg font-black">Admin Panel</h2>
             <button
               type="button"
               onClick={() => setIsMobileNavOpen((value) => !value)}
@@ -247,22 +260,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
           </div>
         </div>
 
-        <nav className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block md:flex-grow space-y-1 px-4`}>
+        <nav className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block md:flex-grow space-y-1 px-3`}>
             {[
               { id: 'stats', label: 'Statistika', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-              { id: 'analytics', label: 'Analytics', icon: 'M3 3v18h18M7 16l3-3 3 2 5-7' },
+              { id: 'analytics', label: 'CC & Internal Analytics', icon: 'M3 3v18h18M7 16l3-3 3 2 5-7' },
               { id: 'project-tracker', label: 'Projects', icon: 'M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 012-2z' },
+              { id: 'execution-projects', label: 'İcra olunan layihələr', icon: 'M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6l7-4zm-3 10 2 2 4-4' },
+              { id: 'accounting', label: 'Mühasibatlıq', icon: 'M4 5h16M4 10h16M4 15h10M4 20h8' },
+              { id: 'human-resources', label: 'İnsan Resursları', icon: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m7-8a4 4 0 100-8 4 4 0 000 8m7-1a3 3 0 100-6m4 14v-2a3 3 0 00-2-2.83' },
+              { id: 'telegram-profile', label: 'Telegram bildirişləri', icon: 'M22 2L11 13m11-11-7 20-4-9-9-4 20-7z' },
               { id: 'solar-calculator', label: 'Solar Kalkulyator', icon: 'M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m12.728 0l-1.414-1.414M7.05 7.05L5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z' },
+              { id: 'solar-inverter-qa', label: 'İnverter Datasheet QA', icon: 'M9 12l2 2 4-4m-6 8h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
               { id: 'orders', label: 'Sifarişlər', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
             { id: 'requests', label: 'Müraciətlər', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
-            { id: 'service-requests', label: 'Xidmət Müraciətləri', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-            { id: 'partnership-requests', label: 'Tərəfdaşlıq Müraciətləri', icon: 'M20 13V7a2 2 0 00-2-2h-3V4a2 2 0 00-2-2h-2a2 2 0 00-2 2v1H6a2 2 0 00-2 2v6m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-4m-8 0H4m8 0v1m0-1V9' },
             { id: 'warehouse', label: 'Məhsullar', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-            { id: 'permissions', label: 'Səlahiyyətlər', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+            { id: 'verification', label: 'Sənəd doğrulaması', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+            { id: 'permissions', label: 'İstifadəçilər Siyahısı', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
             { id: 'masters', label: 'Ustalar Klubu', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
             { id: 'customers', label: 'İstifadəçilər', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
             { id: 'settings', label: 'Sistem Parametrləri', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
-          ].map(tab => (
+          ].filter((tab) => {
+            if (!adminSession) return false;
+            if (adminSession.isSuperAdmin) return true;
+            if (tab.id === 'telegram-profile') return true;
+            if (tab.id === 'human-resources') return Boolean(adminSession.canViewAccounting || adminSession.allowedPages.includes(AdminPage.Accounting));
+            if (tab.id === 'verification') return false;
+            if (tab.id === 'requests') {
+              return [AdminPage.Requests, AdminPage.ServiceRequests, AdminPage.PartnershipRequests]
+                .some((page) => adminSession.allowedPages.includes(page));
+            }
+            const pageByTab: Record<string, AdminPage> = {
+              stats: AdminPage.Stats, analytics: AdminPage.Analytics, 'project-tracker': AdminPage.ProjectTracker, 'execution-projects': AdminPage.ExecutionProjects, accounting: AdminPage.Accounting,
+              'solar-calculator': AdminPage.SolarCalculator, orders: AdminPage.Orders, requests: AdminPage.Requests,
+              'solar-inverter-qa': AdminPage.SolarInverterQa,
+              warehouse: AdminPage.Warehouse, settings: AdminPage.Settings, verification: AdminPage.Verification,
+              permissions: AdminPage.Users
+            };
+            return pageByTab[tab.id] !== undefined && adminSession.allowedPages.includes(pageByTab[tab.id]);
+          }).map(tab => (
             <button
               key={tab.id}
               onClick={() => {
@@ -270,10 +305,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                 if (tab.id === 'settings') setSettingsView('main');
                 setIsMobileNavOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-2 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+              className={`w-full flex items-center justify-between px-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
             >
-              <div className="flex items-center gap-4">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tab.icon} /></svg>
+              <div className="flex items-center gap-3">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tab.icon} /></svg>
                 {tab.label}
               </div>
               {tab.id === 'orders' && orderUnreadCount > 0 && (
@@ -285,7 +320,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
           ))}
         </nav>
 
-        <div className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block p-8 border-t border-white/10`}>
+        <div className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block p-6 border-t border-white/10`}>
           <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-black text-[10px] uppercase tracking-widest">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Ana Səhifəyə Qayıt
@@ -294,7 +329,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-grow p-8 md:p-12 md:pt-18 relative">
+      <main className="flex-grow p-5 md:p-7 md:pt-10 relative">
         {activeTab === 'masters' && (
           <AdminMasters
             users={users}
@@ -444,11 +479,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
 
         {activeTab === 'stats' && <AdminStats users={users} />}
 
-        {activeTab === 'analytics' && <AdminAnalytics lang={lang} orders={adminOrders} />}
+        {activeTab === 'analytics' && <AdminAnalytics lang={lang} orders={adminOrders} onOpenAdminUser={(id) => { setActivityUserId(id); setActiveTab('permissions'); }} />}
 
         {activeTab === 'project-tracker' && <AdminProjectTracker lang={lang} />}
+        {activeTab === 'execution-projects' && <AdminExecutionProjects adminSession={adminSession} />}
+        {activeTab === 'accounting' && <AdminAccounting />}
+        {activeTab === 'human-resources' && adminSession && (adminSession.isSuperAdmin || adminSession.canViewAccounting || adminSession.allowedPages.includes(AdminPage.Accounting)) && <AdminHumanResources />}
+        {activeTab === 'telegram-profile' && <AdminTelegramProfile />}
 
         {activeTab === 'solar-calculator' && <AdminSolarCalculator lang={lang} />}
+        {activeTab === 'solar-inverter-qa' && <AdminSolarInverterQa />}
 
         {activeTab === 'orders' && (
           <AdminOrders
@@ -457,15 +497,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
           />
         )}
 
-        {activeTab === 'requests' && <ContactProvider><EmailProvider><AdminRequests /></EmailProvider></ContactProvider>}
-
-        {activeTab === 'service-requests' && <ServiceProvider><AdminServiceRequests /></ServiceProvider>}
-
-        {activeTab === 'partnership-requests' && <PartnershipProvider><AdminPartnershipRequests /></PartnershipProvider>}
+        {activeTab === 'requests' && <AdminInquiries adminSession={adminSession} />}
 
         {activeTab === 'warehouse' && <ProductProvider><PromotionProvider><CategoryProvider><AdminWarehouse /></CategoryProvider></PromotionProvider></ProductProvider>}
 
-        {activeTab === 'permissions' && <AdminPermissions users={users} onUpdateUsers={setUsers} />}
+        {activeTab === 'permissions' && adminSession && (adminSession.isSuperAdmin || adminSession.allowedPages.includes(AdminPage.Users)) && <AdminUsers adminSession={adminSession} openActivityUserId={activityUserId} onActivityOpened={() => setActivityUserId(null)} />}
+        {activeTab === 'verification' && <AdminVerification />}
 
         {/* Master Details Modal */}
         {selectedMaster && (

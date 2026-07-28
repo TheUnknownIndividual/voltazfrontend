@@ -1,20 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, FileText, MousePointerClick, RefreshCw, SunMedium } from 'lucide-react';
 import { getSolarAnalyticsDashboard, type SolarAnalyticsDashboard } from '../api/solarAnalytics';
+import { getAdminTrackedProjects, type TrackedProject } from '../api/adminProjectTracker';
+import { getAdminUsers, type AdminUser } from '../api/adminUsers';
 
 type AdminLang = 'az' | 'en' | 'ru' | 'tr';
 
 interface AdminAnalyticsProps {
   lang?: AdminLang;
   orders?: any[];
+  onOpenAdminUser?: (id: number) => void;
 }
-
-interface StoredProject {
-  id: string;
-  createdAt: string;
-}
-
-const PROJECT_STORAGE_KEY = 'volt_admin_project_tracker_v1';
 
 const formatDateInput = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -34,19 +30,10 @@ const sameDate = (value: string | undefined, date: string) => {
   return new Date(value).toISOString().slice(0, 10) === date;
 };
 
-const readStoredProjects = (): StoredProject[] => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(PROJECT_STORAGE_KEY) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
 const copy = {
   az: {
-    eyebrow: 'Solar analytics',
-    title: 'Kalkulyator analitikası',
+    eyebrow: 'CC & Internal Analytics',
+    title: 'CC & Internal Analytics',
     subtitle: 'Admin ixracları, WEB hesablamaları, WhatsApp klikləri və sənəd nömrələndirməsi üzrə real DB statistikası.',
     from: 'Başlanğıc',
     to: 'Son',
@@ -78,8 +65,8 @@ const copy = {
     loadError: 'Analytics məlumatları yüklənmədi.',
   },
   en: {
-    eyebrow: 'Solar analytics',
-    title: 'Calculator analytics',
+    eyebrow: 'CC & Internal Analytics',
+    title: 'CC & Internal Analytics',
     subtitle: 'Live database statistics for admin exports, web calculations, WhatsApp clicks, and document numbering.',
     from: 'From',
     to: 'To',
@@ -111,8 +98,8 @@ const copy = {
     loadError: 'Analytics data could not be loaded.',
   },
   ru: {
-    eyebrow: 'Solar analytics',
-    title: 'Аналитика калькулятора',
+    eyebrow: 'CC & Internal Analytics',
+    title: 'CC & Internal Analytics',
     subtitle: 'Статистика из базы по экспортам администратора, WEB-расчетам, кликам WhatsApp и нумерации документов.',
     from: 'Начало',
     to: 'Конец',
@@ -149,18 +136,21 @@ const eventLabels = {
   az: {
     ADMIN_DOCX_EXPORT: 'DOCX ixracı',
     ADMIN_PDF_EXPORT: 'PDF ixracı',
+    TRACKER_PROJECT_AUTO_CREATED: 'Tracker layihəsi avtomatik yaradıldı',
     WEB_CALCULATION: 'WEB hesablama',
     WEB_WHATSAPP_CLICK: 'WhatsApp klik',
   },
   en: {
     ADMIN_DOCX_EXPORT: 'DOCX export',
     ADMIN_PDF_EXPORT: 'PDF export',
+    TRACKER_PROJECT_AUTO_CREATED: 'Tracker project automatically created',
     WEB_CALCULATION: 'Web calculation',
     WEB_WHATSAPP_CLICK: 'WhatsApp click',
   },
   ru: {
     ADMIN_DOCX_EXPORT: 'Экспорт DOCX',
     ADMIN_PDF_EXPORT: 'Экспорт PDF',
+    TRACKER_PROJECT_AUTO_CREATED: 'Проект трекера создан автоматически',
     WEB_CALCULATION: 'WEB-расчет',
     WEB_WHATSAPP_CLICK: 'Клик WhatsApp',
   },
@@ -226,27 +216,35 @@ const documentCodeLabels = {
   },
 };
 
-const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [] }) => {
+const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [], onOpenAdminUser }) => {
   const uiLang = lang === 'tr' ? 'az' : lang;
   const t = copy[uiLang] || copy.az;
   const today = useMemo(() => new Date(), []);
   const [from, setFrom] = useState(formatDateInput(new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000)));
   const [to, setTo] = useState(formatDateInput(today));
   const [dashboard, setDashboard] = useState<SolarAnalyticsDashboard | null>(null);
-  const [storedProjects, setStoredProjects] = useState<StoredProject[]>([]);
+  const [storedProjects, setStoredProjects] = useState<TrackedProject[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hoverDay, setHoverDay] = useState<string | null>(null);
   const [pinnedDay, setPinnedDay] = useState<string | null>(null);
+  const [dailyRange, setDailyRange] = useState<'7' | '14' | '30' | 'all'>('7');
+  const [expandedActivityKey, setExpandedActivityKey] = useState<string | null>(null);
 
   const loadDashboard = async () => {
     setLoading(true);
     setError(null);
-    setStoredProjects(readStoredProjects());
 
     try {
-      const data = await getSolarAnalyticsDashboard(from, to);
+      const [data, trackedProjects, users] = await Promise.all([
+        getSolarAnalyticsDashboard(from, to),
+        getAdminTrackedProjects().catch(() => []),
+        getAdminUsers().catch(() => []),
+      ]);
       setDashboard(data);
+      setStoredProjects(trackedProjects);
+      setAdminUsers(users.filter((user) => !user.isSuperAdmin));
     } catch (err: any) {
       setError(err?.response?.data?.error?.details || err?.message || t.loadError);
     } finally {
@@ -274,11 +272,59 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
     return { ...point, projectCount, orderCount, total };
   }), [dashboard?.timeSeries, orders, storedProjects]);
 
-  const maxDailyTotal = Math.max(1, ...dailyPoints.map((point) => point.total));
+  const displayedDailyPoints = dailyRange === 'all' ? dailyPoints : dailyPoints.slice(-Number(dailyRange));
+  const maxDailyTotal = Math.max(1, ...displayedDailyPoints.map((point) => point.total));
   const activeDay = hoverDay || pinnedDay;
+  const activeDailyPoint = displayedDailyPoints.find((point) => point.date === activeDay) || displayedDailyPoints[displayedDailyPoints.length - 1];
+  const activeDayActivities = activeDailyPoint
+    ? (dashboard?.recentActivity || []).filter((activity) => sameDate(activity.createdAt, activeDailyPoint.date))
+    : [];
+
+  const parsePayload = (payloadJson?: string | null) => {
+    if (!payloadJson) return null;
+    try {
+      return JSON.parse(payloadJson);
+    } catch {
+      return null;
+    }
+  };
+
+  const renderPayloadDetails = (payloadJson?: string | null) => {
+    const payload = parsePayload(payloadJson);
+    if (!payload) {
+      return null;
+    }
+
+    const inputs = payload.inputs || {};
+    const result = payload.result || {};
+    const fields = [
+      ['Method', inputs.method],
+      ['City', inputs.cityName || result.city],
+      ['Address', inputs.address],
+      ['Mount', inputs.mountType],
+      ['System', inputs.systemType],
+      ['Power', result.systemKw ? `${Number(result.systemKw).toFixed(2)} kW` : inputs.systemKwInput],
+      ['Panels', result.panelCount],
+      ['Price', result.estimatedCost ? `${Number(result.estimatedCost).toLocaleString(getLocale(uiLang))} AZN` : null],
+      ['Annual production', result.yearlyProduction ? `${Number(result.yearlyProduction).toLocaleString(getLocale(uiLang))} kWh` : null],
+      ['Inverter', result.inverter],
+    ].filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+    return (
+      <div className="mt-4 grid gap-2 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <div key={String(label)} className="rounded-xl bg-white px-3 py-2">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+            <div className="mt-1 text-xs font-black text-slate-700">{String(value)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {adminUsers.length > 0 && <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm"><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Admin fəaliyyətinə keçid</p><div className="mt-3 flex flex-wrap gap-2">{adminUsers.map((user) => <button key={user.id} onClick={() => onOpenAdminUser?.(user.id)} className="rounded-xl bg-slate-50 px-4 py-3 text-left text-xs font-black text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">{user.displayName}<span className="ml-2 text-[10px] font-medium text-slate-400">{user.username}</span></button>)}</div></section>}
       <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.eyebrow}</div>
@@ -337,14 +383,23 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm xl:col-span-2">
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h4 className="text-lg font-black text-slate-900">{t.daily}</h4>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
-              {dailyPoints.length} {t.days}
-            </span>
+            <div className="flex items-center gap-2">
+              {(['7', '14', '30', 'all'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setDailyRange(value)}
+                  className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-colors ${dailyRange === value ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                >
+                  {value === 'all' ? 'All' : value}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex min-h-72 items-end gap-2 overflow-x-auto rounded-3xl bg-slate-50 px-4 pb-10 pt-8">
-            {dailyPoints.map((point) => {
+            {displayedDailyPoints.map((point) => {
               const height = Math.max(8, (point.total / maxDailyTotal) * 210);
               const isActive = activeDay === point.date;
               return (
@@ -354,19 +409,6 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
                   onMouseEnter={() => setHoverDay(point.date)}
                   onMouseLeave={() => setHoverDay(null)}
                 >
-                  {isActive && (
-                    <div className="absolute bottom-[calc(100%+0.75rem)] z-10 w-56 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-xl">
-                      <div className="mb-3 text-xs font-black text-slate-900">{point.date}</div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                        <span>{t.calculations}: {point.calculations}</span>
-                        <span>{t.docs}: {point.documents}</span>
-                        <span>{t.whatsapp}: {point.whatsappClicks}</span>
-                        <span>{t.projects}: {point.projectCount}</span>
-                        <span>{t.orders}: {point.orderCount}</span>
-                        <span>{t.movement}: {point.total}</span>
-                      </div>
-                    </div>
-                  )}
                   <button
                     type="button"
                     onClick={() => setPinnedDay((current) => current === point.date ? null : point.date)}
@@ -381,6 +423,50 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
               );
             })}
           </div>
+          {activeDailyPoint && (
+            <div className="mt-4 rounded-3xl border border-slate-100 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-black text-slate-900">{activeDailyPoint.date}</div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{activeDailyPoint.total} {t.movement}</div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{t.calculations}: {activeDailyPoint.calculations}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{t.docs}: {activeDailyPoint.documents}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{t.whatsapp}: {activeDailyPoint.whatsappClicks}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{t.projects}: {activeDailyPoint.projectCount}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{t.orders}: {activeDailyPoint.orderCount}</span>
+                </div>
+              </div>
+              {activeDayActivities.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {activeDayActivities.map((activity, index) => {
+                    const key = `${activity.createdAt}-${index}`;
+                    return (
+                      <div key={key} className="rounded-2xl bg-slate-50 p-3">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedActivityKey((current) => current === key ? null : key)}
+                          className="flex w-full flex-wrap items-center justify-between gap-3 text-left"
+                        >
+                          <div>
+                            <div className="text-xs font-black text-slate-800">
+                              {activity.documentNumber || eventLabels[uiLang]?.[activity.eventType as keyof typeof eventLabels.az] || activity.eventType}
+                            </div>
+                            <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">{activity.projectName || activity.source}</div>
+                          </div>
+                          <span className="rounded-full bg-white px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                            {activity.documentCode || activity.source}
+                          </span>
+                        </button>
+                        {expandedActivityKey === key && renderPayloadDetails(activity.payloadJson)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -450,22 +536,32 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
             <h4 className="text-lg font-black text-slate-900">{t.recentActivity}</h4>
           </div>
           <div className="divide-y divide-slate-50">
-            {(dashboard?.recentActivity || []).map((activity, index) => (
-              <div key={`${activity.createdAt}-${index}`} className="p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-black text-slate-900">
-                      {activity.documentNumber || eventLabels[uiLang]?.[activity.eventType as keyof typeof eventLabels.az] || activity.eventType}
+            {(dashboard?.recentActivity || []).map((activity, index) => {
+              const key = `recent-${activity.createdAt}-${index}`;
+              return (
+                <div key={key} className="p-5">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedActivityKey((current) => current === key ? null : key)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black text-slate-900">
+                          {activity.documentNumber || eventLabels[uiLang]?.[activity.eventType as keyof typeof eventLabels.az] || activity.eventType}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-slate-400">{activity.projectName || activity.source}</div>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        {activity.documentCode || activity.source}
+                      </span>
                     </div>
-                    <div className="mt-1 text-xs font-bold text-slate-400">{activity.projectName || activity.source}</div>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
-                    {activity.documentCode || activity.source}
-                  </span>
+                    <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">{formatDateTime(activity.createdAt, uiLang)}</div>
+                  </button>
+                  {expandedActivityKey === key && renderPayloadDetails(activity.payloadJson)}
                 </div>
-                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">{formatDateTime(activity.createdAt, uiLang)}</div>
-              </div>
-            ))}
+              );
+            })}
             {dashboard?.recentActivity.length === 0 && <div className="p-6 text-xs font-bold text-slate-400">{t.noActivity}</div>}
           </div>
         </div>
