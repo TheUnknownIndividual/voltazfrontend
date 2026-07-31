@@ -14,6 +14,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AUTH_EXPIRED_EVENT } from './utils/constants';
 import axiosInstance from './api/axiosInstance';
 import { API_ENDPOINTS } from './utils/constants';
+import { registerPublicWebMcp } from './utils/webMcp';
+import { getLanguageFromPath, getLocalizedAlternates, localizePath, normalizeCanonicalPath, SITE_LANGUAGES, stripLanguagePrefix } from './utils/seoRoutes';
 import { UploadProvider } from './contexts/UploadContext';
 import { NewsProvider } from './contexts/NewsContext';
 import { ServiceProvider } from './contexts/ServiceContext';
@@ -26,6 +28,7 @@ const ServicesPage = lazy(() => import('./components/ServicesPage'));
 const ProjectsPage = lazy(() => import('./components/ProjectsPage'));
 const ProductsPage = lazy(() => import('./components/ProductsPage'));
 const ContactPage = lazy(() => import('./components/ContactPage'));
+const PublicAgentContactConfirmation = lazy(() => import('./components/PublicAgentContactConfirmation'));
 const ProjectDetail = lazy(() => import('./components/ProjectDetail'));
 const ProductDetail = lazy(() => import('./components/ProductDetail'));
 const AdminDashboard = lazy(() => import('./admin/AdminDashboard'));
@@ -47,9 +50,11 @@ const BlogPage = lazy(() => import('./components/BlogPage'));
 const NecessaryDocumentsPage = lazy(() => import('./components/NecessaryDocumentsPage'));
 const PartnershipPage = lazy(() => import('./components/PartnershipPage'));
 const ThemeLab = lazy(() => import('./components/ThemeLab'));
+const SolarInstallationPage = lazy(() => import('./components/SolarInstallationPage'));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
  
 
-type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership';
+type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'solar-installation' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership' | 'not-found';
 type Language = 'az' | 'en' | 'ru' | 'tr';
 type UserRole = 'customer' | 'master' | 'admin';
 type LocalizedText = Record<Language, string>;
@@ -84,50 +89,6 @@ import { ProductProvider, useProduct } from './contexts/ProductContext';
 import { CategoryProvider } from './contexts/CategoryContext';
 import { EmailProvider } from './contexts/EmailContext';
 import { PartnershipProvider } from './contexts/PartnershipContext';
-
-const isSupportedLanguage = (value: string | null): value is Language =>
-  value === 'az' || value === 'en' || value === 'ru' || value === 'tr';
-
-const detectBrowserLanguage = (): Language | null => {
-  const browserLanguages = typeof navigator === 'undefined'
-    ? []
-    : [navigator.language, ...(navigator.languages || [])].filter(Boolean);
-
-  if (browserLanguages.some((value) => value.toLowerCase().startsWith('ru'))) return 'ru';
-  if (browserLanguages.some((value) => value.toLowerCase().startsWith('az'))) return 'az';
-  if (browserLanguages.some((value) => value.toLowerCase().startsWith('tr'))) return 'tr';
-  return null;
-};
-
-const languageFromCountry = (countryCode: string | undefined): Language => {
-  switch ((countryCode || '').toUpperCase()) {
-    case 'AZ':
-      return 'az';
-    case 'RU':
-      return 'ru';
-    case 'TR':
-      return 'tr';
-    default:
-      return 'en';
-  }
-};
-
-const detectIpLanguage = async (): Promise<Language | null> => {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 1800);
-
-  try {
-    const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    return languageFromCountry(data?.country_code);
-  } catch {
-    return null;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-};
 
 interface CartLine {
   id: string;
@@ -757,17 +718,18 @@ const App: React.FC = () => {
 const AppContent: React.FC = () => {
   const { role } = useAuth();
   const navigate = useNavigate();
-  const savedLang = localStorage.getItem('lang');
   const [view, setView] = useState<{ page: PageView; id?: string; extra?: any }>({ page: 'home' });
-  const [hasStoredLang, setHasStoredLang] = useState(isSupportedLanguage(savedLang));
-  const [lang, setLang] = useState<'az' | 'en' | 'ru' | 'tr'>(
-    isSupportedLanguage(savedLang) ? savedLang : 'en'
-  );
+  const [lang, setLang] = useState<Language>(() => getLanguageFromPath(window.location.pathname));
   const [cart, setCart] = useState<{ id: string; quantity: number; power?: string }[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [authReLoginOpen, setAuthReLoginOpen] = useState(false);
   const [pendingCartTransfer, setPendingCartTransfer] = useState<PendingCartTransfer | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    // No-op outside browsers enrolled in Chrome's early WebMCP preview.
+    void registerPublicWebMcp().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -812,31 +774,6 @@ const AppContent: React.FC = () => {
   }, [view.page, view.id]);
 
   useEffect(() => {
-    if (hasStoredLang) {
-      localStorage.setItem('lang', lang);
-    }
-  }, [lang, hasStoredLang]);
-
-  useEffect(() => {
-    if (hasStoredLang) return;
-
-    let cancelled = false;
-    const detectLanguage = async () => {
-      const detectedLang = await detectIpLanguage() || detectBrowserLanguage() || 'en';
-      if (cancelled) return;
-      setLang(detectedLang);
-      localStorage.setItem('lang', detectedLang);
-      setHasStoredLang(true);
-    };
-
-    detectLanguage();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [hasStoredLang]);
-
-  useEffect(() => {
     const savedUser = localStorage.getItem('volt_current_user');
     let restoredUser: User | null = null;
 
@@ -867,7 +804,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   // Helpers to map pages <-> paths so navigation uses routes while keeping view state for legacy components
-  const pageToPath = (page: PageView, id?: string, extra?: any) => {
+  const basePageToPath = (page: PageView, id?: string, extra?: any) => {
     switch (page) {
       case 'home': return '/';
       case 'about': return '/about';
@@ -880,6 +817,7 @@ const AppContent: React.FC = () => {
         const query = params.toString();
         return query ? `/services?${query}` : '/services';
       }
+      case 'solar-installation': return '/solar-installation';
       case 'projects': return '/projects';
       case 'project-detail': return `/projects/${id || ''}`;
       case 'products': {
@@ -929,13 +867,29 @@ const AppContent: React.FC = () => {
       case 'privacy-policy': return '/privacy-policy';
       case 'terms-of-service': return '/terms-of-service';
       case 'purchase-terms': return '/purchase-terms';
+      case 'not-found': return '/404';
       default: return '/';
     }
   };
 
+  const nonLocalizedPages = new Set<PageView>([
+    'admin-dashboard',
+    'customer-dashboard',
+    'pro-club-dashboard',
+    'cart',
+    'checkout',
+    'order',
+  ]);
+
+  const pageToPath = (page: PageView, id?: string, extra?: any, language: Language = lang) => {
+    const basePath = basePageToPath(page, id, extra);
+    return nonLocalizedPages.has(page) ? basePath : localizePath(basePath, language);
+  };
+
   const pathToPage = (path: string, search = '') : {page: PageView; id?: string; extra?: any} => {
-    const parts = path.split('/').filter(Boolean);
-    if (path === '/' || parts.length === 0) return { page: 'home' };
+    const publicPath = stripLanguagePrefix(path);
+    const parts = publicPath.split('/').filter(Boolean);
+    if (publicPath === '/' || parts.length === 0) return { page: 'home' };
     if (parts[0] === 'about' && parts[1] === 'detail') return { page: 'about-detail', id: parts[2], extra: { section: parts[2] } };
     if (parts[0] === 'about') return { page: 'about' };
     if (parts[0] === 'services') {
@@ -944,6 +898,7 @@ const AppContent: React.FC = () => {
       const focus = params.get('focus') || undefined;
       return { page: 'services', extra: { service, focus } };
     }
+    if (parts[0] === 'solar-installation') return { page: 'solar-installation' };
     if (parts[0] === 'projects' && parts[1]) return { page: 'project-detail', id: parts[1] };
     if (parts[0] === 'projects') return { page: 'projects' };
     if (parts[0] === 'products') {
@@ -990,7 +945,7 @@ const AppContent: React.FC = () => {
     if (parts[0] === 'privacy-policy') return { page: 'privacy-policy' };
     if (parts[0] === 'terms-of-service' || parts[0] === 'terms') return { page: 'terms-of-service' };
     if (parts[0] === 'purchase-terms') return { page: 'purchase-terms' };
-    return { page: 'home' };
+    return { page: 'not-found' };
   };
 
   const navigateTo = (page: PageView, id?: string, extra?: any) => {
@@ -999,9 +954,15 @@ const AppContent: React.FC = () => {
     setView({ page, id, extra });
   };
 
+  const handleLanguageChange = (nextLang: Language) => {
+    localStorage.setItem('lang', nextLang);
+    setLang(nextLang);
+    const nextPath = pageToPath(view.page, view.id, view.extra, nextLang);
+    navigate(nextPath);
+  };
 
   const handleBack = () => {
-    navigate("/");
+    navigate(pageToPath('home'));
     setView({ page: 'home' });
   };
 
@@ -1187,12 +1148,15 @@ const AppContent: React.FC = () => {
   // Sync location -> view so direct URL access renders correct content
   const location = useLocation();
   useEffect(() => {
+    const pathLanguage = getLanguageFromPath(location.pathname);
     const mapped = pathToPage(location.pathname, location.search);
+    setLang(pathLanguage);
+    localStorage.setItem('lang', pathLanguage);
     setView({ page: mapped.page, id: mapped.id, extra: mapped.extra });
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    const publicRobots = 'index, follow, max-image-preview:none, max-snippet:-1, max-video-preview:-1';
+    const publicRobots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
     const imageRobots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
     const seoByPage: Record<PageView, SeoMeta> = {
       home: {
@@ -1239,6 +1203,33 @@ const AppContent: React.FC = () => {
           tr: 'Güneş paneli kurulumu, sistem tasarımı, enerji etüdü, izleme, finansman ve belge desteği hizmetleri.'
         },
         keywords: 'günəş paneli quraşdırılması, solar installation, solar panel installation Azerbaijan, günəş sistemi layihələndirmə'
+      },
+      'solar-installation': {
+        title: {
+          az: 'Günəş Paneli Quraşdırılması Azərbaycanda | Volt.az',
+          en: 'Solar Panel Installation in Azerbaijan | Volt.az',
+          ru: 'Установка солнечных панелей в Азербайджане | Volt.az',
+          tr: 'Azerbaycan’da Güneş Paneli Kurulumu | Volt.az'
+        },
+        description: {
+          az: 'Ev və biznes üçün günəş paneli quraşdırılması: sərfiyyat analizi, texniki baxış, layihələndirmə, avadanlıq seçimi, montaj və sistemin təhvili.',
+          en: 'Solar panel installation for homes and businesses in Azerbaijan, including consumption analysis, site survey, system design, equipment selection, installation, and handover.',
+          ru: 'Установка солнечных панелей для дома и бизнеса в Азербайджане: анализ потребления, обследование, проектирование, подбор оборудования, монтаж и сдача.',
+          tr: 'Azerbaycan’da ev ve işletmeler için tüketim analizi, keşif, tasarım, ekipman seçimi, güneş paneli kurulumu ve teslim hizmeti.'
+        },
+        keywords: 'günəş paneli quraşdırılması, günəş sistemi quraşdırılması, solar panel installation Azerbaijan, güneş paneli kurulumu, установка солнечных панелей',
+        robots: publicRobots,
+        type: 'website'
+      },
+      'not-found': {
+        title: { az: 'Səhifə tapılmadı | Volt.az', en: 'Page Not Found | Volt.az', ru: 'Страница не найдена | Volt.az', tr: 'Sayfa Bulunamadı | Volt.az' },
+        description: {
+          az: 'Axtardığınız Volt.az səhifəsi tapılmadı.',
+          en: 'The Volt.az page you requested could not be found.',
+          ru: 'Запрошенная страница Volt.az не найдена.',
+          tr: 'İstediğiniz Volt.az sayfası bulunamadı.'
+        },
+        robots: 'noindex, nofollow, noarchive'
       },
       products: {
         title: { az: 'Məhsullar | Günəş Panelləri, İnvertorlar və Avadanlıqlar | Volt.az', en: 'Products | Solar Panels, Inverters and Equipment | Volt.az', ru: 'Продукты | Солнечные панели, инверторы и оборудование | Volt.az', tr: 'Ürünler | Güneş Panelleri, İnverterler ve Ekipmanlar | Volt.az' },
@@ -1470,9 +1461,12 @@ const AppContent: React.FC = () => {
     };
 
     const meta = seoByPage[view.page] || seoByPage.home;
-    const canonicalPath = view.page === 'products' ? '/products' : location.pathname || '/';
-    const canonicalUrl = `https://volt.az${canonicalPath === '/' ? '/' : canonicalPath}`;
-    const robots = meta.robots || publicRobots;
+    const canonicalPath = normalizeCanonicalPath(location.pathname || '/');
+    const canonicalUrl = `https://volt.az${canonicalPath}`;
+    const baseAlternatePath = basePageToPath(view.page, view.id, view.extra).split('?')[0] || '/';
+    const alternates = getLocalizedAlternates(baseAlternatePath);
+    const stagingHost = window.location.hostname.toLowerCase() === 'test.volt.az';
+    const robots = stagingHost ? 'noindex, nofollow, noarchive' : (meta.robots || publicRobots);
     const title = meta.title[lang] || meta.title.az;
     const description = meta.description[lang] || meta.description.az;
 
@@ -1529,16 +1523,62 @@ const AppContent: React.FC = () => {
       link.setAttribute('rel', 'canonical');
       return link;
     });
-    (['az', 'en', 'ru', 'tr'] as Language[]).forEach((code) => setAlternate(code, canonicalUrl));
-    setAlternate('x-default', canonicalUrl);
+    SITE_LANGUAGES.forEach((code) => setAlternate(code, alternates[code]));
+    setAlternate('x-default', alternates['x-default']);
     document.documentElement.lang = lang;
+
+    let routeSchema = document.getElementById('route-seo-schema') as HTMLScriptElement | null;
+    if (view.page === 'solar-installation') {
+      if (!routeSchema) {
+        routeSchema = document.createElement('script');
+        routeSchema.type = 'application/ld+json';
+        routeSchema.id = 'route-seo-schema';
+        document.head.appendChild(routeSchema);
+      }
+      routeSchema.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Service',
+            '@id': `${canonicalUrl}#service`,
+            name: title.replace(' | Volt.az', ''),
+            description,
+            url: canonicalUrl,
+            provider: { '@id': 'https://volt.az/#organization' },
+            areaServed: { '@type': 'Country', name: 'Azerbaijan' },
+            serviceType: 'Solar panel system design and installation',
+          },
+          {
+            '@type': 'BreadcrumbList',
+            '@id': `${canonicalUrl}#breadcrumb`,
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Volt.az', item: 'https://volt.az/' },
+              { '@type': 'ListItem', position: 2, name: title.replace(' | Volt.az', ''), item: canonicalUrl },
+            ],
+          },
+        ],
+      });
+    } else {
+      routeSchema?.remove();
+    }
   }, [view.page, view.id, location.pathname, lang]);
+
+  useEffect(() => {
+    const gtag = (window as Window & { gtag?: (...args: any[]) => void }).gtag;
+    gtag?.('event', 'page_view', {
+      page_path: `${location.pathname}${location.search}`,
+      page_title: document.title,
+      language: lang,
+    });
+  }, [location.pathname, location.search, lang]);
 
   const renderContent = () => {
     switch (view.page) {
       case 'about': return <AboutProvider><AboutPage lang={lang} onBack={handleBack} onNavigate={navigateTo} sectionId={view.extra?.section} /></AboutProvider>;
       case 'about-detail': return <AboutProvider><AboutDetail lang={lang} onBack={() => navigateTo('about', undefined, { section: view.extra?.section })} sectionId={view.extra?.section} /></AboutProvider>;
       case 'services': return <ServiceProvider><ServicesPage lang={lang} onBack={handleBack} initialService={view.extra?.service} focusToken={view.extra?.focus} /></ServiceProvider>;
+      case 'solar-installation': return <SolarInstallationPage lang={lang} onNavigate={(page) => navigateTo(page as PageView)} />;
+      case 'not-found': return <NotFoundPage lang={lang} onHome={() => navigateTo('home')} />;
       case 'legislation': return <LegislationPage lang={lang as any} onBack={handleBack} sectionId={view.extra?.section} />;
       case 'pro-club': return <ProClubPage lang={lang as any} onBack={handleBack} onRegisterSuccess={handleLogin} initialMode={view.extra?.mode} />;
       case 'pro-club-dashboard': return (
@@ -1577,11 +1617,7 @@ const AppContent: React.FC = () => {
             onContinueShopping={() => navigateTo('products')}
             onViewOrders={() => navigateTo('customer-dashboard', undefined, { tab: 'orders' })}
             onCustomerContactCaptured={handleCustomerContactCaptured}
-            onLangChange={(nextLang) => {
-              localStorage.setItem('lang', nextLang);
-              setHasStoredLang(true);
-              setLang(nextLang);
-            }}
+            onLangChange={handleLanguageChange}
             onNavigate={navigateTo}
           />
         </ProductProvider>
@@ -1598,11 +1634,7 @@ const AppContent: React.FC = () => {
             onViewOrders={() => navigateTo('customer-dashboard', undefined, { tab: 'orders' })}
             onOrderCreated={() => handleClearCart()}
             onCustomerContactCaptured={handleCustomerContactCaptured}
-            onLangChange={(nextLang) => {
-              localStorage.setItem('lang', nextLang);
-              setHasStoredLang(true);
-              setLang(nextLang);
-            }}
+            onLangChange={handleLanguageChange}
             onNavigate={navigateTo}
           />
         </ProductProvider>
@@ -1683,7 +1715,26 @@ const AppContent: React.FC = () => {
         </ProductProvider>
       );
       case 'project-detail': return <ProjectProvider><ProjectDetail projectId={view.id || ''} onBack={() => setView({ page: 'projects' })} lang={lang as any} /></ProjectProvider>;
-      // case 'product-detail': return <ProductProvider><CategoryProvider><ProductDetail productId={view.id || ''} onBack={() => setView({ page: view.id ? 'products' : 'home' })} onOrderNow={(id, quantity, power) => navigateTo('order', id, { quantity, power })} onAddToCart={handleAddToCart} lang={lang} /></CategoryProvider></ProductProvider>;
+      case 'product-detail': return (
+        <ProductProvider>
+          <CategoryProvider>
+            <ProductDetail
+              productId={view.id || ''}
+              onBack={() => {
+                const navigationEntryIndex = (window.history.state as { idx?: number } | null)?.idx;
+                if (typeof navigationEntryIndex === 'number' && navigationEntryIndex > 0) {
+                  navigate(-1);
+                } else {
+                  navigateTo('products');
+                }
+              }}
+              onOrderNow={(id, quantity, power) => navigateTo('order', id, { quantity, power })}
+              onAddToCart={handleAddToCart}
+              lang={lang}
+            />
+          </CategoryProvider>
+        </ProductProvider>
+      );
       default:
         return (
           <>
@@ -1726,11 +1777,7 @@ const AppContent: React.FC = () => {
           onNavigate={navigateTo}
           activePage={view.page}
           currentLang={lang}
-          onLangChange={(nextLang) => {
-            localStorage.setItem('lang', nextLang);
-            setHasStoredLang(true);
-            setLang(nextLang);
-          }}
+          onLangChange={handleLanguageChange}
           logoSrc={previewLogo || '/volt-logo.png'}
           user={user}
           onLogout={handleLogout}
@@ -1760,7 +1807,7 @@ const AppContent: React.FC = () => {
           />
 
           <Route
-            path="/product/:id"
+            path="/:lang?/product/:id"
             element={
               <ProductProvider>
                 <CategoryProvider>
@@ -1768,15 +1815,24 @@ const AppContent: React.FC = () => {
                     productId={view.id || ''}
                     onBack={(productCategory) => {
                       const fromProducts = view.extra?.returnToProducts === true;
-                      navigateTo('products', undefined, {
-                        category: fromProducts
-                          ? view.extra?.returnCategory
-                          : productCategory?.category,
-                        subCategory: fromProducts
-                          ? view.extra?.returnSubCategory
-                          : productCategory?.subCategory,
-                        search: fromProducts ? view.extra?.returnSearch : undefined,
-                      });
+                      if (fromProducts) {
+                        navigateTo('products', undefined, {
+                          category: view.extra?.returnCategory,
+                          subCategory: view.extra?.returnSubCategory,
+                          search: view.extra?.returnSearch,
+                        });
+                        return;
+                      }
+
+                      const navigationEntryIndex = (window.history.state as { idx?: number } | null)?.idx;
+                      const arrivedViaInAppNavigation = typeof navigationEntryIndex === 'number' && navigationEntryIndex > 0;
+                      if (arrivedViaInAppNavigation) {
+                        navigate(-1);
+                        return;
+                      }
+
+                      // Direct link / refresh on the product page — there's no real "previous page" to return to.
+                      handleBack();
                     }}
                     onOrderNow={(id, quantity, power) =>
                       navigateTo('order', id, { quantity, power })
@@ -1799,6 +1855,11 @@ const AppContent: React.FC = () => {
                 </CategoryProvider>
               </ProductProvider>
             }
+          />
+
+          <Route
+            path="/contact/confirm/:id"
+            element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading confirmation…</div>}><PublicAgentContactConfirmation /></Suspense>}
           />
 
           {/* Fallback: render the same content for other routes (renderContent driven by view state) */}

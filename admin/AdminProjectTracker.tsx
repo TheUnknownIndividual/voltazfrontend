@@ -92,7 +92,7 @@ const copy = {
     description: 'Ətraflı məzmun',
     attachments: 'Əlavə sənədlər',
     attachmentLabel: 'Bu sənəd nə üçündür?',
-    upload: 'PDF sənəd seçin',
+    upload: 'PDF və ya DOCX sənədi seçin',
     expand: 'Genişləndir',
     collapse: 'Yığ',
     showOffers: 'Digər təkliflərə bax',
@@ -154,7 +154,7 @@ const copy = {
     description: 'Detailed content',
     attachments: 'Attachments',
     attachmentLabel: 'What is this document?',
-    upload: 'Select PDF document',
+    upload: 'Select a PDF or DOCX document',
     expand: 'Expand',
     collapse: 'Collapse',
     showOffers: 'Show other offers',
@@ -216,7 +216,7 @@ const copy = {
     description: 'Подробное содержание',
     attachments: 'Документы',
     attachmentLabel: 'Что это за документ?',
-    upload: 'Выберите PDF',
+    upload: 'Выберите PDF или DOCX',
     expand: 'Развернуть',
     collapse: 'Свернуть',
     showOffers: 'Показать другие предложения',
@@ -278,7 +278,7 @@ const copy = {
     description: 'Detaylı içerik',
     attachments: 'Belgeler',
     attachmentLabel: 'Bu belge nedir?',
-    upload: 'PDF belge seç',
+    upload: 'PDF veya DOCX belge seç',
     expand: 'Genişlet',
     collapse: 'Daralt',
     showOffers: 'Diğer teklifleri göster',
@@ -534,6 +534,7 @@ const AdminProjectTracker: React.FC<AdminProjectTrackerProps> = ({ lang = 'az' }
           name: uploaded?.fileName || file.name,
           filePath: uploaded?.path || '',
           label: '',
+          tag: 'Qiymət təklifi' as const,
         };
       }));
 
@@ -828,8 +829,9 @@ const AdminProjectTracker: React.FC<AdminProjectTrackerProps> = ({ lang = 'az' }
                             rel="noreferrer"
                             className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4 text-xs font-bold text-slate-700 hover:text-emerald-700"
                           >
-                            <span className="truncate">
-                              {project.attachments.length > 1 ? (attachment.label || `${t.file} ${index + 1}`) : attachment.name}
+                            <span className="min-w-0">
+                              <span className="block truncate">{attachment.label || attachment.name || `${t.file} ${index + 1}`}</span>
+                              <span className="mt-1 block text-[10px] font-medium text-slate-400">{attachment.tag || 'Qiymət təklifi'} · {formatDate(attachment.createdAt, lang)}</span>
                             </span>
                             <FileText className="h-4 w-4 shrink-0" />
                           </a>
@@ -1043,21 +1045,29 @@ const AdminProjectTracker: React.FC<AdminProjectTrackerProps> = ({ lang = 'az' }
                 <label className="flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-xs font-black uppercase tracking-widest text-slate-500">
                   <Upload className="h-4 w-4" />
                   {t.upload}
-                  <input type="file" accept="application/pdf,.pdf" multiple onChange={handleAttachmentUpload} disabled={isSaving} className="hidden" />
+                  <input type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" multiple onChange={handleAttachmentUpload} disabled={isSaving} className="hidden" />
                 </label>
                 {attachments.map((attachment, index) => (
                   <div key={`${attachment.filePath}-${index}`} className="grid gap-3 rounded-2xl bg-slate-50 p-3 md:grid-cols-[1fr_auto]">
                     <div>
                       <span className="block truncate text-[10px] font-bold text-slate-500">{attachment.name}</span>
-                      {attachments.length > 1 && (
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <select
+                          value={attachment.tag || 'Qiymət təklifi'}
+                          onChange={(event) => setAttachments((current) => current.map((item, attachmentIndex) => attachmentIndex === index ? { ...item, tag: event.target.value as ProjectAttachment['tag'] } : item))}
+                          className="w-full rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500"
+                        >
+                          <option value="Qiymət təklifi">Qiymət təklifi</option>
+                          <option value="Banka müraciət sənədi">Banka müraciət sənədi</option>
+                        </select>
                         <input
                           value={attachment.label || ''}
                           onChange={(event) => setAttachments((current) => current.map((item, attachmentIndex) => attachmentIndex === index ? { ...item, label: event.target.value } : item))}
                           maxLength={120}
-                          className="mt-2 w-full rounded-xl border border-slate-100 bg-white px-4 py-2 text-xs font-bold outline-none focus:border-emerald-500"
+                          className="w-full rounded-xl border border-slate-100 bg-white px-4 py-2 text-xs font-bold outline-none focus:border-emerald-500"
                           placeholder={t.attachmentLabel}
                         />
-                      )}
+                      </div>
                     </div>
                     <button type="button" onClick={() => setAttachments((current) => current.filter((_, attachmentIndex) => attachmentIndex !== index))} className="rounded-xl bg-red-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600">
                       {t.delete}

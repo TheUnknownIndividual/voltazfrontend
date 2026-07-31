@@ -197,13 +197,13 @@ a.hover\:bg-slate-900:hover { background-color: var(--color-dark); }
 .mobile-utility-button--primary {
   color: var(--color-primary);
   background: transparent;
-  border: 2px solid var(--color-primary);
+  border: 1.9px solid var(--color-primary);
   box-shadow: none;
 }
 .mobile-utility-button--secondary {
   color: var(--color-primary);
   background: transparent;
-  border: 2px solid var(--color-primary);
+  border: 1.9px solid var(--color-primary);
 }
 .mobile-utility-button:hover { color: var(--color-dark); background: var(--color-primary); }
 
@@ -346,6 +346,14 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   background: color-mix(in srgb, var(--color-dark) 92%, var(--color-primary));
 }
 .product-cart-button:active { transform: scale(.96); }
+.product-cart-button:disabled {
+  background: color-mix(in srgb, var(--color-dark) 25%, white);
+  color: color-mix(in srgb, var(--color-dark) 45%, white);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.product-cart-button:disabled:hover { opacity: 1; }
 .product-floating-actions {
   position: fixed;
   right: 12px;

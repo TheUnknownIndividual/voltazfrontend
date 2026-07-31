@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useContact } from "../contexts/ContactContext";
 import { useEmail } from "../contexts/EmailContext";
+import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
 
 
 interface ContactPageProps {
@@ -26,11 +27,12 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
     firstName: '',
     lastName: '',
     email: '',
-    phone: '+994',
+    phone: '',
     isInstalledByUs: '', // 'yes' or 'no'
     companyName: '',
     serviceType: ''
   });
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_ISO2);
   const [message, setMessage] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
@@ -391,12 +393,14 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
+
     try {
       await createContactRequest({
         name: formData.firstName,
         surname: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: `${dialCode} ${formData.phone}`.trim(),
         message,
         applicationTypeId: Number(selectedType),
       });
@@ -540,14 +544,15 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
 
                     <div className="space-y-2">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.labels.phone}</label>
-                      <input
+                      <PhoneNumberInput
                         required
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm font-bold text-slate-700"
-                        placeholder="+994 XX XXX XX XX"
+                        countryIso2={phoneCountry}
+                        onCountryChange={setPhoneCountry}
+                        localNumber={formData.phone}
+                        onLocalNumberChange={(value) => setFormData((prev) => ({ ...prev, phone: value }))}
+                        placeholder="XX XXX XX XX"
+                        selectClassName="focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                        inputClassName="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all"
                       />
                     </div>
                   </div>

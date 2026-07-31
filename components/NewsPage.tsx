@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNews } from "../contexts/NewsContext";
+import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 
 interface NewsItem {
   id: string;
@@ -11,6 +12,8 @@ interface NewsItem {
   image: string;
   link: string;
   source: string;
+  publishedAt?: string;
+  updatedAt?: string;
 }
 
 interface NewsPageProps {
@@ -90,13 +93,15 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
 
   const mapNewsItem = (item: any) => {
-    const langItem =
+    const requestedLangItem =
       item.languages?.find((l: any) =>
         (currentLang === 'az' && l.languageCode === 1) ||
         (currentLang === 'en' && l.languageCode === 2) ||
         (currentLang === 'ru' && l.languageCode === 3) ||
         (currentLang === 'tr' && l.languageCode === 4)
-      ) || item.languages?.[0];
+      );
+    const langItem = requestedLangItem || item.languages?.[0];
+    const resolvedLanguage = ({ 1: 'az', 2: 'en', 3: 'ru', 4: 'tr' } as const)[langItem?.languageCode as 1 | 2 | 3 | 4] || 'az';
 
     return {
       id: item.id,
@@ -106,7 +111,11 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
       link: item.postLink,
       source: item.source,
       date: new Date(item.createdAt).toLocaleDateString("az-AZ"),
+      publishedAt: item.createdAt,
+      updatedAt: item.updatedAt || undefined,
       category: langItem?.description,
+      requestedLanguageAvailable: Boolean(requestedLangItem),
+      resolvedLanguage,
     };
   };
 
@@ -152,8 +161,19 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
     if (!selectedNews) return;
 
     const title = selectedNews.title || 'Volt.az News';
-    const description = selectedNews.category || selectedNews.summary?.slice(0, 155) || '';
-    const canonicalUrl = `https://volt.az/news/${selectedNews.id}`;
+    const summary = String(selectedNews.summary || selectedNews.category || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const description = (
+      summary.toLocaleLowerCase().includes(String(title).toLocaleLowerCase())
+        ? summary
+        : `${title}. ${summary}`
+    ).slice(0, 155);
+    const canonicalLanguage = selectedNews.requestedLanguageAvailable ? currentLang : selectedNews.resolvedLanguage;
+    const canonicalUrl = absoluteSiteUrl(localizePath(`/news/${selectedNews.id}`, canonicalLanguage));
+    const robots = selectedNews.requestedLanguageAvailable
+      ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+      : 'noindex, follow';
     const setMeta = (selector: string, attr: 'content' | 'href', value: string, create?: () => HTMLElement) => {
       let element = document.head.querySelector(selector) as HTMLElement | null;
       if (!element && create) {
@@ -165,8 +185,8 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
 
     document.title = `${title} | Volt.az`;
     setMeta('meta[name="description"]', 'content', description);
-    setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
-    setMeta('meta[name="googlebot"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    setMeta('meta[name="robots"]', 'content', robots);
+    setMeta('meta[name="googlebot"]', 'content', robots);
     setMeta('meta[property="og:type"]', 'content', 'article');
     setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
     setMeta('meta[property="og:description"]', 'content', description);
@@ -187,6 +207,51 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
     setMeta('meta[property="twitter:title"]', 'content', `${title} | Volt.az`);
     setMeta('meta[property="twitter:description"]', 'content', description);
     setMeta('link[rel="canonical"]', 'href', canonicalUrl);
+
+    const image = selectedNews.image
+      ? (/^https?:\/\//i.test(selectedNews.image) ? selectedNews.image : `https://volt.az${selectedNews.image.startsWith('/') ? '' : '/'}${selectedNews.image}`)
+      : undefined;
+    const newsJsonLd = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'NewsArticle',
+          '@id': `${canonicalUrl}#article`,
+          headline: title,
+          description,
+          mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+          ...(selectedNews.publishedAt ? {
+            datePublished: selectedNews.publishedAt,
+            dateModified: selectedNews.updatedAt || selectedNews.publishedAt,
+          } : {}),
+          ...(image ? { image: [image] } : {}),
+          author: selectedNews.source
+            ? { '@type': 'Organization', name: selectedNews.source }
+            : { '@type': 'Organization', name: 'SOLARIX MMC' },
+          publisher: { '@id': 'https://volt.az/#organization' },
+          inLanguage: currentLang,
+        },
+        {
+          '@type': 'BreadcrumbList',
+          '@id': `${canonicalUrl}#breadcrumb`,
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Ana səhifə', item: 'https://volt.az/' },
+            { '@type': 'ListItem', position: 2, name: 'Xəbərlər', item: 'https://volt.az/news' },
+            { '@type': 'ListItem', position: 3, name: title, item: canonicalUrl },
+          ],
+        },
+      ],
+    };
+    let script = document.getElementById('volt-news-jsonld') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'volt-news-jsonld';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(newsJsonLd);
+
+    return () => document.getElementById('volt-news-jsonld')?.remove();
   }, [selectedNews]);
 
   const handleBackClick = () => {

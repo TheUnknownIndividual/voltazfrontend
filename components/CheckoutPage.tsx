@@ -43,7 +43,7 @@ const SAVED_CONTACT_KEY = 'volt_checkout_contact_v1';
 const CHECKOUT_CONTACTS_BY_EMAIL_KEY = 'volt_checkout_contacts_by_email_v1';
 const PICKUP_LOCATION = 'Volt.az pickup point, Baku';
 
-const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
+const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base md:text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 
 const checkoutCopy = {
   az: {
@@ -1074,7 +1074,7 @@ const CheckoutHeader = ({ lang, onLangChange, onBackToCart, onGoHome, compact = 
       <div className="hidden items-center gap-2 text-sm font-black text-slate-700 sm:flex"><ShieldCheck className="h-4 w-4 text-emerald-600" /> {(checkoutCopy[lang] || checkoutCopy.az).secure}</div>
       <div className="flex items-center gap-2">
         {onLangChange && (
-          <select value={lang} onChange={(e) => onLangChange(e.target.value as Language)} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-black text-slate-700 transition-all hover:border-emerald-500 focus:border-emerald-500 focus:outline-none">
+          <select value={lang} onChange={(e) => onLangChange(e.target.value as Language)} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-base md:text-xs font-black text-slate-700 transition-all hover:border-emerald-500 focus:border-emerald-500 focus:outline-none">
             <option value="az">AZ</option>
             <option value="en">EN</option>
             <option value="ru">RU</option>

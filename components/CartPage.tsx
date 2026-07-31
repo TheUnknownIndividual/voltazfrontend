@@ -94,50 +94,62 @@ const totalAmount = cartProducts.reduce(
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
               {cartProducts.map((item) => (
-                <div key={`${item.id}-${item.selectedPower || 'base'}`} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-6 group">
-                  <div className="w-24 h-24 bg-slate-50 rounded-2xl p-2 flex items-center justify-center shrink-0">
-                    <img src={item.productImage[0]} alt={item.productName} className="w-full h-full object-contain" />
+                <div key={`${item.id}-${item.selectedPower || 'base'}`} className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 group">
+                  <div className="flex items-center gap-4 sm:contents">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-2xl p-2 flex items-center justify-center shrink-0">
+                      <img src={item.productImage[0]} alt={item.productName} className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">{item.brand}</div>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-tight mb-1 sm:mb-2 line-clamp-2 sm:truncate">
+                        {item.productName}
+                      </h4>
+                      {item.selectedPower && (
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.selectedPower}</div>
+                      )}
+                      <div className="text-emerald-600 font-black text-sm">{item.currentPrice.toFixed(2)} AZN</div>
+                    </div>
+                    <button
+                      onClick={() => onRemoveFromCart(item.id, item.selectedPower)}
+                      className="sm:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      aria-label={t.remove}
+                      title={t.remove}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9.5 4h5a1 1 0 011 1v2H8.5V5a1 1 0 011-1z" /></svg>
+                    </button>
                   </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">{item.brand}</div>
-                    <h4 className="text-sm font-black text-slate-900 leading-tight mb-2 truncate">
-                      {item.productName} 
-                    </h4>
-                    {item.selectedPower && (
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.selectedPower}</div>
-                    )}
-                    <div className="text-emerald-600 font-black text-sm">{item.currentPrice.toFixed(2)} AZN</div>
-                  </div>
-                  <div className="flex flex-col items-end gap-4">
-                    <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <button 
+                  <div className="flex items-center justify-between sm:flex-col sm:items-end gap-3 sm:gap-4 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 p-1.5 sm:p-2 rounded-xl border border-slate-100">
+                      <button
                         onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1, item.selectedPower)}
-                        className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
                       </button>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         min={0}
-                        value={item.quantity} 
+                        value={item.quantity}
                         onChange={(e) => {
                           const nextValue = Number.parseInt(e.target.value, 10);
                           onUpdateCartQuantity(item.id, Number.isNaN(nextValue) ? 0 : Math.max(0, nextValue), item.selectedPower);
                         }}
-                        className="w-10 text-center bg-transparent font-black text-slate-900 text-sm outline-none"
+                        className="w-7 sm:w-10 text-center bg-transparent font-black text-slate-900 text-sm outline-none"
                       />
-                      <button 
+                      <button
                         onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1, item.selectedPower)}
-                        className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
                       </button>
                     </div>
-                    <button 
+                    <button
                       onClick={() => onRemoveFromCart(item.id, item.selectedPower)}
-                      className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-600 transition-colors"
+                      className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      aria-label={t.remove}
+                      title={t.remove}
                     >
-                      {t.remove}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9.5 4h5a1 1 0 011 1v2H8.5V5a1 1 0 011-1z" /></svg>
                     </button>
                   </div>
                 </div>

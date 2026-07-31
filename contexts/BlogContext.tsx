@@ -81,6 +81,7 @@ const transformBlog = (item: any) => {
     image: item.coverImagePath,
     isActive: item.isActive,
     date: item.createdAt,
+    updatedAt: item.updatedAt || undefined,
 
     title: titles,
     description: descriptions,

@@ -85,8 +85,6 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
 
   return (
     <section id="legislation" className="relative overflow-hidden bg-[var(--color-dark)] py-6 md:py-20">
-      <img src="/solar-energy-field.webp" alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-50" aria-hidden="true" />
-      <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, var(--color-dark) 55%, transparent)' }} />
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
           <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'color-mix(in srgb, var(--color-dark) 95%, transparent)' }}>

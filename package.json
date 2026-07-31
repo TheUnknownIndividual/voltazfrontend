@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "prebuild": "npm run sitemap",
+    "build": "vite build && node scripts/prerender-seo.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "sitemap": "node generate-sitemap.js"
+    "sitemap": "node generate-sitemap.js",
+    "seo:verify": "node scripts/verify-seo-build.mjs"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

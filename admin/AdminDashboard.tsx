@@ -11,7 +11,6 @@ import AdminWarehouse from './AdminWarehouse';
 import AdminUsers from './AdminUsers';
 import AdminMasters from './AdminMasters';
 import AdminSolarCalculator from './AdminSolarCalculator';
-import AdminSolarInverterQa from './AdminSolarInverterQa';
 import AdminSliders from './AdminSliders';
 import AdminCategoryManagement from './AdminCategoryManagement';
 import AdminServices from './AdminServices';
@@ -270,7 +269,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
               { id: 'human-resources', label: 'İnsan Resursları', icon: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m7-8a4 4 0 100-8 4 4 0 000 8m7-1a3 3 0 100-6m4 14v-2a3 3 0 00-2-2.83' },
               { id: 'telegram-profile', label: 'Telegram bildirişləri', icon: 'M22 2L11 13m11-11-7 20-4-9-9-4 20-7z' },
               { id: 'solar-calculator', label: 'Solar Kalkulyator', icon: 'M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m12.728 0l-1.414-1.414M7.05 7.05L5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z' },
-              { id: 'solar-inverter-qa', label: 'İnverter Datasheet QA', icon: 'M9 12l2 2 4-4m-6 8h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
               { id: 'orders', label: 'Sifarişlər', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
             { id: 'requests', label: 'Müraciətlər', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
             { id: 'warehouse', label: 'Məhsullar', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
@@ -292,7 +290,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
             const pageByTab: Record<string, AdminPage> = {
               stats: AdminPage.Stats, analytics: AdminPage.Analytics, 'project-tracker': AdminPage.ProjectTracker, 'execution-projects': AdminPage.ExecutionProjects, accounting: AdminPage.Accounting,
               'solar-calculator': AdminPage.SolarCalculator, orders: AdminPage.Orders, requests: AdminPage.Requests,
-              'solar-inverter-qa': AdminPage.SolarInverterQa,
               warehouse: AdminPage.Warehouse, settings: AdminPage.Settings, verification: AdminPage.Verification,
               permissions: AdminPage.Users
             };
@@ -488,7 +485,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
         {activeTab === 'telegram-profile' && <AdminTelegramProfile />}
 
         {activeTab === 'solar-calculator' && <AdminSolarCalculator lang={lang} />}
-        {activeTab === 'solar-inverter-qa' && <AdminSolarInverterQa />}
 
         {activeTab === 'orders' && (
           <AdminOrders

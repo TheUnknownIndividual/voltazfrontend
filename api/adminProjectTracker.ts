@@ -16,7 +16,10 @@ export interface ProjectAttachment {
   id?: number;
   name: string;
   label?: string;
+  tag?: 'Qiymət təklifi' | 'Banka müraciət sənədi';
   filePath: string;
+  createdAt?: string;
+  documentExtractionStatus?: string;
 }
 
 export type ProjectSystemType = 1 | 2 | 3;
@@ -97,6 +100,9 @@ const mapProject = (item: any): TrackedProject => ({
       name: attachment.fileName || attachment.name || 'Document.pdf',
       filePath: attachment.filePath || '',
       label: attachment.label || '',
+      tag: attachment.tag === 'Banka müraciət sənədi' ? 'Banka müraciət sənədi' : 'Qiymət təklifi',
+      createdAt: attachment.createdAt || '',
+      documentExtractionStatus: attachment.documentExtractionStatus || 'NotRequired',
     }))
     : [],
   createdAt: item.createdAt || new Date().toISOString(),
@@ -131,6 +137,7 @@ const mapPayload = (project: Omit<TrackedProject, 'id' | 'createdAt' | 'updatedA
     fileName: attachment.name,
     filePath: attachment.filePath,
     label: attachment.label || '',
+    tag: attachment.tag === 'Banka müraciət sənədi' ? 'Banka müraciət sənədi' : 'Qiymət təklifi',
   })),
 });
 

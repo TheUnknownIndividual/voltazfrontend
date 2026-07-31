@@ -21,6 +21,8 @@ const AZERBAIJAN_AVERAGE_YIELD = 1350;
 const DEFAULT_BILL = 150;
 const DEFAULT_SAVING_TARGET = 100;
 const DEFAULT_ELECTRICITY_TARIFF = 0.15;
+const DESIGN_BUFFER = 1.05;
+const VAT_RATE = 0.18;
 
 // Enables the ABIF and EBRD banners, financing actions, and related calculator UI.
 const ABIF_NONRESIDENTIAL_CREDIT_ENABLED = false;
@@ -31,20 +33,99 @@ const FINANCE_BANNERS: Array<{ source: FinanceSource; image: string }> = [
   { source: 'ebrd', image: '/ebrd-business-finance-banner.png' }
 ];
 
-const cityProfiles: Record<string, { lat: number; lon: number; yield: number }> = {
-  'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1380 },
-  'Sumqayıt': { lat: 40.5897, lon: 49.6686, yield: 1370 },
-  'Gəncə': { lat: 40.6828, lon: 46.3606, yield: 1340 },
-  'Lənkəran': { lat: 38.7539, lon: 48.8509, yield: 1280 },
-  'Şəki': { lat: 41.1919, lon: 47.1706, yield: 1310 },
-  'Qəbələ': { lat: 40.9810, lon: 47.8458, yield: 1320 },
-  'Şamaxı': { lat: 40.6314, lon: 48.6394, yield: 1360 },
-  'Naxçıvan': { lat: 39.2090, lon: 45.4126, yield: 1460 },
-  'Mingəçevir': { lat: 40.7703, lon: 47.0495, yield: 1350 },
-  'Xırdalan': { lat: 40.4481, lon: 49.7550, yield: 1370 },
-  'Şirvan': { lat: 39.9321, lon: 48.9203, yield: 1400 },
-  'Quba': { lat: 41.3611, lon: 48.5134, yield: 1300 },
-  'Qusar': { lat: 41.4275, lon: 48.4302, yield: 1290 }
+const cityProfiles: Record<string, { lat: number; lon: number; yield: number; region?: string }> = {
+  'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1620, region: 'Abşeron' },
+  'Sumqayıt': { lat: 40.5897, lon: 49.6686, yield: 1615, region: 'Abşeron' },
+  'Xırdalan': { lat: 40.4481, lon: 49.7550, yield: 1615, region: 'Abşeron' },
+  'Şamaxı': { lat: 40.6314, lon: 48.6394, yield: 1585, region: 'Dağlıq Şirvan' },
+  'Qobustan': { lat: 40.5378, lon: 49.3844, yield: 1685, region: 'Dağlıq Şirvan' },
+  'Gəncə': { lat: 40.6828, lon: 46.3606, yield: 1540, region: 'Qərb' },
+  'Mingəçevir': { lat: 40.7703, lon: 47.0495, yield: 1600, region: 'Aran' },
+  'Yevlax': { lat: 40.6127, lon: 47.1522, yield: 1600, region: 'Aran' },
+  'Şirvan': { lat: 39.9321, lon: 48.9203, yield: 1690, region: 'Aran' },
+  'Salyan': { lat: 39.5967, lon: 48.9831, yield: 1690, region: 'Aran' },
+  'Neftçala': { lat: 39.3789, lon: 49.2467, yield: 1660, region: 'Aran' },
+  'Lənkəran': { lat: 38.7539, lon: 48.8509, yield: 1415, region: 'Cənub' },
+  'Astara': { lat: 38.4506, lon: 48.8756, yield: 1385, region: 'Cənub' },
+  'Masallı': { lat: 39.0333, lon: 48.6667, yield: 1440, region: 'Cənub' },
+  'Quba': { lat: 41.3611, lon: 48.5134, yield: 1490, region: 'Şimal' },
+  'Qusar': { lat: 41.4275, lon: 48.4302, yield: 1460, region: 'Şimal' },
+  'Xaçmaz': { lat: 41.4636, lon: 48.8006, yield: 1505, region: 'Şimal' },
+  'Şəki': { lat: 41.1919, lon: 47.1706, yield: 1480, region: 'Şimal-qərb' },
+  'Zaqatala': { lat: 41.6308, lon: 46.6428, yield: 1440, region: 'Şimal-qərb' },
+  'Qəbələ': { lat: 40.9810, lon: 47.8458, yield: 1480, region: 'Şimal-qərb' },
+  'İsmayıllı': { lat: 40.7833, lon: 48.15, yield: 1525, region: 'Dağlıq Şirvan' },
+  'Naxçıvan': { lat: 39.2090, lon: 45.4126, yield: 1825, region: 'Naxçıvan' },
+  'Şərur': { lat: 39.5561, lon: 44.9553, yield: 1825, region: 'Naxçıvan' },
+  'Culfa': { lat: 38.9581, lon: 45.6297, yield: 1875, region: 'Naxçıvan' },
+  'Ordubad': { lat: 38.9083, lon: 46.0233, yield: 1825, region: 'Naxçıvan' },
+  'Ağdam': { lat: 39.9908, lon: 46.9264, yield: 1660, region: 'Qarabağ' },
+  'Füzuli': { lat: 39.6014, lon: 47.1447, yield: 1660, region: 'Qarabağ' },
+  'Şuşa': { lat: 39.7581, lon: 46.7508, yield: 1525, region: 'Qarabağ' },
+  'Laçın': { lat: 39.6428, lon: 46.5486, yield: 1475, region: 'Qarabağ' },
+  'Kəlbəcər': { lat: 40.1064, lon: 46.0392, yield: 1475, region: 'Qarabağ' }
+};
+
+const CITY_NAME_ALIASES: Record<string, string> = {
+  'baku': 'Bakı',
+  'sumgayit': 'Sumqayıt',
+  'sumgait': 'Sumqayıt',
+  'ganja': 'Gəncə',
+  'gyandzha': 'Gəncə',
+  'lankaran': 'Lənkəran',
+  'lenkoran': 'Lənkəran',
+  'sheki': 'Şəki',
+  'shaki': 'Şəki',
+  'gabala': 'Qəbələ',
+  'qabala': 'Qəbələ',
+  'shamakhi': 'Şamaxı',
+  'shemakha': 'Şamaxı',
+  'nakhchivan': 'Naxçıvan',
+  'nakhichevan': 'Naxçıvan',
+  'mingachevir': 'Mingəçevir',
+  'mingacevir': 'Mingəçevir',
+  'khirdalan': 'Xırdalan',
+  'hirdalan': 'Xırdalan',
+  'shirvan': 'Şirvan',
+  'guba': 'Quba',
+  'qusar': 'Qusar',
+  'gusar': 'Qusar',
+  'yevlakh': 'Yevlax',
+  'yevlax': 'Yevlax',
+  'salyan': 'Salyan',
+  'neftchala': 'Neftçala',
+  'astara': 'Astara',
+  'masally': 'Masallı',
+  'masalli': 'Masallı',
+  'khachmaz': 'Xaçmaz',
+  'xachmaz': 'Xaçmaz',
+  'zaqatala': 'Zaqatala',
+  'zakatala': 'Zaqatala',
+  'ismayilli': 'İsmayıllı',
+  'ismailli': 'İsmayıllı',
+  'sharur': 'Şərur',
+  'julfa': 'Culfa',
+  'ordubad': 'Ordubad',
+  'agdam': 'Ağdam',
+  'fuzuli': 'Füzuli',
+  'shusha': 'Şuşa',
+  'shousha': 'Şuşa',
+  'lachin': 'Laçın',
+  'kalbajar': 'Kəlbəcər',
+  'kelbajar': 'Kəlbəcər'
+};
+
+const resolveDetectedCity = (rawCityName: string): string | null => {
+  const normalized = rawCityName.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const aliasMatch = CITY_NAME_ALIASES[normalized];
+  if (aliasMatch) return aliasMatch;
+
+  const directMatch = Object.keys(cityProfiles).find(
+    (name) => name.toLowerCase() === normalized
+  );
+  return directMatch || null;
 };
 
 const getOptimalTilt = (lat: number) => Math.round(Math.abs(lat));
@@ -70,6 +151,13 @@ const formatMoney = (value: string | number) => {
   return Number.isFinite(numeric) ? Math.round(numeric).toLocaleString() : '0';
 };
 
+const formatPaybackPeriod = (paybackYears: number, yearLabel: string, monthLabel: string) => {
+  const totalMonths = Math.floor(Math.max(0, paybackYears) * 12 + Number.EPSILON);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return `${years} ${yearLabel} ${months} ${monthLabel}`;
+};
+
 const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   const [bill, setBill] = useState<number>(DEFAULT_BILL);
   const [propertyType, setPropertyType] = useState<'home' | 'business'>('home');
@@ -78,6 +166,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   
   // New states
   const [city, setCity] = useState<string>('Bakı');
+  const [hasUserPickedCity, setHasUserPickedCity] = useState(false);
   const [roofArea, setRoofArea] = useState<string>('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
   const [maxRoofArea, setMaxRoofArea] = useState<string>('');
@@ -89,12 +178,37 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   const [activeFinanceBanner, setActiveFinanceBanner] = useState(0);
   const lastLoggedCalculationRef = useRef<string>('');
 
-  const cities = [
-    'Bakı', 'Sumqayıt', 'Gəncə', 'Lənkəran', 'Şəki', 'Qəbələ', 'Şamaxı', 
-    'Naxçıvan', 'Mingəçevir', 'Xırdalan', 'Şirvan', 'Quba', 'Qusar'
-  ];
+  const cities = useMemo(() => Object.keys(cityProfiles), []);
 
   const markCalculatorInteraction = () => setHasInteracted(true);
+
+  useEffect(() => {
+    if (hasUserPickedCity) return;
+
+    let isCancelled = false;
+
+    const detectCityFromIp = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (isCancelled || data?.country_code !== 'AZ') return;
+
+        const matchedCity = resolveDetectedCity(String(data?.city || ''));
+        if (matchedCity && !isCancelled) {
+          setCity(matchedCity);
+        }
+      } catch {
+        // Silent fallback: keep the default city if geolocation is unavailable.
+      }
+    };
+
+    detectCityFromIp();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hasUserPickedCity]);
 
   const results = useMemo(() => {
     const tariff = DEFAULT_ELECTRICITY_TARIFF;
@@ -115,7 +229,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
       )
     );
 
-    const neededKWp = annualConsumption / solarYield;
+    const neededKWp = (annualConsumption / solarYield) * DESIGN_BUFFER;
     const panelsForFullCoverage = Math.max(1, Math.ceil((neededKWp * 1000) / PANEL_WATTAGE));
     const neededArea = panelsForFullCoverage * AREA_PER_PANEL;
     const roofLimit = parsePositiveNumber(isAdvancedOpen && maxRoofArea ? maxRoofArea : roofArea);
@@ -127,18 +241,23 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     const yearlySaving = usefulProduction * tariff * 0.95;
     const kwpPrice = (propertyType === 'home' ? 1250 : 1150) + (systemType === 'off-grid' ? 850 : 0);
     const installationBase = propertyType === 'home' ? 450 : 700;
-    const installationEstimate = Math.round((powerKWp * kwpPrice + panels * 35 + installationBase) / 50) * 50;
+    const preTaxEstimate = powerKWp * kwpPrice + panels * 35 + installationBase;
+    const vatAmount = preTaxEstimate * VAT_RATE;
+    const installationEstimate = Math.round((preTaxEstimate + vatAmount) / 50) * 50;
+    const paybackYears = yearlySaving > 0 ? installationEstimate / yearlySaving : 0;
 
     return {
       power: powerKWp.toFixed(1),
       panels,
       price: installationEstimate,
+      vat: Math.round(vatAmount),
       yearly: yearlySaving.toFixed(0),
       production: Math.round(annualProduction),
       area: Math.round(panels * AREA_PER_PANEL),
       yield: solarYield,
       coverage: Math.min(100, Math.round((annualProduction / annualConsumption) * 100)),
-      limitedByRoof: Boolean(roofLimit && neededArea > roofLimit)
+      limitedByRoof: Boolean(roofLimit && neededArea > roofLimit),
+      paybackYears
     };
   }, [bill, propertyType, savingTarget, systemType, city, roofArea, isAdvancedOpen, maxRoofArea, tiltAngle, orientation]);
 
@@ -191,6 +310,8 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     maxRoofArea: { az: 'Maksimum dam sahəsi (m²)', en: 'Maximum roof area (m²)', ru: 'Максимальная площадь крыши (м²)', tr: 'Maksimum çatı alanı (m²)' },
     tiltAngle: { az: 'Meyl bucağı (°)', en: 'Tilt angle (°)', ru: 'Угол наклона (°)', tr: 'Eğim açısı (°)' },
     orientation: { az: 'İstiqamət (°)', en: 'Orientation (°)', ru: 'Ориентация (°)', tr: 'Yön (°)' },
+    advancedToggleShow: { az: 'Əlavə parametrlər', en: 'Advanced settings', ru: 'Дополнительные параметры', tr: 'Gelişmiş ayarlar' },
+    advancedToggleHide: { az: 'Əlavə parametrləri gizlət', en: 'Hide advanced settings', ru: 'Скрыть доп. параметры', tr: 'Gelişmiş ayarları gizle' },
     systemPower: { az: 'Sistem gücü', en: 'System power', ru: 'Мощность системы', tr: 'Sistem gücü' },
     panelCount: { az: 'Panel sayı', en: 'Panel count', ru: 'Количество панелей', tr: 'Panel sayısı' },
     yearlySaving: { az: 'İllik qənaət', en: 'Yearly saving', ru: 'Годовая экономия', tr: 'Yıllık tasarruf' },
@@ -220,6 +341,10 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     solarYield: { az: 'Günəş göstəricisi', en: 'Solar yield', ru: 'Солнечная выработка', tr: 'Güneş verimi' },
     coverage: { az: 'Enerji əhatəsi', en: 'Energy coverage', ru: 'Покрытие энергии', tr: 'Enerji karşılama' },
     roofLimited: { az: 'Dam sahəsi limiti', en: 'Roof space limited', ru: 'Ограничение площади крыши', tr: 'Çatı alanı sınırı' },
+    paybackPeriod: { az: 'Özünü ödəmə müddəti', en: 'Payback period', ru: 'Срок окупаемости', tr: 'Geri ödeme süresi' },
+    paybackYears: { az: 'il', en: 'yr', ru: 'лет', tr: 'yıl' },
+    paybackMonths: { az: 'ay', en: 'mo', ru: 'мес', tr: 'ay' },
+    vatIncluded: { az: 'ƏDV (18%) daxil edilib', en: 'VAT (18%) included', ru: 'Включая НДС (18%)', tr: 'KDV (%18) dahildir' },
     creditBannerTitle: {
       az: '5%-dək güzəştli kredit imkanı',
       en: 'Concessional credit up to 5%',
@@ -482,7 +607,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   <label className="block text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest mb-2">{getText(t.city, lang)}</label>
                   <select 
                     value={city} 
-                    onChange={(e) => { markCalculatorInteraction(); setCity(e.target.value); }}
+                    onChange={(e) => { markCalculatorInteraction(); setHasUserPickedCity(true); setCity(e.target.value); }}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                   >
                     {cities.map(c => <option key={c} value={c}>{c}</option>)}
@@ -504,18 +629,68 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                 <div>
                   <div className="flex justify-between items-center mb-3 md:mb-4">
                     <label className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest">{getText(t.monthlyBill, lang)}</label>
-                    <span className="text-lg md:text-xl font-black text-[var(--color-primary)]">{formatMoney(bill)} AZN</span>
+                    <div className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 pl-3 pr-1 py-1 focus-within:border-[var(--color-primary)] transition-colors">
+                      <input
+                        type="number"
+                        min={30}
+                        max={10000}
+                        step={10}
+                        value={bill}
+                        onChange={(e) => {
+                          markCalculatorInteraction();
+                          const next = Number(e.target.value);
+                          setBill(Number.isFinite(next) ? Math.min(10000, Math.max(0, next)) : 0);
+                        }}
+                        onBlur={(e) => {
+                          const next = Number(e.target.value);
+                          setBill(Number.isFinite(next) ? Math.min(10000, Math.max(30, next)) : DEFAULT_BILL);
+                        }}
+                        className="w-20 md:w-24 bg-transparent text-right text-base md:text-xl font-black text-[var(--color-primary)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-[9px] md:text-xs font-bold text-slate-400 uppercase pr-1">AZN</span>
+                    </div>
                   </div>
                   <input type="range" min="30" max="10000" step="10" value={bill} onChange={(e) => { markCalculatorInteraction(); setBill(Number(e.target.value)); }} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between items-center mb-3 md:mb-4">
                     <label className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest">{getText(t.savingTarget, lang)}</label>
-                    <span className="text-lg md:text-xl font-black text-[var(--color-primary)]">{savingTarget}%</span>
+                    <div className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 pl-3 pr-1 py-1 focus-within:border-[var(--color-primary)] transition-colors">
+                      <input
+                        type="number"
+                        min={10}
+                        max={100}
+                        step={5}
+                        value={savingTarget}
+                        onChange={(e) => {
+                          markCalculatorInteraction();
+                          const next = parseInt(e.target.value, 10);
+                          setSavingTarget(Number.isFinite(next) ? Math.min(100, Math.max(0, next)) : 0);
+                        }}
+                        onBlur={(e) => {
+                          const next = parseInt(e.target.value, 10);
+                          setSavingTarget(Number.isFinite(next) ? Math.min(100, Math.max(10, next)) : DEFAULT_SAVING_TARGET);
+                        }}
+                        className="w-16 md:w-20 bg-transparent text-right text-base md:text-xl font-black text-[var(--color-primary)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-[9px] md:text-xs font-bold text-slate-400 uppercase pr-1">%</span>
+                    </div>
                   </div>
                   <input type="range" min="10" max="100" step="5" value={savingTarget} onChange={(e) => { markCalculatorInteraction(); setSavingTarget(parseInt(e.target.value)); }} className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full appearance-none accent-[var(--color-primary)] cursor-pointer" />
                 </div>
+              </div>
+
+              <div className="mb-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => { markCalculatorInteraction(); setIsAdvancedOpen((open) => !open); }}
+                  aria-expanded={isAdvancedOpen}
+                  className="inline-flex items-center justify-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 transition-colors hover:text-[var(--color-primary)]"
+                >
+                  {getText(isAdvancedOpen ? t.advancedToggleHide : t.advancedToggleShow, lang)}
+                  <svg className={`h-3.5 w-3.5 transition-transform duration-300 ease-out ${isAdvancedOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                </button>
               </div>
 
               {ABIF_NONRESIDENTIAL_CREDIT_ENABLED && propertyType === 'business' && financeSource !== 'ebrd' && (
@@ -577,6 +752,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   <div>
                     <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] opacity-60 uppercase tracking-widest mb-0.5">{getText(t.installationPrice, lang)}</div>
                     <div className="text-xs md:text-2xl font-black whitespace-nowrap">{formatMoney(results.price)} <span className="text-[7px] opacity-40">AZN</span></div>
+                    <div className="mt-0.5 text-[6px] opacity-40">{getText(t.vatIncluded, lang)}</div>
                   </div>
                   <div className="bg-white/10 rounded-xl md:rounded-2xl py-2 md:py-4 px-2 md:px-6 border border-white/10 min-w-0 overflow-hidden">
                     <div className="text-[6px] md:text-[8px] font-black text-[var(--color-primary)] uppercase tracking-widest mb-0.5">{getText(t.yearlySaving, lang)}</div>
@@ -586,6 +762,15 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                     </div>
                   </div>
                 </div>
+
+                {results.paybackYears > 0 && (
+                  <div className="mt-4 md:mt-6 flex items-center justify-center gap-2 border-t border-white/10 pt-4 md:pt-6">
+                    <span className="text-[7px] md:text-[9px] font-black uppercase tracking-widest opacity-60">{getText(t.paybackPeriod, lang)}:</span>
+                    <span className="text-[10px] md:text-sm font-black text-[var(--color-primary)]">
+                      {formatPaybackPeriod(results.paybackYears, getText(t.paybackYears, lang), getText(t.paybackMonths, lang))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {ABIF_NONRESIDENTIAL_CREDIT_ENABLED && financeSource === 'abif' && propertyType === 'business' && showCreditEstimate && (

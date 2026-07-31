@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useBlog } from '../contexts/BlogContext';
+import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 
 interface BlogPost {
   id: string;
   image: string;
   date: string;
+  updatedAt?: string;
 
   title: {
     az: string;
@@ -77,9 +79,22 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
    useEffect(() => {
      if (!selectedPost) return;
 
-     const title = selectedPost.title?.[lang] || selectedPost.title?.az || 'Volt.az Blog';
-     const description = selectedPost.description?.[lang] || selectedPost.description?.az || selectedPost.content?.[lang]?.slice(0, 155) || '';
-     const canonicalUrl = `https://volt.az/blog/${selectedPost.id}`;
+     const contentLanguage: LangCode = selectedPost.title?.[lang] ? lang : 'az';
+     const title = selectedPost.title?.[contentLanguage] || 'Volt.az Blog';
+     const rawDescription = String(
+       selectedPost.description?.[contentLanguage]
+       || selectedPost.content?.[contentLanguage]
+       || ''
+     ).replace(/\s+/g, ' ').trim();
+     const description = (
+       rawDescription.toLocaleLowerCase().includes(String(title).toLocaleLowerCase())
+         ? rawDescription
+         : `${title}. ${rawDescription}`
+     ).slice(0, 155);
+     const canonicalUrl = absoluteSiteUrl(localizePath(`/blog/${selectedPost.id}`, contentLanguage));
+     const robots = contentLanguage === lang
+       ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+       : 'noindex, follow';
      const setMeta = (selector: string, attr: 'content' | 'href', value: string, create?: () => HTMLElement) => {
        let element = document.head.querySelector(selector) as HTMLElement | null;
        if (!element && create) {
@@ -91,8 +106,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
 
      document.title = `${title} | Volt.az`;
      setMeta('meta[name="description"]', 'content', description);
-     setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
-     setMeta('meta[name="googlebot"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+     setMeta('meta[name="robots"]', 'content', robots);
+     setMeta('meta[name="googlebot"]', 'content', robots);
      setMeta('meta[property="og:type"]', 'content', 'article');
      setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
      setMeta('meta[property="og:description"]', 'content', description);
@@ -115,6 +130,47 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
        });
      }
      setMeta('link[rel="canonical"]', 'href', canonicalUrl);
+
+     const image = selectedPost.image
+       ? (/^https?:\/\//i.test(selectedPost.image) ? selectedPost.image : `https://volt.az${selectedPost.image.startsWith('/') ? '' : '/'}${selectedPost.image}`)
+       : undefined;
+     const articleJsonLd = {
+       '@context': 'https://schema.org',
+       '@graph': [
+         {
+           '@type': 'BlogPosting',
+           '@id': `${canonicalUrl}#article`,
+           headline: title,
+           description,
+           mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+           datePublished: selectedPost.date,
+           dateModified: selectedPost.updatedAt || selectedPost.date,
+           ...(image ? { image: [image] } : {}),
+           author: { '@type': 'Organization', name: 'SOLARIX MMC' },
+           publisher: { '@id': 'https://volt.az/#organization' },
+           inLanguage: lang,
+         },
+         {
+           '@type': 'BreadcrumbList',
+           '@id': `${canonicalUrl}#breadcrumb`,
+           itemListElement: [
+             { '@type': 'ListItem', position: 1, name: 'Ana səhifə', item: 'https://volt.az/' },
+             { '@type': 'ListItem', position: 2, name: 'Bloq', item: 'https://volt.az/blog' },
+             { '@type': 'ListItem', position: 3, name: title, item: canonicalUrl },
+           ],
+         },
+       ],
+     };
+     let script = document.getElementById('volt-blog-jsonld') as HTMLScriptElement | null;
+     if (!script) {
+       script = document.createElement('script');
+       script.type = 'application/ld+json';
+       script.id = 'volt-blog-jsonld';
+       document.head.appendChild(script);
+     }
+     script.textContent = JSON.stringify(articleJsonLd);
+
+     return () => document.getElementById('volt-blog-jsonld')?.remove();
    }, [selectedPost, lang]);
 
  const t = {
@@ -213,6 +269,7 @@ const transformBlog = (item: any) => {
     image: item.coverImagePath,
     isActive: item.isActive,
     date: item.createdAt,
+    updatedAt: item.updatedAt || undefined,
 
     title: titles,
     description: descriptions,
@@ -230,7 +287,7 @@ const transformBlog = (item: any) => {
             {t.back[lang]}
           </button>
           <h1 className="text-sm font-black text-white uppercase tracking-widest">
-            {selectedPost ? selectedPost.title?.[lang] : t.title[lang]}
+            {selectedPost ? selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az'] : t.title[lang]}
           </h1>
         </div>
       </section>
@@ -299,7 +356,7 @@ const transformBlog = (item: any) => {
             <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
               <div className="bg-white rounded-[3rem] overflow-hidden border border-slate-100 shadow-2xl">
                 {/* <div className="aspect-video w-full overflow-hidden">
-                  <img src={selectedPost.image} alt={selectedPost.title?.[lang]} className="w-full h-full object-contain" />
+                  <img src={selectedPost.image} alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']} className="w-full h-full object-contain" />
                 </div> */}
                 <div className="relative aspect-video w-full overflow-hidden">
   {/* Background */}
@@ -312,14 +369,14 @@ const transformBlog = (item: any) => {
   {/* Main image */}
   <img
     src={selectedPost.image}
-    alt={selectedPost.title?.[lang]}
+    alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']}
     className="relative z-10 w-full h-full object-contain"
   />
 </div>
                 <div className="p-8 md:p-16 space-y-8">
                   <div className="flex flex-wrap items-center gap-6">
                     <div className="bg-emerald-600 px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
-                      {selectedPost.description?.[lang]}
+                      {selectedPost.description?.[selectedPost.title?.[lang] ? lang : 'az']}
                     </div>
                     <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -327,11 +384,11 @@ const transformBlog = (item: any) => {
                     </div>
                   </div>
                   <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">
-                    {selectedPost.title?.[lang]}
+                    {selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']}
                   </h2>
                   <div className="w-20 h-1.5 bg-emerald-500 rounded-full"></div>
                   <div className="prose prose-slate max-w-none">
-                    {selectedPost.content?.[lang]?.split('\n').map((paragraph, pIdx) => (
+                    {selectedPost.content?.[selectedPost.title?.[lang] ? lang : 'az']?.split('\n').map((paragraph, pIdx) => (
                       <p key={pIdx} className="text-slate-600 text-base md:text-lg leading-relaxed mb-6 whitespace-pre-line">
                         {paragraph.trim()}
                       </p>

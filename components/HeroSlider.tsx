@@ -61,10 +61,13 @@ const sideSlides = [
   }
 ];
 
+const SWIPE_THRESHOLD = 40;
+
 const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
   const [current, setCurrent] = useState(0);
   const [slides, setSlides] = useState(slidesAZ);
   const [sideSlidesData, setSideSlidesData] = useState(sideSlides);
+  const touchStartRef = React.useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const loadData = () => {
@@ -96,6 +99,34 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
     setCurrent(prev => (prev + 1) % slides.length);
   }, [slides.length]);
 
+  const prevSlide = useCallback(() => {
+    if (slides.length === 0) return;
+    setCurrent(prev => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    if (deltaX < 0) {
+      nextSlide();
+    } else {
+      prevSlide();
+    }
+  }, [nextSlide, prevSlide]);
+
   useEffect(() => {
     if (current >= slides.length) {
       setCurrent(0);
@@ -110,9 +141,13 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
   }, [nextSlide]);
 
   return (
-    <section className="relative h-[60vh] md:h-[75vh] w-full overflow-hidden bg-white">
+    <section className="relative h-[45vh] md:h-[75vh] w-full overflow-hidden bg-white">
       {/* Main Slider (100%) */}
-      <div className="relative w-full h-full overflow-hidden shadow-xl">
+      <div
+        className="relative w-full h-full overflow-hidden shadow-xl touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {slides.map((slide, index) => {
           const isYouTube = slide.video?.includes('youtube.com') || slide.video?.includes('youtu.be');
           let embedUrl = '';

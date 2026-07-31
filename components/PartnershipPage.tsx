@@ -5,6 +5,7 @@ import {
   loadPartnershipDirections
 } from './partnershipDirections';
 import { usePartnership } from '@/contexts/PartnershipContext';
+import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
 
 interface PartnershipPageProps {
   lang?: 'az' | 'en' | 'ru' | 'tr';
@@ -35,6 +36,7 @@ const FALLBACK_LOGO =
 const VOLT_LOGO = 'https://i.ibb.co/zHF55zs5/Simple-Modern-Yoga-Studio-Logo-removebg-preview-1.png';
 const VIRTUAL_AZERBAIJAN_LOGO = new URL('./virtualazerbaijan.png', import.meta.url).href;
 const AIKTSA_LOGO = new URL('./aiktsa.png', import.meta.url).href;
+const SOLARIX_LOGO = new URL('./solarix.png', import.meta.url).href;
 
 const partnerGroups: PartnerGroup[] = [
   {
@@ -384,6 +386,36 @@ const translations = {
     ru: 'Это направление показывает локальные партнерские компании, работающие в Азербайджане. Финансы, медиа, ПО, ИКТ, коммуникации и строительство помогают реализовывать проекты внутри страны.',
     tr: 'Bu alan Azerbaycan’da faaliyet gösteren yerel ortak şirketleri gösterir. Finans, medya, yazılım, ICT, iletişim ve inşaat desteği projelerin ülke içindeki gerçek uygulamasını tamamlar.'
   },
+  salesBrandDivider: {
+    az: 'Satış Brendi',
+    en: 'Sales Brand',
+    ru: 'Бренд продаж',
+    tr: 'Satış Markası'
+  },
+  salesBrandEyebrow: {
+    az: 'SOLARIX MMC / satış və icra brendi',
+    en: 'SOLARIX LLC / sales and delivery brand',
+    ru: 'ООО SOLARIX / бренд продаж и реализации',
+    tr: 'SOLARIX MMC / satış ve uygulama markası'
+  },
+  salesBrandTitle: {
+    az: 'Volt.az',
+    en: 'Volt.az',
+    ru: 'Volt.az',
+    tr: 'Volt.az'
+  },
+  salesBrandSummary: {
+    az: 'Volt.az, SOLARIX MMC-nin son istifadəçiyə yönəlmiş rəsmi satış və xidmət brendidir. Ekosistemdəki bütün beynəlxalq texnologiya və yerli tərəfdaşlıqlar Volt.az üzərindən müştəriyə çatdırılır.',
+    en: 'Volt.az is the official customer-facing sales and service brand of SOLARIX LLC. Every international technology and local partnership in this ecosystem reaches the end customer through Volt.az.',
+    ru: 'Volt.az — официальный бренд продаж и обслуживания клиентов ООО SOLARIX. Все международные технологии и локальные партнерства в этой экосистеме доходят до клиента через Volt.az.',
+    tr: 'Volt.az, SOLARIX MMC’nin son kullanıcıya yönelik resmi satış ve hizmet markasıdır. Bu ekosistemdeki tüm uluslararası teknoloji ve yerel ortaklıklar müşteriye Volt.az üzerinden ulaşır.'
+  },
+  salesBrandPartnerDescription: {
+    az: 'Quraşdırma, satış və müştəri xidməti üzrə əsas icra brendi',
+    en: 'Primary delivery brand for installation, sales and customer service',
+    ru: 'Основной бренд реализации для установки, продаж и обслуживания клиентов',
+    tr: 'Kurulum, satış ve müşteri hizmetleri için ana uygulama markası'
+  },
   coreDivider: {
     az: 'Əsas texnologiya tərəfdaşları',
     en: 'Core Technology Partners',
@@ -556,6 +588,22 @@ const translations = {
   }
 };
 
+const salesBrandGroup: PartnerGroup = {
+  id: 'sales-brand',
+  title: translations.salesBrandDivider,
+  eyebrow: translations.salesBrandEyebrow,
+  summary: translations.salesBrandSummary,
+  accent: 'border-emerald-600',
+  partners: [
+    {
+      name: translations.salesBrandTitle,
+      logo: VOLT_LOGO,
+      logoScale: 2.6,
+      description: translations.salesBrandPartnerDescription
+    }
+  ]
+};
+
 const getText = (value: LocalizedText, lang: Lang) => value[lang] || value.az;
 const getPartnerName = (partner: Partner, lang: Lang) =>
   typeof partner.name === 'string' ? partner.name : getText(partner.name, lang);
@@ -592,7 +640,7 @@ const PartnerLogo: React.FC<{ partner: Partner; lang: Lang }> = ({ partner, lang
 );
 
 const PartnerGroupCard: React.FC<{ group: PartnerGroup; lang: Lang; index: number; className?: string }> = ({ group, lang, index, className = '' }) => {
-  const isCoreTechnology = group.id === 'international-technology';
+  const isCoreTechnology = group.id === 'international-technology' || group.id === 'sales-brand';
 
   return (
     <article className={`relative rounded-xl border border-slate-200 bg-white p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/70 ${isCoreTechnology ? 'shadow-2xl shadow-emerald-600/15 ring-1 ring-emerald-100/80' : 'shadow-sm'} ${group.accent} ${className}`}>
@@ -665,6 +713,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
   const [companyName, setCompanyName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_ISO2);
   const [email, setEmail] = useState('');
   const [partnerType, setPartnerType] = useState<string>('');
   const [message, setMessage] = useState('');
@@ -763,11 +812,13 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
       setHasSubmitAnimation(true);
       setSubmitStage('sending');
 
+      const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
+
       await createPartnershipRequest({
         companyName,
         companyPerson: contactPerson,
         email,
-        phoneNumber: phone,
+        phoneNumber: `${dialCode} ${phone}`.trim(),
         message,
         partnershipTypeId: Number(partnerType),
       });
@@ -826,28 +877,57 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
           <p className="text-base font-medium leading-relaxed text-slate-600 md:text-lg">
             {getText(translations.subtitle, lang)}
           </p>
-          <div
-            className="mx-auto mt-5 flex h-28 w-64 items-center justify-center overflow-hidden"
-            style={{ width: 256, height: 112, overflow: 'hidden' }}
-          >
-            <img
-              src={VOLT_LOGO}
-              alt="Volt.az logo"
-              className="max-h-full max-w-full object-contain"
-              style={{ transform: 'scale(2.6)' }}
-              onError={(event) => {
-                const image = event.currentTarget;
-                if (image.src !== FALLBACK_LOGO) {
-                  image.src = FALLBACK_LOGO;
-                }
-              }}
-            />
+
+          <div className="mx-auto mt-8 flex flex-col items-center">
+            <div
+              className="flex h-20 w-56 items-center justify-center overflow-hidden"
+              style={{ width: 224, height: 80, overflow: 'hidden' }}
+            >
+              <img
+                src={SOLARIX_LOGO}
+                alt="Solarix logo"
+                className="max-h-full max-w-full object-contain"
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.src !== FALLBACK_LOGO) {
+                    image.src = FALLBACK_LOGO;
+                  }
+                }}
+              />
+            </div>
+
+            <svg className="my-2 h-4 w-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+
+            <div
+              className="flex h-28 w-64 items-center justify-center overflow-hidden"
+              style={{ width: 256, height: 112, overflow: 'hidden' }}
+            >
+              <img
+                src={VOLT_LOGO}
+                alt="Volt.az logo"
+                className="max-h-full max-w-full object-contain"
+                style={{ transform: 'scale(2.6)' }}
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.src !== FALLBACK_LOGO) {
+                    image.src = FALLBACK_LOGO;
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>
 
       <section className="bg-white pb-16 md:pb-20">
         <div className="mx-auto max-w-7xl px-4 md:px-12">
+          <div className="mb-6 space-y-6">
+            <SectionDivider>{getText(translations.salesBrandDivider, lang)}</SectionDivider>
+            <PartnerGroupCard group={salesBrandGroup} lang={lang} index={0} />
+          </div>
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <PortfolioTile
@@ -866,8 +946,8 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
             <div className="space-y-6 lg:col-span-7">
               <SectionDivider>{getText(translations.coreDivider, lang)}</SectionDivider>
-              <PartnerGroupCard group={internationalGroup} lang={lang} index={0} />
-              <PartnerGroupCard group={fundingGroup} lang={lang} index={1} />
+              <PartnerGroupCard group={internationalGroup} lang={lang} index={1} />
+              <PartnerGroupCard group={fundingGroup} lang={lang} index={2} />
               <section ref={formSectionRef} id="partnership-form" className="scroll-mt-28 rounded-2xl border border-slate-100 bg-slate-50 p-3 md:p-5">
                 <div ref={formCardRef} data-partnership-form-card className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-500 md:p-8">
                   <div className="mx-auto max-w-2xl text-center">
@@ -916,13 +996,14 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                         <label className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                           {getText(translations.labelPhone, lang)} <span className="text-emerald-500">*</span>
                         </label>
-                        <input
-                          type="tel"
+                        <PhoneNumberInput
                           required
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          countryIso2={phoneCountry}
+                          onCountryChange={setPhoneCountry}
+                          localNumber={phone}
+                          onLocalNumberChange={setPhone}
                           placeholder={getText(translations.placeholders.phone, lang)}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                          inputClassName="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
                         />
                       </div>
 
@@ -1013,10 +1094,10 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
 
             <aside className="space-y-6 lg:col-span-5">
               <SectionDivider>{getText(translations.localDivider, lang)}</SectionDivider>
-              <PartnerGroupCard group={financeGroup} lang={lang} index={2} />
-              <PartnerGroupCard group={constructionGroup} lang={lang} index={3} />
-              <PartnerGroupCard group={mediaGroup} lang={lang} index={4} />
-              <PartnerGroupCard group={ictGroup} lang={lang} index={5} />
+              <PartnerGroupCard group={financeGroup} lang={lang} index={3} />
+              <PartnerGroupCard group={constructionGroup} lang={lang} index={4} />
+              <PartnerGroupCard group={mediaGroup} lang={lang} index={5} />
+              <PartnerGroupCard group={ictGroup} lang={lang} index={6} />
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                   {getText(translations.badge, lang)}

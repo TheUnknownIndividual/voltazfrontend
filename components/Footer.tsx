@@ -7,6 +7,7 @@ import {
   FaTiktok,
   FaYoutube,
 } from "react-icons/fa6";
+import { localizePath } from '../utils/seoRoutes';
 
 interface FooterProps {
   onNavigate?: (page: any, id?: string, extra?: any) => void;
@@ -31,12 +32,12 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, lang, logoSrc = '/volt-logo
   {
     name: "facebook",
     icon: FaFacebookF,
-    url: "https://www.facebook.com/people/voltaz/61590498963600/",
+    url: "https://www.facebook.com/solarix.az/",
   },
   {
     name: "instagram",
     icon: FaInstagram,
-    url: "https://www.instagram.com/volt_panel/",
+    url: "https://www.instagram.com/solarix_az/",
   },
   {
     name: "linkedin",
@@ -255,7 +256,7 @@ designROI:
 };
 
   return (
-    <footer className="site-footer-theme bg-gray-50 pt-16 pb-12 border-t border-gray-200">
+    <footer data-nosnippet className="site-footer-theme bg-gray-50 pt-16 pb-12 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="lg:col-span-1">
@@ -290,6 +291,7 @@ designROI:
               <li><a href="#" onClick={(e) => handleNav(e, 'home')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.home}</a></li>
               <li><a href="#" onClick={(e) => handleNav(e, 'about')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.about}</a></li>
               <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.services}</a></li>
+              <li><a href={localizePath('/solar-installation', lang || 'az')} onClick={(e) => handleNav(e, 'solar-installation')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.installation}</a></li>
               {/* <li><a href="#" onClick={(e) => handleNav(e, 'projects')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.projects}</a></li> */}
               <li><a href="#" onClick={(e) => handleNav(e, 'products')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.products}</a></li>
               {/* <li><a href="#" onClick={(e) => handleNav(e, 'partnership')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.partnership}</a></li> */}

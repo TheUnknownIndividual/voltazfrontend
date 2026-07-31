@@ -7,7 +7,6 @@ const pageOptions: Array<{ page: AdminPage; label: string }> = [
   { page: AdminPage.Stats, label: 'Statistika' }, { page: AdminPage.Analytics, label: 'Analytics' }, { page: AdminPage.Orders, label: 'Sifarişlər' }, { page: AdminPage.Requests, label: 'Müraciətlər' },
   { page: AdminPage.ServiceRequests, label: 'Xidmət müraciətləri' }, { page: AdminPage.PartnershipRequests, label: 'Tərəfdaşlıq müraciətləri' }, { page: AdminPage.Warehouse, label: 'Məhsullar' }, { page: AdminPage.SolarCalculator, label: 'Solar kalkulyator' },
   { page: AdminPage.ProjectTracker, label: 'Project tracker' }, { page: AdminPage.ExecutionProjects, label: 'İcra olunan layihələr' }, { page: AdminPage.Accounting, label: 'Mühasibatlıq' }, { page: AdminPage.Projects, label: 'Layihələr' }, { page: AdminPage.Settings, label: 'Sistem parametrləri' }, { page: AdminPage.Verification, label: 'Sənəd doğrulaması' },
-  { page: AdminPage.SolarInverterQa, label: 'İnverter datasheet QA' },
 ];
 type Draft = { username: string; password: string; displayName: string; allowedPages: AdminPage[]; canDeleteProjects: boolean; canEditProjects: boolean; canApproveWarehouseMovements: boolean; isStakeholder: boolean; monthlySalary: string; clearSalary: boolean; telegramChatId: string; isActive: boolean };
 const blank = (): Draft => ({ username: '', password: '', displayName: '', allowedPages: [], canDeleteProjects: false, canEditProjects: false, canApproveWarehouseMovements: false, isStakeholder: false, monthlySalary: '', clearSalary: false, telegramChatId: '', isActive: true });

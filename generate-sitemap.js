@@ -1,17 +1,54 @@
 import { SitemapStream, streamToPromise } from 'sitemap';
 import fs from 'fs';
+import path from 'path';
 
-// Base API used by the app (match utils/constants URL)
-const API_BASE = "https://api.volt.az/api/";
+// The deployment scripts set the production or test API base. Keep production as
+// the safe default so a plain `npm run sitemap` describes the public site.
+const API_BASE = (process.env.SITEMAP_API_BASE_URL || "https://api.volt.az/api/").replace(/\/$/, '') + '/';
+const SITE_HOSTNAME = (process.env.SITEMAP_HOSTNAME || 'https://volt.az').replace(/\/$/, '');
+const OUTPUT_DIR = path.resolve(process.env.SITEMAP_OUTPUT_DIR || './public');
+const SEO_CACHE_DIR = path.resolve(process.env.SEO_CACHE_DIR || './.seo-cache');
+const seoLinks = [];
+const seoRoutes = [];
+const LANGUAGES = ['az', 'en', 'ru', 'tr'];
+const INSTALLATION_PATHS = {
+  az: '/gunes-paneli-qurasdirilmasi',
+  en: '/en/solar-panel-installation',
+  ru: '/ru/ustanovka-solnechnyh-paneley',
+  tr: '/tr/gunes-paneli-kurulumu',
+};
 
 const sitemap = new SitemapStream({
-  hostname: 'https://volt.az',
+  hostname: SITE_HOSTNAME,
 });
+
+const localizedPath = (route, language) => {
+  const normalized = route === '/' ? '/' : `/${String(route).split('/').filter(Boolean).join('/')}`;
+  if (normalized === '/solar-installation') return INSTALLATION_PATHS[language];
+  if (language === 'az') return normalized;
+  return normalized === '/' ? `/${language}` : `/${language}${normalized}`;
+};
+
+const alternateLinks = (route, availableLanguages = LANGUAGES) => [
+  ...availableLanguages.map((lang) => ({ lang, url: `${SITE_HOSTNAME}${localizedPath(route, lang)}` })),
+  { lang: 'x-default', url: `${SITE_HOSTNAME}${localizedPath(route, 'az')}` },
+];
+
+const writeLocalizedRoute = (route, options = {}, availableLanguages = LANGUAGES) => {
+  availableLanguages.forEach((language) => {
+    sitemap.write({
+      ...options,
+      url: localizedPath(route, language),
+      links: alternateLinks(route, availableLanguages),
+    });
+  });
+};
 
 const staticRoutes = [
   '/',
   '/about',
   '/services',
+  '/solar-installation',
   '/projects',
   '/products',
   '/calculator',
@@ -32,8 +69,7 @@ const staticRoutes = [
 ];
 
 staticRoutes.forEach(route => {
-  sitemap.write({
-    url: route,
+  writeLocalizedRoute(route, {
     changefreq: route === '/calculator' ? 'daily' : 'weekly',
     priority: route === '/' || route === '/calculator' ? 1.0 : route === '/blog' || route === '/news' ? 0.9 : 0.8,
   });
@@ -54,8 +90,8 @@ function normalizeItems(json) {
 function normalizeImageUrl(image) {
   if (!image || typeof image !== 'string') return undefined;
   if (image.startsWith('http://') || image.startsWith('https://')) return image;
-  if (image.startsWith('/')) return `https://volt.az${image}`;
-  return `https://volt.az/${image}`;
+  if (image.startsWith('/')) return `${SITE_HOSTNAME}${image}`;
+  return `${SITE_HOSTNAME}/${image}`;
 }
 
 function getProductImages(product) {
@@ -74,6 +110,32 @@ function getProductImages(product) {
 function getFirstTranslation(item, key = 'translations') {
   const translations = item?.[key] || item?.languages || [];
   return Array.isArray(translations) ? translations[0] : undefined;
+}
+
+function languageKey(value) {
+  const normalized = String(value ?? '').toLowerCase();
+  return ({ '1': 'az', '2': 'en', '3': 'ru', '4': 'tr', az: 'az', en: 'en', ru: 'ru', tr: 'tr', 'az-az': 'az', 'en-us': 'en', 'ru-ru': 'ru', 'tr-tr': 'tr' })[normalized];
+}
+
+function getLocalizedSeo(item, fallbackTitle) {
+  const translations = [
+    ...(Array.isArray(item?.translations) ? item.translations : []),
+    ...(Array.isArray(item?.languages) ? item.languages : []),
+    ...(Array.isArray(item?.projectLanguages) ? item.projectLanguages : []),
+    ...(Array.isArray(item?.productDescriptions)
+      ? item.productDescriptions.flatMap((description) => Array.isArray(description?.languages) ? description.languages : [])
+      : []),
+  ];
+  const localized = {};
+  for (const translation of translations) {
+    const language = languageKey(translation?.languageCode ?? translation?.language ?? translation?.code);
+    if (!language) continue;
+    localized[language] = {
+      title: translation?.title || translation?.productName || fallbackTitle,
+      description: translation?.content || translation?.description || translation?.features || '',
+    };
+  }
+  return localized;
 }
 
 function getContentImage(item) {
@@ -113,8 +175,7 @@ async function addProducts() {
 
       const res = await fetch(url, { headers });
       if (!res.ok) {
-        console.warn('Products fetch failed:', res.status);
-        return;
+        throw new Error(`Products fetch failed with HTTP ${res.status}`);
       }
       const items = normalizeItems(await res.json());
       console.log(`Products page ${page} normalized to array of length`, items.length);
@@ -126,14 +187,31 @@ async function addProducts() {
         if (!id || seenIds.has(String(id))) return;
         seenIds.add(String(id));
         total += 1;
+        seoLinks.push({
+          url: `${SITE_HOSTNAME}/product/${id}`,
+          title: p?.productName || p?.name || `Volt.az məhsul ${id}`,
+          description: p?.description || p?.shortDescription || '',
+        });
         const img = getProductImages(p);
-        sitemap.write({
-          url: `/product/${id}`,
+        const localized = getLocalizedSeo(p, p?.productName || p?.name || `Volt.az məhsul ${id}`);
+        const availableLanguages = [...new Set(['az', ...Object.keys(localized)])];
+        seoRoutes.push({
+          path: `/product/${id}`,
+          kind: 'product',
+          id: String(id),
+          title: p?.productName || p?.name || `Volt.az məhsul ${id}`,
+          description: p?.description || p?.shortDescription || '',
+          localized,
+          availableLanguages,
+          image: img[0]?.url,
+          lastmod: p?.updatedAt || p?.updated_at || p?.modifiedAt || undefined,
+        });
+        writeLocalizedRoute(`/product/${id}`, {
           changefreq: 'weekly',
           priority: 0.7,
           lastmod: p?.updatedAt || p?.updated_at || p?.modifiedAt || undefined,
           img: img.length > 0 ? img : undefined,
-        });
+        }, availableLanguages);
       });
 
       if (items.length < pageSize) break;
@@ -143,6 +221,7 @@ async function addProducts() {
     console.log('Products total added to sitemap', total);
   } catch (err) {
     console.error('Error fetching products for sitemap:', err);
+    throw err;
   }
 }
 
@@ -158,8 +237,7 @@ async function addProjects() {
 
     const res = await fetch(url, { headers });
     if (!res.ok) {
-      console.warn('Projects fetch failed:', res.status);
-      return;
+      throw new Error(`Projects fetch failed with HTTP ${res.status}`);
     }
 
     const items = normalizeItems(await res.json());
@@ -169,16 +247,30 @@ async function addProjects() {
       const id = item?.id || item?.projectId || item?.Id || item?.ID;
       if (!id) return;
 
-      sitemap.write({
-        url: `/projects/${id}`,
+      const projectImages = getProjectImages(item);
+      const localized = getLocalizedSeo(item, item?.title || item?.name || `Volt.az layihə ${id}`);
+      const availableLanguages = [...new Set(['az', ...Object.keys(localized)])];
+      seoRoutes.push({
+        path: `/projects/${id}`,
+        kind: 'project',
+        id: String(id),
+        title: item?.title || item?.name || `Volt.az layihə ${id}`,
+        description: item?.description || '',
+        localized,
+        availableLanguages,
+        image: projectImages[0]?.url,
+        lastmod: item?.updatedAt || item?.createdAt || undefined,
+      });
+      writeLocalizedRoute(`/projects/${id}`, {
         changefreq: 'monthly',
         priority: 0.75,
         lastmod: item?.updatedAt || item?.createdAt || undefined,
-        img: getProjectImages(item),
-      });
+        img: projectImages,
+      }, availableLanguages);
     });
   } catch (err) {
     console.error('Error fetching projects for sitemap:', err);
+    throw err;
   }
 }
 
@@ -194,8 +286,7 @@ async function addBlogs() {
 
     const res = await fetch(url, { headers });
     if (!res.ok) {
-      console.warn('Blogs fetch failed:', res.status);
-      return;
+      throw new Error(`Blogs fetch failed with HTTP ${res.status}`);
     }
 
     const items = normalizeItems(await res.json());
@@ -207,16 +298,29 @@ async function addBlogs() {
 
       const translation = getFirstTranslation(item, 'translations');
       const image = getContentImage(item);
-      sitemap.write({
-        url: `/blog/${id}`,
+      const localized = getLocalizedSeo(item, translation?.title || item?.title || `Volt.az bloq ${id}`);
+      const availableLanguages = [...new Set(['az', ...Object.keys(localized)])];
+      seoRoutes.push({
+        path: `/blog/${id}`,
+        kind: 'blog',
+        id: String(id),
+        title: translation?.title || item?.title || `Volt.az bloq ${id}`,
+        description: translation?.description || item?.description || '',
+        localized,
+        availableLanguages,
+        image,
+        lastmod: item?.updatedAt || item?.createdAt || undefined,
+      });
+      writeLocalizedRoute(`/blog/${id}`, {
         changefreq: 'weekly',
         priority: 0.75,
         lastmod: item?.updatedAt || item?.createdAt || undefined,
         img: image ? [{ url: image, title: translation?.title || item?.title || undefined }] : undefined,
-      });
+      }, availableLanguages);
     });
   } catch (err) {
     console.error('Error fetching blogs for sitemap:', err);
+    throw err;
   }
 }
 
@@ -232,8 +336,7 @@ async function addNews() {
 
     const res = await fetch(url, { headers });
     if (!res.ok) {
-      console.warn('News fetch failed:', res.status);
-      return;
+      throw new Error(`News fetch failed with HTTP ${res.status}`);
     }
 
     const items = normalizeItems(await res.json());
@@ -245,16 +348,29 @@ async function addNews() {
 
       const translation = getFirstTranslation(item, 'languages');
       const image = getContentImage(item);
-      sitemap.write({
-        url: `/news/${id}`,
+      const localized = getLocalizedSeo(item, translation?.title || item?.title || `Volt.az xəbər ${id}`);
+      const availableLanguages = [...new Set(['az', ...Object.keys(localized)])];
+      seoRoutes.push({
+        path: `/news/${id}`,
+        kind: 'news',
+        id: String(id),
+        title: translation?.title || item?.title || `Volt.az xəbər ${id}`,
+        description: translation?.description || item?.description || '',
+        localized,
+        availableLanguages,
+        image,
+        lastmod: item?.updatedAt || item?.createdAt || undefined,
+      });
+      writeLocalizedRoute(`/news/${id}`, {
         changefreq: 'weekly',
         priority: 0.75,
         lastmod: item?.updatedAt || item?.createdAt || undefined,
         img: image ? [{ url: image, title: translation?.title || item?.title || undefined }] : undefined,
-      });
+      }, availableLanguages);
     });
   } catch (err) {
     console.error('Error fetching news for sitemap:', err);
+    throw err;
   }
 }
 
@@ -266,6 +382,28 @@ await addNews();
 sitemap.end();
 
 const data = await streamToPromise(sitemap);
-fs.writeFileSync('./public/sitemap.xml', data.toString());
+function writeAtomically(fileName, contents) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  const target = path.join(OUTPUT_DIR, fileName);
+  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(temporary, contents, 'utf8');
+  fs.renameSync(temporary, target);
+}
+
+function writeSeoCache(contents) {
+  fs.mkdirSync(SEO_CACHE_DIR, { recursive: true });
+  const target = path.join(SEO_CACHE_DIR, 'routes.json');
+  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(temporary, contents, 'utf8');
+  fs.renameSync(temporary, target);
+}
+
+writeAtomically('sitemap.xml', data.toString());
+writeSeoCache(JSON.stringify(seoRoutes));
+
+const llmsHeader = `# Volt.az\n\n> Volt.az (SOLARIX MMC) provides solar panels, inverters, energy storage, solar calculators, and professional installation for homes and businesses in Azerbaijan.\n\n## Official sources\n\n- Website: ${SITE_HOSTNAME}/\n- Solar products: ${SITE_HOSTNAME}/products\n- Solar calculator: ${SITE_HOSTNAME}/calculator\n- Solar panel installation: ${SITE_HOSTNAME}${INSTALLATION_PATHS.az}\n- Projects: ${SITE_HOSTNAME}/projects\n- Public sitemap: ${SITE_HOSTNAME}/sitemap.xml\n\n## Languages\n\n- Azərbaycan dili: ${SITE_HOSTNAME}/\n- English: ${SITE_HOSTNAME}/en\n- Русский: ${SITE_HOSTNAME}/ru\n- Türkçe: ${SITE_HOSTNAME}/tr\n\n## Product catalogue\n\n`;
+const llmsProducts = seoLinks.map(({ url, title, description }) => `- [${String(title).replaceAll(']', '')}](${url})${description ? ` — ${String(description).replaceAll('\n', ' ').slice(0, 240)}` : ''}`).join('\n');
+writeAtomically('llms.txt', `${llmsHeader}${llmsProducts}\n`);
 
 console.log('Sitemap yaradıldı!');
+console.log(`LLM catalogue yaradıldı: ${seoLinks.length} məhsul`);

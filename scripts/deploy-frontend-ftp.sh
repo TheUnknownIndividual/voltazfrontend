@@ -52,7 +52,7 @@ echo "Mirroring build output to $FTP_HOST:$REMOTE_DIR..."
 lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<LFTP_COMMANDS
 set ftp:ssl-allow no
 lcd "$BUILD_DIR"
-mirror -R --only-newer --no-perms --verbose \
+mirror -R --ignore-time --no-perms --verbose \
   --exclude-glob .git \
   --exclude-glob .git/** \
   --exclude-glob .github \

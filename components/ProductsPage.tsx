@@ -260,7 +260,7 @@ useEffect(() => {
                 }}
                 className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
           ${activeCategoryId === null
-                    ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-300'
+                    ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-[#4c6207]'
                     : 'border border-white/10 bg-white/5 text-emerald-50/75 hover:border-white/20 hover:bg-white/10 hover:text-white'
                   }`}
               >
@@ -279,7 +279,7 @@ useEffect(() => {
                   }}
                   className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
           ${activeCategoryId === category.id
-                      ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-300'
+                      ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-[#4c6207]'
                       : 'border border-white/10 bg-white/5 text-emerald-50/75 hover:border-white/20 hover:bg-white/10 hover:text-white'
                     }`}
                 >
@@ -287,9 +287,6 @@ useEffect(() => {
                 </button>
               ))}
             </div>
-            {/* fade edges to hint horizontal scroll on mobile */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-emerald-950 to-transparent md:hidden" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-emerald-950 to-transparent md:hidden" />
           </div>
 
           {/* Subcategories */}
@@ -303,7 +300,7 @@ useEffect(() => {
                   }}
                   className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
           ${subFilter === null
-                    ? 'border border-emerald-300 bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
+                    ? 'border border-[#4c6207] bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
                     : 'border border-white/10 bg-white/5 text-emerald-50/70 hover:border-white/20 hover:bg-white/10 hover:text-white'
                     }`}
                 >
@@ -319,7 +316,7 @@ useEffect(() => {
                     }}
                     className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
             ${subFilter == sub.id
-                        ? 'border border-emerald-300 bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
+                        ? 'border border-[#4c6207] bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
                         : 'border border-white/10 bg-white/5 text-emerald-50/70 hover:border-white/20 hover:bg-white/10 hover:text-white'
                       }`}
                   >
@@ -327,8 +324,6 @@ useEffect(() => {
                   </button>
                 ))}
               </div>
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-emerald-950 to-transparent md:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-emerald-950 to-transparent md:hidden" />
             </div>
           )}
         </div>

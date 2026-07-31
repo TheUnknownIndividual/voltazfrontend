@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import PhoneNumberInput, { DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
 
 interface UstalarKlubuModalProps {
   isOpen: boolean;
@@ -8,6 +9,9 @@ interface UstalarKlubuModalProps {
 }
 
 const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, lang  }) => {
+  const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_ISO2);
+
   if (!isOpen) return null;
 
   return (
@@ -81,7 +85,14 @@ const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Əlaqə nömrəsi</label>
-                  <input type="tel" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="+994" />
+                  <PhoneNumberInput
+                    countryIso2={phoneCountry}
+                    onCountryChange={setPhoneCountry}
+                    localNumber={phone}
+                    onLocalNumberChange={setPhone}
+                    placeholder="XX XXX XX XX"
+                    inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Yaşayış ünvanı</label>

@@ -6,6 +6,7 @@ import { useProduct } from "../contexts/ProductContext";
 import { useCategory } from '@/contexts/CategoryContext';
 import { useParams } from "react-router-dom";
 import Share from "../components/Share";
+import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 
 interface ProductDetailProps {
   productId: string;
@@ -32,6 +33,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [showMobileFloatingActions, setShowMobileFloatingActions] = useState(false);
+  const [tabsCanScrollMore, setTabsCanScrollMore] = useState(false);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const productShellRef = useRef<HTMLDivElement>(null);
   const inlineActionsRef = useRef<HTMLDivElement>(null);
@@ -86,6 +89,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   }, [isDescriptionExpanded]);
 
   useEffect(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+
+    const updateScrollState = () => {
+      const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft;
+      setTabsCanScrollMore(remaining > 4);
+    };
+
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState);
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [product]);
+
+  useEffect(() => {
     const syncMobileFloatingActions = () => {
       const productShell = productShellRef.current;
       const inlineActions = inlineActionsRef.current;
@@ -135,10 +156,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     const translation = product.productDescriptions?.[0]?.languages?.find(
       (item: any) => item.languageCode === languageCode
     );
+    const hasRequestedTranslation = (lang || 'az') === 'az' || Boolean(translation);
     const productTitle = product.productName ? `${product.productName} | Volt.az` : 'Məhsul | Volt.az';
-    const rawDescription = translation?.description || translation?.features || product.productName || 'Volt.az məhsul məlumatları.';
-    const productDescriptionMeta = String(rawDescription).replace(/\s+/g, ' ').trim().slice(0, 155);
-    const canonicalUrl = `https://volt.az/product/${product.id || id}`;
+    const rawDescription = String(translation?.description || translation?.features || '').replace(/\s+/g, ' ').trim();
+    const productName = String(product.productName || '').trim();
+    const productDescriptionMeta = (
+      rawDescription && productName && !rawDescription.toLocaleLowerCase().includes(productName.toLocaleLowerCase())
+        ? `${productName}. ${rawDescription}`
+        : rawDescription || `${productName || 'Volt.az məhsulu'} haqqında texniki məlumat, xüsusiyyətlər və mövcud variantlar.`
+    ).slice(0, 155);
+    const canonicalUrl = absoluteSiteUrl(localizePath(`/product/${product.id || id}`, hasRequestedTranslation ? (lang || 'az') : 'az'));
     const toAbsoluteUrl = (value: string) => {
       if (!value) return 'https://volt.az/volt-logo.png';
       if (/^https?:\/\//i.test(value)) return value;
@@ -148,10 +175,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
       ? product.productImage[0]
       : '/volt-logo.png';
     const adminIdentifier = String(product.id || id || '').trim();
-    const firstPricedVariant = Array.isArray(product.productParametrs)
-      ? product.productParametrs.find((item: any) => Number(item?.amount) > 0)
-      : null;
+    const productVariants = Array.isArray(product.productParametrs)
+      ? product.productParametrs
+      : [];
+    const firstPricedVariant = productVariants.find((item: any) => Number(item?.amount) > 0);
     const priceValue = Number(firstPricedVariant?.amount || product.price || 0);
+    const hasTrackedVariantStock = productVariants.length === 0
+      || productVariants.some((item: any) => Number(item?.count) > 0);
+    const isInStock = Boolean(product.inStock && hasTrackedVariantStock);
+    const additionalProperty = [
+      ...new Set<string>(
+        productVariants
+          .flatMap((item: any) => [
+            item?.technicalPower && { name: 'Güc', value: String(item.technicalPower) },
+            item?.effectiveness && { name: 'Səmərəlilik', value: String(item.effectiveness) },
+          ])
+          .filter(Boolean)
+          .map((item: any) => JSON.stringify(item))
+      ),
+    ].map((item: string) => JSON.parse(item));
     const absoluteProductImage = toAbsoluteUrl(String(productImage));
     const schemaImage = absoluteProductImage;
 
@@ -162,8 +204,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
     document.title = productTitle;
     setMeta('meta[name="description"]', 'content', productDescriptionMeta);
-    setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
-    setMeta('meta[name="googlebot"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    const robots = hasRequestedTranslation
+      ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+      : 'noindex, follow';
+    setMeta('meta[name="robots"]', 'content', robots);
+    setMeta('meta[name="googlebot"]', 'content', robots);
     setMeta('meta[property="og:title"]', 'content', productTitle);
     setMeta('meta[property="og:description"]', 'content', productDescriptionMeta);
     setMeta('meta[property="og:url"]', 'content', canonicalUrl);
@@ -174,26 +219,46 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     setMeta('meta[property="twitter:image"]', 'content', absoluteProductImage);
     setMeta('link[rel="canonical"]', 'href', canonicalUrl);
 
-    const productJsonLd = {
+    const productJsonLd: Record<string, unknown> = {
       '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: product.productName || productTitle.replace(' | Volt.az', ''),
-      description: productDescriptionMeta,
-      image: schemaImage ? [schemaImage] : undefined,
-      sku: adminIdentifier,
-      productID: adminIdentifier,
-      brand: {
-        '@type': 'Brand',
-        name: brand || product.brand || 'SOLARIX',
-      },
-      offers: {
-        '@type': 'Offer',
-        url: canonicalUrl,
-        priceCurrency: 'AZN',
-        price: priceValue > 0 ? String(priceValue) : undefined,
-        availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
-        itemCondition: 'https://schema.org/NewCondition',
-      },
+      '@graph': [
+        {
+          '@type': 'Product',
+          '@id': `${canonicalUrl}#product`,
+          name: product.productName || productTitle.replace(' | Volt.az', ''),
+          description: productDescriptionMeta,
+          image: schemaImage ? [schemaImage] : undefined,
+          sku: adminIdentifier,
+          productID: adminIdentifier,
+          ...(product.model ? { mpn: String(product.model) } : {}),
+          ...(brand || product.brand ? {
+            brand: {
+              '@type': 'Brand',
+              name: brand || product.brand,
+            },
+          } : {}),
+          ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
+          ...(priceValue > 0 ? {
+            offers: {
+              '@type': 'Offer',
+              url: canonicalUrl,
+              priceCurrency: 'AZN',
+              price: String(priceValue),
+              availability: isInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+              itemCondition: 'https://schema.org/NewCondition',
+            },
+          } : {}),
+        },
+        {
+          '@type': 'BreadcrumbList',
+          '@id': `${canonicalUrl}#breadcrumb`,
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Ana səhifə', item: 'https://volt.az/' },
+            { '@type': 'ListItem', position: 2, name: 'Məhsullar', item: 'https://volt.az/products' },
+            { '@type': 'ListItem', position: 3, name: product.productName || productTitle.replace(' | Volt.az', ''), item: canonicalUrl },
+          ],
+        },
+      ],
     };
 
     let script = document.getElementById('volt-product-jsonld') as HTMLScriptElement | null;
@@ -282,6 +347,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const currentCount= currentVariant?.count
   const hasPrice = Number(currentPrice || 0) > 0;
   const hasStock = Boolean(product.inStock && Number(currentCount || 0) > 0);
+  const stockCheckMessage = lang === 'az'
+    ? `Salam, "${product.productName}" məhsulunun stokda olub-olmadığını öyrənmək istəyirəm.`
+    : lang === 'ru'
+      ? `Здравствуйте, хочу узнать, есть ли в наличии "${product.productName}".`
+      : lang === 'tr'
+        ? `Merhaba, "${product.productName}" ürününün stokta olup olmadığını öğrenmek istiyorum.`
+        : `Hello, I would like to know if "${product.productName}" is in stock.`;
+  const stockCheckHref = `https://wa.me/994504180001?text=${encodeURIComponent(stockCheckMessage)}`;
   const currentPower = (currentVariant?.technicalPower || '').trim();
   const currentEfficiency = currentVariant?.effectiveness || '';
   const hasTechnicalPower = Boolean(currentPower && currentPower !== '0');
@@ -309,10 +382,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
             'Product not found',
 
     back:
-      lang === 'az' ? 'Məhsullara qayıt' :
-        lang === 'ru' ? 'Назад к товарам' :
-          lang === 'tr' ? 'Ürünlere dön' :
-            'Back to products',
+      lang === 'az' ? 'Geriyə qayıt' :
+        lang === 'ru' ? 'Назад' :
+          lang === 'tr' ? 'Geri dön' :
+            'Go back',
 
     stock:
       lang === 'az' ? 'Stokda var' :
@@ -373,6 +446,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         lang === 'ru' ? 'Нет в наличии' :
           lang === 'tr' ? 'Stokta yok' :
             'Out of stock',
+
+    check:
+      lang === 'az' ? 'Yoxla' :
+        lang === 'ru' ? 'Проверить' :
+          lang === 'tr' ? 'Kontrol et' :
+            'Check',
 
     availableVariants:
       lang === 'az' ? 'Stokda və qiymətli' :
@@ -496,7 +575,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const displayImage = hoverPreviewImage || activeImage || primaryImage;
   const handleOrderNow = () => onOrderNow(product.id, quantity, currentPower);
   const handleAddToCart = () => onAddToCart(product.id, quantity, currentPower);
-  const primaryActionLabel = !hasPrice ? t.requestPrice : !hasStock ? t.outOfStock : t.orderNow;
+  const primaryActionLabel = !hasStock ? t.check : !hasPrice ? t.requestPrice : t.orderNow;
   const productActionControls = (compact = false) => (
     <>
       <div className={`product-quantity-control ${compact ? 'product-quantity-control--compact' : ''}`}>
@@ -524,14 +603,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
         </button>
       </div>
-      <button
-        type="button"
-        onClick={handleOrderNow}
-        className="product-order-button"
-      >
-        <PackageCheck className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
-        {primaryActionLabel}
-      </button>
+      {hasStock ? (
+        <button
+          type="button"
+          onClick={handleOrderNow}
+          className="product-order-button"
+        >
+          <PackageCheck className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
+          {primaryActionLabel}
+        </button>
+      ) : (
+        <a
+          href={stockCheckHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="product-order-button"
+        >
+          <PackageCheck className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
+          {primaryActionLabel}
+        </a>
+      )}
       <button
         type="button"
         onClick={handleAddToCart}
@@ -549,7 +640,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const productInfoTabs = (className = '') => (
     <div className={`mt-8 product-info-tabs ${className}`}>
       <div className="border-b border-gray-100 relative group">
-        <div className="overflow-x-auto no-scrollbar">
+        <div ref={tabsScrollRef} className="overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-8 md:gap-12 min-w-max px-1">
             {[
               { id: 'features', label: t.tabs.features },
@@ -568,11 +659,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
             ))}
           </div>
         </div>
-        <div className="absolute right-0 top-0 h-full flex items-center pr-1 pointer-events-none md:hidden bg-gradient-to-l from-white via-white/80 to-transparent pl-10">
-          <div className="animate-bounce-x text-emerald-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+        {tabsCanScrollMore && (
+          <div className="absolute right-0 top-0 h-full flex items-center pr-1 pointer-events-none md:hidden bg-gradient-to-l from-white via-white/80 to-transparent pl-10">
+            <div className="animate-bounce-x text-emerald-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="py-5">
@@ -646,12 +739,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
               <div className="flex items-center gap-4 mb-8">
                 {hasPrice && (
                   <span className="text-2xl font-black text-emerald-600">{currentPrice} AZN</span>)}
-                {hasStock ? (
+                {hasStock && (
                   <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                     {t.stock} ({currentCount})
                   </span>
-                ) : (
-                  <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{t.outOfStock}</span>
                 )}
               </div>
               <div ref={descriptionRef} className="mb-2">

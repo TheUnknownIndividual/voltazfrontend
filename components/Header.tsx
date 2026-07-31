@@ -6,6 +6,7 @@ import LoginModal from './LoginModal';
 import { useAuth } from "../contexts/AuthContext";
 import { API_ENDPOINTS } from "../utils/constants";
 import axiosInstance from "../api/axiosInstance";
+import { localizePath } from '../utils/seoRoutes';
 
 import { useCategory } from "../contexts/CategoryContext";
 
@@ -682,9 +683,19 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-xl z-[60] py-4 px-6 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300 max-h-[calc(100vh-80px)] overflow-y-auto overscroll-contain">
           <button onClick={() => handleItemClick('home')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.home}</button>
 
-          <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
-
           <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
+
+          <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
+          <a
+            href={localizePath('/solar-installation', currentLang)}
+            onClick={(event) => {
+              event.preventDefault();
+              handleItemClick('solar-installation');
+            }}
+            className="text-left text-[11px] font-black uppercase tracking-widest text-emerald-700 py-3 border-b border-gray-50"
+          >
+            {t.installation}
+          </a>
 
           {/* VOLT Mobile Dropdown */}
           <div className="flex flex-col border-b border-gray-50">
@@ -884,9 +895,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         <div className="flex items-center gap-6 lg:gap-8 whitespace-nowrap">
           <button onClick={() => handleItemClick('home')} className={getLinkClass('home')}>{t.home}</button>
 
-          <button onClick={() => handleItemClick('services')} className={getLinkClass('services')}>{t.services}</button>
-
           <button onClick={() => handleItemClick('about')} className={getLinkClass('about')}>{t.about}</button>
+
+          <button onClick={() => handleItemClick('services')} className={getLinkClass('services')}>{t.services}</button>
 
           {/* VOLT Dropdown */}
           <div className="relative h-14 flex items-center group/nav" onMouseEnter={() => setActiveDropdown('volt')} onMouseLeave={() => setActiveDropdown('none')}>
@@ -897,6 +908,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {activeDropdown === 'volt' && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
                 {/* <DropdownItem label={t.projects} onClick={() => handleItemClick('projects')} /> */}
+                <DropdownItem label={t.installation} onClick={() => handleItemClick('solar-installation')} />
                 <DropdownItem label={t.news} onClick={() => handleItemClick('news')} />
                 {/* <DropdownItem label={t.reels} onClick={() => handleItemClick('reels')} /> */}
                 <DropdownItem label={t.blog} onClick={() => handleItemClick('blog')} />
