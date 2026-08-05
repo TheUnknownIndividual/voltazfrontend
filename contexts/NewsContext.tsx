@@ -3,14 +3,20 @@ import useApi from "../hooks/useApi";
 import { API_ENDPOINTS } from "../utils/constants";
 
 interface NewsLanguage {
-  languageCode: number; // 1: az, 2: en, 3: ru
+  languageCode: number; // 1: az, 2: en, 3: ru, 4: tr
   title: string;
   description: string;
   content: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 interface CreateNewsPayload {
   coverImagePath: string;
+  coverImagePositionX: number;
+  coverImagePositionY: number;
+  coverImageZoom: number;
   source: string;
   postLink: string;
   languages: NewsLanguage[];
@@ -18,6 +24,9 @@ interface CreateNewsPayload {
 
 interface UpdateNewsPayload {
   coverImagePath: string;
+  coverImagePositionX: number;
+  coverImagePositionY: number;
+  coverImageZoom: number;
   source: string;
   postLink: string;
   isActive: boolean;
@@ -49,8 +58,8 @@ export const NewsProvider = ({ children }: { children: React.ReactNode }) => {
   const { get, post, put, del, loading } = useApi();
   const [publicNews, setPublicNews] = useState<any[]>([]);
 
-  const [lang, setLang] = useState<'az' | 'en' | 'ru'>(() => {
-    return (localStorage.getItem('lang') as 'az' | 'en' | 'ru') || 'az';
+  const [lang] = useState<'az' | 'en' | 'ru' | 'tr'>(() => {
+    return (localStorage.getItem('lang') as 'az' | 'en' | 'ru' | 'tr') || 'az';
   });
 
 

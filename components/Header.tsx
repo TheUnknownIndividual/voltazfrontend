@@ -6,7 +6,6 @@ import LoginModal from './LoginModal';
 import { useAuth } from "../contexts/AuthContext";
 import { API_ENDPOINTS } from "../utils/constants";
 import axiosInstance from "../api/axiosInstance";
-import { localizePath } from '../utils/seoRoutes';
 
 import { useCategory } from "../contexts/CategoryContext";
 
@@ -27,7 +26,7 @@ const DropdownItem = ({ label, onClick, icon }: { label: string; onClick: () => 
     className="w-full text-left px-6 py-4 text-[10px] font-black text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all uppercase tracking-widest border-b border-slate-50 last:border-0 flex items-center justify-between group/item"
   >
     <span>{label}</span>
-    <svg className="w-3 h-3 opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3 h-3 shrink-0 text-slate-400 group-hover/item:text-emerald-500 group-hover/item:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
     </svg>
   </button>
@@ -686,16 +685,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
 
           <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
-          <a
-            href={localizePath('/solar-installation', currentLang)}
-            onClick={(event) => {
-              event.preventDefault();
-              handleItemClick('solar-installation');
-            }}
-            className="text-left text-[11px] font-black uppercase tracking-widest text-emerald-700 py-3 border-b border-gray-50"
-          >
-            {t.installation}
-          </a>
 
           {/* VOLT Mobile Dropdown */}
           <div className="flex flex-col border-b border-gray-50">
@@ -908,7 +897,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {activeDropdown === 'volt' && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
                 {/* <DropdownItem label={t.projects} onClick={() => handleItemClick('projects')} /> */}
-                <DropdownItem label={t.installation} onClick={() => handleItemClick('solar-installation')} />
                 <DropdownItem label={t.news} onClick={() => handleItemClick('news')} />
                 {/* <DropdownItem label={t.reels} onClick={() => handleItemClick('reels')} /> */}
                 <DropdownItem label={t.blog} onClick={() => handleItemClick('blog')} />

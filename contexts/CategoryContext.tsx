@@ -10,6 +10,25 @@ interface LanguagePayload {
 
 interface CategoryPayload {
   languages: LanguagePayload[];
+  showOnHomePage?: boolean;
+  homePageDisplayOrder?: number;
+  homePageProductId?: number | null;
+}
+
+export interface HomePageCategory {
+  id: number;
+  seoKey?: string;
+  name: string;
+  productId: number;
+  productName: string;
+  imageUrl: string;
+  displayOrder: number;
+}
+
+export interface CategoryProductOption {
+  id: number;
+  productName: string;
+  imageUrl: string;
 }
 
 interface SubCategoryPayload {
@@ -26,9 +45,13 @@ interface CategoryContextType {
   loading: boolean;
 
   categories: any[];
+  homePageCategories: HomePageCategory[];
 
   getCategories: () => Promise<void>;
+  getHomePageCategories: () => Promise<HomePageCategory[]>;
   getCategoryById: (id: string) => Promise<any>;
+  getCategoryBySeoKey: (seoKey: string) => Promise<any>;
+  getCategoryProductOptions: (id: string | number) => Promise<CategoryProductOption[]>;
 
   createCategory: (data: CategoryPayload) => Promise<any>;
   updateCategory: (id: string, data: CategoryPayload) => Promise<any>;
@@ -80,6 +103,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
   const { get, post, put, del, loading } = useApi();
 
   const [categories, setCategories] = useState<any[]>([]);
+  const [homePageCategories, setHomePageCategories] = useState<HomePageCategory[]>([]);
   const [subcategories, setSubCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [technologies, setTechnologies] = useState<any[]>([]);
@@ -98,6 +122,31 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const getHomePageCategories = async () => {
+    try {
+      const res = await get(API_ENDPOINTS.CATEGORY.GET_HOME_PAGE_CATEGORIES, { skipAuth: true });
+      const data = (res?.data || res || []) as HomePageCategory[];
+      const visibleCategories = Array.isArray(data) ? data.slice(0, 5) : [];
+      setHomePageCategories(visibleCategories);
+      return visibleCategories;
+    } catch (error) {
+      console.error("Get homepage categories error:", error);
+      setHomePageCategories([]);
+      throw error;
+    }
+  };
+
+  const getCategoryProductOptions = async (id: string | number) => {
+    try {
+      const res = await get(API_ENDPOINTS.CATEGORY.GET_CATEGORY_PRODUCT_OPTIONS(id));
+      const data = res?.data || res || [];
+      return Array.isArray(data) ? data as CategoryProductOption[] : [];
+    } catch (error) {
+      console.error("Get category product options error:", error);
+      throw error;
+    }
+  };
+
   // GET BY ID
   const getCategoryById = async (id: string) => {
     try {
@@ -105,6 +154,16 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
       return res?.data || res;
     } catch (error) {
       console.error("Get category by id error:", error);
+      throw error;
+    }
+  };
+
+  const getCategoryBySeoKey = async (seoKey: string) => {
+    try {
+      const res = await get(API_ENDPOINTS.CATEGORY.GET_CATEGORY_BY_SEO_KEY(seoKey), { skipAuth: true });
+      return res?.data || res;
+    } catch (error) {
+      console.error("Get category by SEO key error:", error);
       throw error;
     }
   };
@@ -415,8 +474,12 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
       value={{
         loading,
         categories,
+        homePageCategories,
         getCategories,
+        getHomePageCategories,
         getCategoryById,
+        getCategoryBySeoKey,
+        getCategoryProductOptions,
         createCategory,
         updateCategory,
         deleteCategory,

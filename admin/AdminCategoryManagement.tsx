@@ -13,6 +13,7 @@ const AdminCategoryManagement: React.FC = () => {
     categories,
     getCategories,
     getCategoryById,
+    getCategoryProductOptions,
     createCategory,
     updateCategory,
     deleteCategory,
@@ -45,6 +46,13 @@ const AdminCategoryManagement: React.FC = () => {
     ru: "",
     tr: ""
   });
+  const [homePageSettings, setHomePageSettings] = useState({
+    showOnHomePage: false,
+    homePageDisplayOrder: 1,
+    homePageProductId: null as number | null,
+  });
+  const [categoryProductOptions, setCategoryProductOptions] = useState<any[]>([]);
+  const [productOptionsLoading, setProductOptionsLoading] = useState(false);
 
   const [brandName, setBrandName] = useState("");
   const [technologyName, setTechnologyName] = useState("");
@@ -92,6 +100,12 @@ const AdminCategoryManagement: React.FC = () => {
     setTechnologyName("");
     setBrandName("");
     setEditingItem(null);
+    setHomePageSettings({
+      showOnHomePage: false,
+      homePageDisplayOrder: 1,
+      homePageProductId: null,
+    });
+    setCategoryProductOptions([]);
 
   }, [activeTab]);
 
@@ -225,6 +239,32 @@ useEffect(() => {
         data = await getCategoryById(id);
       }
 
+      if (activeTab === "mainCategories") {
+        setProductOptionsLoading(true);
+        const productOptions = await getCategoryProductOptions(id);
+        setCategoryProductOptions(productOptions);
+
+        const usedOrders = new Set(
+          (categories || [])
+            .filter(category => category.showOnHomePage && String(category.id) !== String(id))
+            .map(category => Number(category.homePageDisplayOrder))
+        );
+        const firstAvailableOrder = [1, 2, 3, 4, 5].find(order => !usedOrders.has(order)) || 1;
+        const savedProductExists = productOptions.some(
+          option => Number(option.id) === Number(data.homePageProductId)
+        );
+        const selectedProductId = savedProductExists
+          ? Number(data.homePageProductId)
+          : Number(productOptions[0]?.id) || null;
+
+        setHomePageSettings({
+          showOnHomePage: Boolean(data.showOnHomePage),
+          homePageDisplayOrder: Number(data.homePageDisplayOrder) || firstAvailableOrder,
+          homePageProductId: selectedProductId,
+        });
+        setProductOptionsLoading(false);
+      }
+
       setFormData({
         az:
           data.languages?.find((l: any) => l.languageCode === 1)
@@ -259,6 +299,8 @@ useEffect(() => {
 
     } catch (err) {
       showNotification("Xəta baş verdi", "error");
+    } finally {
+      setProductOptionsLoading(false);
     }
   };
 
@@ -353,7 +395,10 @@ useEffect(() => {
             { languageCode: 2, categoryName: formData.en },
             { languageCode: 3, categoryName: formData.ru },
             { languageCode: 4, categoryName: formData.tr }
-          ]
+          ],
+          showOnHomePage: editingItem ? homePageSettings.showOnHomePage : false,
+          homePageDisplayOrder: editingItem ? homePageSettings.homePageDisplayOrder : 0,
+          homePageProductId: editingItem ? homePageSettings.homePageProductId : null,
         };
 
         if (editingItem) {
@@ -375,11 +420,27 @@ useEffect(() => {
       });
 
       setEditingItem(null);
+      setHomePageSettings({
+        showOnHomePage: false,
+        homePageDisplayOrder: 1,
+        homePageProductId: null,
+      });
+      setCategoryProductOptions([]);
 
-    } catch (err) {
-      showNotification("Xəta baş verdi", "error");
+    } catch (err: any) {
+      const details = err?.response?.data?.error?.details;
+      showNotification(typeof details === 'string' ? details : "Xəta baş verdi", "error");
+    } finally {
+      setProductOptionsLoading(false);
     }
   };
+
+  const selectedHomeProduct = categoryProductOptions.find(
+    option => Number(option.id) === Number(homePageSettings.homePageProductId)
+  );
+  const homepageCategoryLimitReached = (categories || []).filter(
+    category => category.showOnHomePage && String(category.id) !== String(editingItem)
+  ).length >= 5;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -504,6 +565,93 @@ useEffect(() => {
                 {editingItem ? "Yenilə" : "Əlavə Et"}
               </button>
             </div>
+
+            {activeTab === 'mainCategories' && (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Mobil ana səhifə</h3>
+                    <p className="mt-1 text-xs text-slate-500">Maksimum 5 kateqoriya göstərilir.</p>
+                  </div>
+                  {editingItem && (
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={homePageSettings.showOnHomePage}
+                        disabled={
+                          productOptionsLoading ||
+                          categoryProductOptions.length === 0 ||
+                          (!homePageSettings.showOnHomePage && homepageCategoryLimitReached)
+                        }
+                        onChange={event => setHomePageSettings(prev => ({
+                          ...prev,
+                          showOnHomePage: event.target.checked,
+                        }))}
+                        className="h-4 w-4 accent-emerald-600"
+                      />
+                      Ana səhifədə göstər
+                    </label>
+                  )}
+                </div>
+
+                {!editingItem ? (
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    Əvvəlcə kateqoriyanı yaradın. Məhsul əlavə edildikdən sonra kateqoriyanı redaktə edib şəkil mənbəyini seçə bilərsiniz.
+                  </p>
+                ) : productOptionsLoading ? (
+                  <p className="text-xs font-bold text-slate-400">Məhsullar yüklənir...</p>
+                ) : categoryProductOptions.length === 0 ? (
+                  <p className="text-xs leading-relaxed text-amber-600">
+                    Bu kateqoriyada şəkli olan aktiv məhsul yoxdur.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-[8rem_minmax(0,1fr)_8rem] md:items-end">
+                    <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white p-2">
+                      <img
+                        src={selectedHomeProduct?.imageUrl || '/volt-logo.png'}
+                        alt=""
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+
+                    <label className="space-y-2">
+                      <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Şəkli göstəriləcək məhsul</span>
+                      <select
+                        value={homePageSettings.homePageProductId || ''}
+                        onChange={event => setHomePageSettings(prev => ({
+                          ...prev,
+                          homePageProductId: Number(event.target.value) || null,
+                        }))}
+                        className="w-full rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500"
+                      >
+                        {categoryProductOptions.map(option => (
+                          <option key={option.id} value={option.id}>{option.productName}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Sıra</span>
+                      <select
+                        value={homePageSettings.homePageDisplayOrder}
+                        disabled={!homePageSettings.showOnHomePage}
+                        onChange={event => setHomePageSettings(prev => ({
+                          ...prev,
+                          homePageDisplayOrder: Number(event.target.value),
+                        }))}
+                        className="w-full rounded-xl border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-50 focus:border-emerald-500"
+                      >
+                        {[1, 2, 3, 4, 5].map(order => <option key={order} value={order}>{order}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                )}
+
+                {editingItem && !homePageSettings.showOnHomePage && homepageCategoryLimitReached && (
+                  <p className="mt-3 text-xs font-bold text-amber-600">Limit doludur. Başqa kateqoriyanı gizlətdikdən sonra bunu aktivləşdirə bilərsiniz.</p>
+                )}
+              </div>
+            )}
           </div>
 
           {activeTab === "brands" || activeTab === "technologies" ? (
@@ -544,9 +692,16 @@ useEffect(() => {
                   className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group gap-3"
                 >
                   <>
-                    <span className="text-sm font-bold text-slate-700 truncate">
-                      {getItemName(item)}
-                    </span>
+                    <div className="min-w-0">
+                      <span className="block truncate text-sm font-bold text-slate-700">
+                        {getItemName(item)}
+                      </span>
+                      {activeTab === 'mainCategories' && item.showOnHomePage && (
+                        <span className="mt-1 block text-[9px] font-black uppercase tracking-widest text-emerald-600">
+                          Mobil ana səhifə · sıra {item.homePageDisplayOrder}
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1">
                       <button

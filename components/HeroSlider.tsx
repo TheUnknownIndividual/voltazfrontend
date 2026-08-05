@@ -1,44 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import useApi from '../hooks/useApi';
+import { API_ENDPOINTS } from '../utils/constants';
+import { DEFAULT_HOME_SLIDES, normalizeHomeSlides, type HomeSlide as Slide } from '../types/homeSlider';
 
 interface HeroSliderProps {
   lang: 'az' | 'en' | 'ru';
   onNavigate?: (page: any, id?: string, extra?: any) => void;
 }
-
-interface Slide {
-  id: number;
-  title: string;
-  image: string;
-  mobileImage?: string;
-  video?: string;
-  cta?: string;
-  centered?: boolean;
-}
-
-const slidesAZ: Slide[] = [
-  { id: 1, title: "solar enerji",  image: "/sliderphoto.png", mobileImage: "/sliderphotomobile.png" ,cta: "Ətraflı Öyrən", centered: true },
-  { id: 2, title: "enerji qənaəti", image: "/sliderphoto2.png",mobileImage: "/sliderphotomobile2.png", cta: "Ətraflı Öyrən", centered: true },
-];
-
-const normalizeHeroSlides = (value: unknown): Slide[] => {
-  if (!Array.isArray(value)) return slidesAZ;
-
-  const normalized = value
-    .slice(0, 3)
-    .map((slide: any, index) => ({
-      id: Number(slide?.id) || index + 1,
-      title: String(slide?.title || `Slide ${index + 1}`),
-      image: String(slide?.image || '').trim(),
-      mobileImage: String(slide?.mobileImage || '').trim() || undefined,
-      video: String(slide?.video || '').trim() || undefined,
-      cta: slide?.cta,
-      centered: slide?.centered !== false,
-    }))
-    .filter(slide => slide.image);
-
-  return normalized.length > 0 ? normalized : slidesAZ;
-};
 
 const sideSlides = [
   { 
@@ -64,32 +33,30 @@ const sideSlides = [
 const SWIPE_THRESHOLD = 40;
 
 const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
+  const { get } = useApi();
   const [current, setCurrent] = useState(0);
-  const [slides, setSlides] = useState(slidesAZ);
+  const [slides, setSlides] = useState(DEFAULT_HOME_SLIDES);
   const [sideSlidesData, setSideSlidesData] = useState(sideSlides);
   const touchStartRef = React.useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       try {
-        const savedHero = localStorage.getItem('volt_hero_slides');
         const savedSide = localStorage.getItem('volt_side_slides');
-        
-        if (savedHero) {
-          const parsed = JSON.parse(savedHero);
-          setSlides(normalizeHeroSlides(parsed));
-        }
+        const response = await get(API_ENDPOINTS.HOME_SLIDER.GET, { skipAuth: true });
+        const loaded = normalizeHomeSlides(response?.data || response);
+        setSlides(loaded.length ? loaded : DEFAULT_HOME_SLIDES);
         if (savedSide) {
           const parsed = JSON.parse(savedSide);
           if (Array.isArray(parsed)) setSideSlidesData(parsed);
         }
       } catch (err) {
         console.error('Error loading slider data:', err);
-        setSlides(slidesAZ);
+        setSlides(DEFAULT_HOME_SLIDES);
       }
     };
 
-    loadData();
+    void loadData();
     window.addEventListener('volt_data_updated', loadData);
     return () => window.removeEventListener('volt_data_updated', loadData);
   }, []);
@@ -141,7 +108,7 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
   }, [nextSlide]);
 
   return (
-    <section className="relative h-[45vh] md:h-[75vh] w-full overflow-hidden bg-white">
+    <section className="relative aspect-square w-full overflow-hidden bg-white md:aspect-[16/7]">
       {/* Main Slider (100%) */}
       <div
         className="relative w-full h-full overflow-hidden shadow-xl touch-pan-y"

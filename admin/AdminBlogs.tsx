@@ -9,6 +9,9 @@ interface BlogsItem {
   title: { az: string; en: string; ru: string; tr: string };
   description: { az: string; en: string; ru: string; tr: string };
   content: { az: string; en: string; ru: string; tr: string };
+  seoTitle: { az: string; en: string; ru: string; tr: string };
+  seoDescription: { az: string; en: string; ru: string; tr: string };
+  seoKeywords: { az: string; en: string; ru: string; tr: string };
   image: string;
   imageFile: File | null;
   isActive: boolean;
@@ -45,6 +48,9 @@ const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
     title: { az: '', en: '', ru: '', tr: '' },
     description: { az: '', en: '', ru: '', tr: '' },
     content: { az: '', en: '', ru: '', tr: '' },
+    seoTitle: { az: '', en: '', ru: '', tr: '' },
+    seoDescription: { az: '', en: '', ru: '', tr: '' },
+    seoKeywords: { az: '', en: '', ru: '', tr: '' },
     image: '',
     imageFile: null,
     isActive: true,
@@ -57,6 +63,9 @@ const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
       title: { az: '', en: '', ru: '', tr: '' },
       description: { az: '', en: '', ru: '', tr: '' },
       content: { az: '', en: '', ru: '', tr: '' },
+      seoTitle: { az: '', en: '', ru: '', tr: '' },
+      seoDescription: { az: '', en: '', ru: '', tr: '' },
+      seoKeywords: { az: '', en: '', ru: '', tr: '' },
       image: '',
       imageFile: null,
       isActive: true,
@@ -75,8 +84,17 @@ const handleEdit = async (id: string) => {
     const titles = { az: "", en: "", ru: "", tr: "" };
     const descriptions = { az: "", en: "", ru: "", tr: "" };
     const contents = { az: "", en: "", ru: "", tr: "" };
+    const seoTitles = { az: "", en: "", ru: "", tr: "" };
+    const seoDescriptions = { az: "", en: "", ru: "", tr: "" };
+    const seoKeywords = { az: "", en: "", ru: "", tr: "" };
 
     (blog.translations || []).forEach((t: any) => {
+      const code: LangCode | null = t.languageCode === 1 ? 'az' : t.languageCode === 2 ? 'en' : t.languageCode === 3 ? 'ru' : t.languageCode === 4 ? 'tr' : null;
+      if (code) {
+        seoTitles[code] = t.seoTitle || '';
+        seoDescriptions[code] = t.seoDescription || '';
+        seoKeywords[code] = t.seoKeywords || '';
+      }
       switch (t.languageCode) {
         case 1:
           titles.az = t.title;
@@ -105,6 +123,9 @@ const handleEdit = async (id: string) => {
       title: titles,
       description: descriptions,
       content: contents,
+      seoTitle: seoTitles,
+      seoDescription: seoDescriptions,
+      seoKeywords,
       image: blog.coverImagePath,
       imageFile: null,
       isActive: blog.isActive,
@@ -187,24 +208,36 @@ const payload = {
       title: formData.title.az,
       description: formData.description.az,
       content: formData.content.az,
+      seoTitle: formData.seoTitle.az,
+      seoDescription: formData.seoDescription.az,
+      seoKeywords: formData.seoKeywords.az,
     },
     {
       languageCode: 2,
       title: formData.title.en,
       description: formData.description.en,
       content: formData.content.en,
+      seoTitle: formData.seoTitle.en,
+      seoDescription: formData.seoDescription.en,
+      seoKeywords: formData.seoKeywords.en,
     },
     {
       languageCode: 3,
       title: formData.title.ru,
       description: formData.description.ru,
       content: formData.content.ru,
+      seoTitle: formData.seoTitle.ru,
+      seoDescription: formData.seoDescription.ru,
+      seoKeywords: formData.seoKeywords.ru,
     },
     {
       languageCode: 4,
       title: formData.title.tr,
       description: formData.description.tr,
       content: formData.content.tr,
+      seoTitle: formData.seoTitle.tr,
+      seoDescription: formData.seoDescription.tr,
+      seoKeywords: formData.seoKeywords.tr,
     },
   ],
 };
@@ -376,6 +409,51 @@ const payload = {
                   </div>
                   <h5 className="font-black text-slate-900 truncate">{formData.title[activeLang] || 'Blog Adı'}</h5>
                   <p className="text-xs text-slate-500 line-clamp-3">{formData.description[activeLang] || 'Blog haqqında qısa məlumat...'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-left">
+              <div className="mb-5">
+                <h3 className="text-base font-black text-slate-900">SEO parametrləri ({activeLang.toUpperCase()})</h3>
+                <p className="mt-1 text-xs text-slate-500">Boş saxlanılan sahələr üçün blog başlığı və mətni avtomatik istifadə edilir.</p>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO başlığı</label>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    value={formData.seoTitle[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoTitle: { ...current.seoTitle, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder={formData.title[activeLang] || 'Axtarış nəticəsi başlığı'}
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoTitle[activeLang].length}/200</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO açar sözləri</label>
+                  <input
+                    type="text"
+                    maxLength={500}
+                    value={formData.seoKeywords[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoKeywords: { ...current.seoKeywords, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder="günəş enerjisi, günəş paneli, məsləhətlər"
+                  />
+                  <p className="mt-2 text-[9px] text-slate-400">Vergüllə ayırın.</p>
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO təsviri</label>
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    value={formData.seoDescription[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoDescription: { ...current.seoDescription, [activeLang]: event.target.value } }))}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium outline-none focus:border-emerald-500"
+                    placeholder="Axtarış nəticələrində göstərilən qısa təsvir"
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoDescription[activeLang].length}/500</p>
                 </div>
               </div>
             </div>

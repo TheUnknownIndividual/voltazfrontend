@@ -78,105 +78,6 @@ const ExpandableDescription: React.FC<ExpandableDescriptionProps> = ({ text, exp
   );
 };
 
-interface ExpandableFeaturesProps {
-  text: string;
-  readMoreLabel: string;
-  showLessLabel: string;
-}
-
-const FEATURES_CLAMP_LINES = 3;
-
-const ExpandableFeatures: React.FC<ExpandableFeaturesProps> = ({ text, readMoreLabel, showLessLabel }) => {
-  const measureRef = useRef<HTMLParagraphElement>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [visibleLength, setVisibleLength] = useState<number | null>(null);
-
-  useEffect(() => {
-    const element = measureRef.current;
-    if (!element) return;
-
-    let animationFrame = 0;
-    const measure = () => {
-      const lineHeight = parseFloat(getComputedStyle(element).lineHeight) || 0;
-      const maxHeight = lineHeight * FEATURES_CLAMP_LINES + 1;
-
-      if (!lineHeight || element.scrollHeight <= maxHeight) {
-        setVisibleLength(null);
-        return;
-      }
-
-      let low = 0;
-      let high = text.length;
-      while (low < high) {
-        const mid = Math.ceil((low + high) / 2);
-        element.textContent = text.slice(0, mid).trimEnd() + '…';
-        if (element.scrollHeight <= maxHeight) {
-          low = mid;
-        } else {
-          high = mid - 1;
-        }
-      }
-      setVisibleLength(low);
-    };
-    const scheduleMeasure = () => {
-      if (animationFrame) return;
-      animationFrame = window.requestAnimationFrame(() => {
-        animationFrame = 0;
-        measure();
-      });
-    };
-    const resizeObserver = new ResizeObserver(scheduleMeasure);
-
-    resizeObserver.observe(element);
-    scheduleMeasure();
-    return () => {
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-    };
-  }, [text]);
-
-  const hasOverflow = visibleLength !== null;
-  const displayText = expanded || !hasOverflow ? text : text.slice(0, visibleLength).trimEnd();
-
-  return (
-    <>
-      <p
-        ref={measureRef}
-        aria-hidden="true"
-        className="whitespace-pre-line text-sm leading-relaxed text-slate-600"
-        style={{ position: 'absolute', visibility: 'hidden', height: 0, overflow: 'hidden', pointerEvents: 'none' }}
-      />
-      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
-        {displayText}
-        {!expanded && hasOverflow && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="product-description-ellipsis text-[var(--color-primary)]"
-            aria-label={readMoreLabel}
-            aria-expanded={false}
-          >
-            ...
-          </button>
-        )}
-        {expanded && hasOverflow && (
-          <>
-            {' '}
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className="product-description-ellipsis text-[var(--color-primary)]"
-              aria-expanded={true}
-            >
-              {showLessLabel}
-            </button>
-          </>
-        )}
-      </p>
-    </>
-  );
-};
-
 const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, cartPreview, lang }) => {
   const { getProductById } = useProduct();
   const { getBrandById, getTechnologyById } = useCategory();
@@ -323,29 +224,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
     const productTitle = product.productName ? `${product.productName} | Volt.az` : 'Məhsul | Volt.az';
     const rawDescription = String(translation?.description || translation?.features || '').replace(/\s+/g, ' ').trim();
     const productName = String(product.productName || '').trim();
-    const productVariants = Array.isArray(product.productParametrs)
-      ? product.productParametrs
-      : [];
-    const representativeVariant = productVariants.find((item: any) => item?.technicalPower || item?.effectiveness || Number(item?.amount) > 0);
-    const factLabels = {
-      az: { power: 'güc', efficiency: 'səmərəlilik', quote: 'qiymət təklifi', stock: 'stokda mövcuddur', details: 'Texniki göstəricilər, zəmanət və sifariş məlumatı.' },
-      en: { power: 'power', efficiency: 'efficiency', quote: 'request a quote', stock: 'in stock', details: 'Specifications, warranty, and ordering information.' },
-      ru: { power: 'мощность', efficiency: 'эффективность', quote: 'цена по запросу', stock: 'в наличии', details: 'Характеристики, гарантия и условия заказа.' },
-      tr: { power: 'güç', efficiency: 'verimlilik', quote: 'fiyat teklifi', stock: 'stokta', details: 'Teknik özellikler, garanti ve sipariş bilgisi.' },
-    }[lang || 'az'];
-    const buyerFacts = [
-      representativeVariant?.technicalPower ? `${representativeVariant.technicalPower} ${factLabels.power}` : '',
-      representativeVariant?.effectiveness ? `${representativeVariant.effectiveness} ${factLabels.efficiency}` : '',
-      Number(representativeVariant?.amount) > 0 ? `${representativeVariant.amount} AZN` : '',
-      Number(representativeVariant?.amount) > 0 ? '' : factLabels.quote,
-      product.inStock ? factLabels.stock : '',
-    ].filter(Boolean).join(', ');
-    const descriptionBase = (
+    const productDescriptionMeta = (
       rawDescription && productName && !rawDescription.toLocaleLowerCase().includes(productName.toLocaleLowerCase())
         ? `${productName}. ${rawDescription}`
-        : rawDescription || `${productName || 'Volt.az məhsulu'}. ${factLabels.details}`
-    );
-    const productDescriptionMeta = `${descriptionBase}${buyerFacts ? ` ${buyerFacts}.` : ''}`.slice(0, 155);
+        : rawDescription || `${productName || 'Volt.az məhsulu'} haqqında texniki məlumat, xüsusiyyətlər və mövcud variantlar.`
+    ).slice(0, 155);
     const canonicalUrl = absoluteSiteUrl(localizePath(`/product/${product.id || id}`, hasRequestedTranslation ? (lang || 'az') : 'az'));
     const toAbsoluteUrl = (value: string) => {
       if (!value) return 'https://volt.az/volt-logo.png';
@@ -356,6 +239,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
       ? product.productImage[0]
       : '/volt-logo.png';
     const adminIdentifier = String(product.id || id || '').trim();
+    const productVariants = Array.isArray(product.productParametrs)
+      ? product.productParametrs
+      : [];
     const firstPricedVariant = productVariants.find((item: any) => Number(item?.amount) > 0);
     const priceValue = Number(firstPricedVariant?.amount || product.price || 0);
     const hasTrackedVariantStock = productVariants.length === 0
@@ -875,9 +761,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
       </div>
 
       <div className="py-5">
-        {activeTab === 'features' && (
-          <ExpandableFeatures text={productFeatures} readMoreLabel={t.readMore} showLessLabel={t.showLess} />
-        )}
+        {activeTab === 'features' && <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line"><p>{productFeatures}</p></div>}
         {activeTab === 'shipping' && <div className="text-slate-600 text-sm leading-relaxed"><p>Bakı daxili çatdırılma 24 saat ərzində həyata keçirilir. 500 AZN-dən yuxarı sifarişlər üçün çatdırılma pulsuzdur.</p></div>}
         {activeTab === 'return' && <div className="text-slate-600 text-sm leading-relaxed"><p>Məhsulun qaytarılması 14 gün ərzində, qablaşdırma zədələnmədiyi halda mümkündür.</p></div>}
         {activeTab === 'warranty' && <div className="text-slate-600 text-sm leading-relaxed"><p>Bütün avadanlıqlara rəsmi istehsalçı zəmanəti verilir. Günəş panelləri üçün 25 il performans zəmanəti mövcuddur.</p></div>}

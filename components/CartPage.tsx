@@ -1,15 +1,16 @@
 import React, { useState,useEffect } from 'react';
 import { useProduct } from "../contexts/ProductContext";
+import { getProductStock, getStockWarning } from '../utils/productInventory';
 
 
 interface CartPageProps {
   cart: { id: string; quantity: number; power?: string }[];
   onRemoveFromCart: (id: string, power?: string) => void;
-  onUpdateCartQuantity: (id: string, quantity: number, power?: string) => void;
+  onUpdateCartQuantity: (id: string, quantity: number, power?: string, maxStock?: number) => void;
   onBack: () => void;
   onContinueShopping?: () => void;
   onCheckout: () => void;
-  lang?: 'az' | 'en' | 'ru';
+  lang?: 'az' | 'en' | 'ru' | 'tr';
 }
 
 const CartPage: React.FC<CartPageProps> = ({ cart, onRemoveFromCart, onUpdateCartQuantity, onBack, onContinueShopping, onCheckout, lang = 'az' }) => {
@@ -53,8 +54,12 @@ const cartProducts = products.map(item => {
   return {
     ...item,
     currentPrice: price,
+    currentStock: getProductStock(item, item.selectedPower),
   };
 });
+
+const stockIssueLines = cartProducts.filter(item => item.quantity > item.currentStock);
+const hasStockIssue = stockIssueLines.length > 0;
 
 const totalAmount = cartProducts.reduce(
   (sum, item) => sum + item.currentPrice * item.quantity,
@@ -66,7 +71,9 @@ const totalAmount = cartProducts.reduce(
     total: lang === 'az' ? 'Cəmi məbləğ' : 'Total amount',
     checkout: lang === 'az' ? 'Sifariş et' : 'Checkout',
     back: lang === 'az' ? 'Geri qayıt' : 'Go back',
-    remove: lang === 'az' ? 'Sil' : 'Remove'
+    remove: lang === 'az' ? 'Sil' : 'Remove',
+    stock: lang === 'az' ? 'Stok' : lang === 'ru' ? 'Остаток' : lang === 'tr' ? 'Stok' : 'Stock',
+    contact: lang === 'az' ? 'Bizimlə əlaqə' : lang === 'ru' ? 'Связаться с нами' : lang === 'tr' ? 'Bizimle iletişime geçin' : 'Contact us'
   };
 
   return (
@@ -93,6 +100,16 @@ const totalAmount = cartProducts.reduce(
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
+              {hasStockIssue && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-relaxed text-amber-800" role="alert">
+                  {stockIssueLines.map((item) => (
+                    <div key={`${item.id}-${item.selectedPower || 'base'}-stock-warning`}>
+                      {item.productName}: {getStockWarning(lang, item.currentStock, item.quantity)}
+                    </div>
+                  ))}
+                  <a href="https://wa.me/994504180001" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block font-black underline underline-offset-2">{t.contact}</a>
+                </div>
+              )}
               {cartProducts.map((item) => (
                 <div key={`${item.id}-${item.selectedPower || 'base'}`} className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 group">
                   <div className="flex items-center gap-4 sm:contents">
@@ -108,6 +125,7 @@ const totalAmount = cartProducts.reduce(
                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.selectedPower}</div>
                       )}
                       <div className="text-emerald-600 font-black text-sm">{item.currentPrice.toFixed(2)} AZN</div>
+                      <div className="mt-1 text-[10px] font-bold text-slate-400">{t.stock}: {item.currentStock}</div>
                     </div>
                     <button
                       onClick={() => onRemoveFromCart(item.id, item.selectedPower)}
@@ -121,7 +139,7 @@ const totalAmount = cartProducts.reduce(
                   <div className="flex items-center justify-between sm:flex-col sm:items-end gap-3 sm:gap-4 shrink-0">
                     <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 p-1.5 sm:p-2 rounded-xl border border-slate-100">
                       <button
-                        onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1, item.selectedPower)}
+                        onClick={() => onUpdateCartQuantity(item.id, item.quantity - 1, item.selectedPower, item.currentStock)}
                         className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
@@ -129,16 +147,18 @@ const totalAmount = cartProducts.reduce(
                       <input
                         type="number"
                         min={0}
+                        max={item.currentStock}
                         value={item.quantity}
                         onChange={(e) => {
                           const nextValue = Number.parseInt(e.target.value, 10);
-                          onUpdateCartQuantity(item.id, Number.isNaN(nextValue) ? 0 : Math.max(0, nextValue), item.selectedPower);
+                          onUpdateCartQuantity(item.id, Number.isNaN(nextValue) ? 0 : Math.max(0, nextValue), item.selectedPower, item.currentStock);
                         }}
                         className="w-7 sm:w-10 text-center bg-transparent font-black text-slate-900 text-sm outline-none"
                       />
                       <button
-                        onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1, item.selectedPower)}
-                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                        onClick={() => onUpdateCartQuantity(item.id, item.quantity + 1, item.selectedPower, item.currentStock)}
+                        disabled={item.quantity >= item.currentStock}
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
                       </button>
@@ -183,7 +203,8 @@ const totalAmount = cartProducts.reduce(
                 </div>
                 <button 
                   onClick={onCheckout}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
+                  disabled={hasStockIssue}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 >
                   {t.checkout}
                 </button>

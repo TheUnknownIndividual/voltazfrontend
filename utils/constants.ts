@@ -81,10 +81,18 @@ export const API_ENDPOINTS = {
   },
   SERVICE: {
     GET_SERVICE: `${URL}ServicesManagement`,
+    GET_ADMIN_SERVICES: `${URL}ServicesManagement/admin`,
     CREATE_SERVICE: `${URL}ServicesManagement`,
     UPDATE_SERVICE: (id: string) => `${URL}ServicesManagement/${id}`,
     DELETE_SERVICE: (id: string) => `${URL}ServicesManagement/${id}`,
     GET_ID_SERVICE: (id: string) => `${URL}ServicesManagement/${id}`,
+    GET_PAGE_BY_SLUG: (slug: string) => `${URL}ServicesManagement/page/${encodeURIComponent(slug)}`,
+    GET_CATEGORY_SETTINGS: `${URL}ServicesManagement/category-settings`,
+    UPDATE_CATEGORY_SETTING: (category: number) => `${URL}ServicesManagement/category-settings/${category}`,
+  },
+  HOME_SLIDER: {
+    GET: `${URL}HomeSliders`,
+    UPDATE: `${URL}HomeSliders`,
   },
   SEARCH: {
     GET_SEARCH: (query: string, productLimit = 6) => {
@@ -99,6 +107,7 @@ export const API_ENDPOINTS = {
     CREATE_SERVICE_REQUEST: `${URL}ServiceRequests`,
     UPDATE_SERVICE_STATUS: (id: string) => `${URL}ServiceRequests/status?id=${id}`,
     GET_ID_SERVICE_REQUEST: (id: string) => `${URL}ServiceRequests/${id}`,
+    MARK_SERVICE_REQUEST_VIEWED: (id: string | number) => `${URL}ServiceRequests/${id}/viewed`,
   },
   ORDER: {
     GET_ORDERS: (status?: string) => `${URL}Orders${status ? `?status=${status}` : ''}`,
@@ -112,6 +121,9 @@ export const API_ENDPOINTS = {
   },
   CATEGORY: {
     GET_CATEGORY: `${URL}ProductCategories`,
+    GET_HOME_PAGE_CATEGORIES: `${URL}ProductCategories/homepage`,
+    GET_CATEGORY_BY_SEO_KEY: (seoKey: string) => `${URL}ProductCategories/seo/${encodeURIComponent(seoKey)}`,
+    GET_CATEGORY_PRODUCT_OPTIONS: (id: string | number) => `${URL}ProductCategories/${id}/product-options`,
     CREATE_CATEGORY: `${URL}ProductCategories`,
     UPDATE_CATEGORY: (id: string) => `${URL}ProductCategories/${id}`,
     DELETE_CATEGORY: (id: string) => `${URL}ProductCategories/${id}`,
@@ -230,6 +242,7 @@ export const API_ENDPOINTS = {
     CREATE_CONTACT_REQUEST: `${URL}ContactRequsts`,
     GET_CONTACT_REQUEST: (status?: string) =>`${URL}ContactRequsts${status ? `?status=${status}` : ''}`,
     UPDATE_CONTACT_REQUEST: (id: string | number) =>`${URL}ContactRequsts/status?id=${id}`,
+    MARK_CONTACT_REQUEST_VIEWED: (id: string | number) => `${URL}ContactRequsts/${id}/viewed`,
   },
   CONTACT_INFO: {
     GET_CONTACT_INFO: `${URL}ContactInfos`,
@@ -250,6 +263,7 @@ export const API_ENDPOINTS = {
     CREATE_PARTNERSHIP_REQUEST: `${URL}PartnershipRequests`,
     GET_ID_PARTNERSHIP_REQUEST: (id: string) => `${URL}PartnershipRequests/${id}`,
     UPDATE_PARTNERSHIP_REQUEST: (id: string | number) => `${URL}PartnershipRequests/status?id=${id}`,
+    MARK_PARTNERSHIP_REQUEST_VIEWED: (id: string | number) => `${URL}PartnershipRequests/${id}/viewed`,
   },
   SOLAR_ANALYTICS: {
     SEARCH_PROJECTS: (query?: string) => `${URL}SolarAnalytics/projects${query ? `?query=${encodeURIComponent(query)}` : ''}`,

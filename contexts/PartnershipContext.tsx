@@ -45,6 +45,7 @@ interface PartnershipContextType {
   getPartnershipRequestById: (id: string) => Promise<any>;
   createPartnershipRequest: (data: CreatePartnershipRequestPayload) => Promise<any>;
   updatePartnershipRequestStatus: (id: string | number,data: UpdatePartnershipRequestStatusPayload) => Promise<any>;
+  markPartnershipRequestViewed: (id: string | number) => Promise<any>;
 }
 
 const PartnershipContext = createContext<PartnershipContextType | null>(null);
@@ -67,7 +68,7 @@ export const PartnershipProvider = ({ children }: { children: React.ReactNode })
   //
   const getPartnershipTypes = async () => {
     try {
-      const response = await get(API_ENDPOINTS.PARTNERSHIP_TYPES.GET_PARTNERSHIP_TYPES);
+      const response = await get(API_ENDPOINTS.PARTNERSHIP_TYPES.GET_PARTNERSHIP_TYPES, { skipAuth: true });
 
       if (response?.success) {
         setPartnershipTypes(response.data);
@@ -167,10 +168,15 @@ export const PartnershipProvider = ({ children }: { children: React.ReactNode })
     try {
       const res = await post(
         API_ENDPOINTS.PARTNERSHIP_REQUEST.CREATE_PARTNERSHIP_REQUEST,
-        data
+        data,
+        { skipAuth: true }
       );
+
+      if (res?.success === false) {
+        throw new Error(res?.error?.details || "Partnership request could not be created");
+      }
   
-      return res?.data;
+      return res?.data ?? res;
     } catch (error) {
       console.error("CREATE CONTACT REQUEST ERROR:", error);
       throw error;
@@ -191,6 +197,16 @@ export const PartnershipProvider = ({ children }: { children: React.ReactNode })
       return res?.data;
     } catch (error) {
       console.error("UPDATE CONTACT REQUEST STATUS ERROR:", error);
+      throw error;
+    }
+  };
+
+  const markPartnershipRequestViewed = async (id: string | number) => {
+    try {
+      const res = await patch(API_ENDPOINTS.PARTNERSHIP_REQUEST.MARK_PARTNERSHIP_REQUEST_VIEWED(id));
+      return res?.data;
+    } catch (error) {
+      console.error("MARK PARTNERSHIP REQUEST VIEWED ERROR:", error);
       throw error;
     }
   };
@@ -226,6 +242,7 @@ export const PartnershipProvider = ({ children }: { children: React.ReactNode })
         getPartnershipRequests,
         createPartnershipRequest,
         updatePartnershipRequestStatus,
+        markPartnershipRequestViewed,
         getPartnershipRequestById
       }}
     >

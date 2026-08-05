@@ -3,14 +3,22 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { useNews } from "../contexts/NewsContext";
 import { useUpload } from "../contexts/UploadContext";
+import NewsImageCropEditor from './NewsImageCropEditor';
+import RichTextEditor from './RichTextEditor';
 
 interface NewsItem {
   id: string;
   category: { az: string; en: string; ru: string; tr: string };
   title: { az: string; en: string; ru: string; tr: string };
   summary: { az: string; en: string; ru: string; tr: string };
+  seoTitle: { az: string; en: string; ru: string; tr: string };
+  seoDescription: { az: string; en: string; ru: string; tr: string };
+  seoKeywords: { az: string; en: string; ru: string; tr: string };
   image: string;
   imageFile: File | null;
+  imagePositionX: number;
+  imagePositionY: number;
+  imageZoom: number;
   link: string;
   source: string;
   date: string;
@@ -39,6 +47,61 @@ const getLangValue = (langs: any[], lang: keyof typeof languageMap, key: string)
   return langs?.find(l => l.languageCode === languageMap[lang])?.[key] || "";
 };
 
+const mapApiNewsItem = (item: any): NewsItem => ({
+  id: item.id,
+  image: item.coverImagePath,
+  imageFile: null,
+  imagePositionX: item.coverImagePositionX ?? 50,
+  imagePositionY: item.coverImagePositionY ?? 50,
+  imageZoom: Number(item.coverImageZoom ?? 1),
+  link: item.postLink,
+  source: item.source,
+  date: item.createdAt?.split('T')[0] || '',
+  isActive: item.isActive,
+  title: {
+    az: getLangValue(item.languages, 'az', 'title'),
+    en: getLangValue(item.languages, 'en', 'title'),
+    ru: getLangValue(item.languages, 'ru', 'title'),
+    tr: getLangValue(item.languages, 'tr', 'title'),
+  },
+  summary: {
+    az: getLangValue(item.languages, 'az', 'content'),
+    en: getLangValue(item.languages, 'en', 'content'),
+    ru: getLangValue(item.languages, 'ru', 'content'),
+    tr: getLangValue(item.languages, 'tr', 'content'),
+  },
+  seoTitle: {
+    az: getLangValue(item.languages, 'az', 'seoTitle'),
+    en: getLangValue(item.languages, 'en', 'seoTitle'),
+    ru: getLangValue(item.languages, 'ru', 'seoTitle'),
+    tr: getLangValue(item.languages, 'tr', 'seoTitle'),
+  },
+  seoDescription: {
+    az: getLangValue(item.languages, 'az', 'seoDescription'),
+    en: getLangValue(item.languages, 'en', 'seoDescription'),
+    ru: getLangValue(item.languages, 'ru', 'seoDescription'),
+    tr: getLangValue(item.languages, 'tr', 'seoDescription'),
+  },
+  seoKeywords: {
+    az: getLangValue(item.languages, 'az', 'seoKeywords'),
+    en: getLangValue(item.languages, 'en', 'seoKeywords'),
+    ru: getLangValue(item.languages, 'ru', 'seoKeywords'),
+    tr: getLangValue(item.languages, 'tr', 'seoKeywords'),
+  },
+  category: {
+    az: getLangValue(item.languages, 'az', 'description'),
+    en: getLangValue(item.languages, 'en', 'description'),
+    ru: getLangValue(item.languages, 'ru', 'description'),
+    tr: getLangValue(item.languages, 'tr', 'description'),
+  },
+});
+
+const stripRichText = (value: string) => value
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/[#*_>`~\[\]()]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 type LangCode = typeof LANGUAGES[number]['code'];
 
 const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
@@ -56,8 +119,14 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
     category: { az: '', en: '', ru: '', tr: '' },
     title: { az: '', en: '', ru: '', tr: '' },
     summary: { az: '', en: '', ru: '', tr: '' },
+    seoTitle: { az: '', en: '', ru: '', tr: '' },
+    seoDescription: { az: '', en: '', ru: '', tr: '' },
+    seoKeywords: { az: '', en: '', ru: '', tr: '' },
     image: '',
     imageFile: null,
+    imagePositionX: 50,
+    imagePositionY: 50,
+    imageZoom: 1,
     link: '',
     source: '',
     date: new Date().toISOString().split('T')[0],
@@ -70,34 +139,7 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
         const res = await getNews();
 
         // Backend-dən gələn data uyğunlaşdırılır
-        const mapped: NewsItem[] = res.data.map((item: any) => ({
-          id: item.id,
-          image: item.coverImagePath,
-          link: item.postLink,
-          source: item.source,
-          date: item.createdAt?.split("T")[0] || "",
-          isActive: item.isActive,
-
-          // languages → object formatına çeviririk
-          title: {
-            az: getLangValue(item.languages, 'az', 'title'),
-            en: getLangValue(item.languages, 'en', 'title'),
-            ru: getLangValue(item.languages, 'ru', 'title'),
-            tr: getLangValue(item.languages, 'tr', 'title'),
-          },
-          summary: {
-            az: getLangValue(item.languages, 'az', 'content'),
-            en: getLangValue(item.languages, 'en', 'content'),
-            ru: getLangValue(item.languages, 'ru', 'content'),
-            tr: getLangValue(item.languages, 'tr', 'content'),
-          },
-          category: {
-            az: getLangValue(item.languages, 'az', 'description'),
-            en: getLangValue(item.languages, 'en', 'description'),
-            ru: getLangValue(item.languages, 'ru', 'description'),
-            tr: getLangValue(item.languages, 'tr', 'description'),
-          }
-        }));
+        const mapped: NewsItem[] = res.data.map(mapApiNewsItem);
 
         setNews(mapped);
       } catch (e) {
@@ -120,7 +162,10 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
       setFormData(prev => ({
         ...prev,
         image: path,      // preview
-        imageFile: file   // actual file
+        imageFile: file,   // actual file
+        imagePositionX: 50,
+        imagePositionY: 50,
+        imageZoom: 1,
       }));
 
     } catch (err) {
@@ -155,8 +200,14 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
       category: { az: '', en: '', ru: '', tr: '' },
       title: { az: '', en: '', ru: '', tr: '' },
       summary: { az: '', en: '', ru: '', tr: '' },
+      seoTitle: { az: '', en: '', ru: '', tr: '' },
+      seoDescription: { az: '', en: '', ru: '', tr: '' },
+      seoKeywords: { az: '', en: '', ru: '', tr: '' },
       image: '',
       imageFile: null,
+      imagePositionX: 50,
+      imagePositionY: 50,
+      imageZoom: 1,
       link: '',
       source: '',
       date: new Date().toISOString().split('T')[0],
@@ -190,8 +241,29 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
           ru: data.languages.find((l: any) => l.languageCode === 3)?.content || '',
           tr: data.languages.find((l: any) => l.languageCode === 4)?.content || '',
         },
+        seoTitle: {
+          az: data.languages.find((l: any) => l.languageCode === 1)?.seoTitle || '',
+          en: data.languages.find((l: any) => l.languageCode === 2)?.seoTitle || '',
+          ru: data.languages.find((l: any) => l.languageCode === 3)?.seoTitle || '',
+          tr: data.languages.find((l: any) => l.languageCode === 4)?.seoTitle || '',
+        },
+        seoDescription: {
+          az: data.languages.find((l: any) => l.languageCode === 1)?.seoDescription || '',
+          en: data.languages.find((l: any) => l.languageCode === 2)?.seoDescription || '',
+          ru: data.languages.find((l: any) => l.languageCode === 3)?.seoDescription || '',
+          tr: data.languages.find((l: any) => l.languageCode === 4)?.seoDescription || '',
+        },
+        seoKeywords: {
+          az: data.languages.find((l: any) => l.languageCode === 1)?.seoKeywords || '',
+          en: data.languages.find((l: any) => l.languageCode === 2)?.seoKeywords || '',
+          ru: data.languages.find((l: any) => l.languageCode === 3)?.seoKeywords || '',
+          tr: data.languages.find((l: any) => l.languageCode === 4)?.seoKeywords || '',
+        },
         image: data.coverImagePath,
         imageFile: null,
+        imagePositionX: data.coverImagePositionX ?? 50,
+        imagePositionY: data.coverImagePositionY ?? 50,
+        imageZoom: Number(data.coverImageZoom ?? 1),
         link: data.postLink,
         source: data.source,
         date: data.createdAt?.split("T")[0] || "",
@@ -231,6 +303,9 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
     try {
       const payload = {
         coverImagePath: formData.image,
+        coverImagePositionX: formData.imagePositionX,
+        coverImagePositionY: formData.imagePositionY,
+        coverImageZoom: formData.imageZoom,
         source: formData.source,
         postLink: formData.link,
         isActive: formData.isActive,
@@ -239,25 +314,37 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
             languageCode: 1,
             title: formData.title.az,
             description: formData.category.az,
-            content: formData.summary.az
+            content: formData.summary.az,
+            seoTitle: formData.seoTitle.az,
+            seoDescription: formData.seoDescription.az,
+            seoKeywords: formData.seoKeywords.az
           },
           {
             languageCode: 2,
             title: formData.title.en,
             description: formData.category.en,
-            content: formData.summary.en
+            content: formData.summary.en,
+            seoTitle: formData.seoTitle.en,
+            seoDescription: formData.seoDescription.en,
+            seoKeywords: formData.seoKeywords.en
           },
           {
             languageCode: 3,
             title: formData.title.ru,
             description: formData.category.ru,
-            content: formData.summary.ru
+            content: formData.summary.ru,
+            seoTitle: formData.seoTitle.ru,
+            seoDescription: formData.seoDescription.ru,
+            seoKeywords: formData.seoKeywords.ru
           },
           {
             languageCode: 4,
             title: formData.title.tr,
             description: formData.category.tr,
-            content: formData.summary.tr
+            content: formData.summary.tr,
+            seoTitle: formData.seoTitle.tr,
+            seoDescription: formData.seoDescription.tr,
+            seoKeywords: formData.seoKeywords.tr
           }
         ]
       };
@@ -276,32 +363,7 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
       const res = await getNews();
 
       // yenə map et (səndəki kimi)
-      const mapped = res.data.map((item: any) => ({
-        id: item.id,
-        image: item.coverImagePath,
-        link: item.postLink,
-        source: item.source,
-        date: item.createdAt?.split("T")[0] || "",
-        isActive: item.isActive,
-        title: {
-          az: item.languages.find((l: any) => l.languageCode === 1)?.title || "",
-          en: item.languages.find((l: any) => l.languageCode === 2)?.title || "",
-          ru: item.languages.find((l: any) => l.languageCode === 3)?.title || "",
-          // tr: item.languages.find((l: any) => l.languageCode === 4)?.title || ""
-        },
-        summary: {
-          az: item.languages.find((l: any) => l.languageCode === 1)?.content || "",
-          en: item.languages.find((l: any) => l.languageCode === 2)?.content || "",
-          ru: item.languages.find((l: any) => l.languageCode === 3)?.content || "",
-          // tr: item.languages.find((l: any) => l.languageCode === 4)?.content || ""
-        },
-        category: {
-          az: item.languages.find((l: any) => l.languageCode === 1)?.description || "",
-          en: item.languages.find((l: any) => l.languageCode === 2)?.description || "",
-          ru: item.languages.find((l: any) => l.languageCode === 3)?.description || "",
-          // tr: item.languages.find((l: any) => l.languageCode === 4)?.description || ""
-        }
-      }));
+      const mapped = res.data.map(mapApiNewsItem);
 
       setNews(mapped);
 
@@ -408,14 +470,16 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Qısa Mətn ({activeLang.toUpperCase()})</label>
-                  <textarea
-                    required
-                    rows={4}
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Xəbərin Mətni ({activeLang.toUpperCase()})</label>
+                  <RichTextEditor
                     value={formData.summary[activeLang] || ''}
-                    onChange={e => setFormData({ ...formData, summary: { ...formData.summary, [activeLang]: e.target.value } })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold focus:border-emerald-500 outline-none transition-all resize-none"
-                    placeholder="Xəbər haqqında qısa məlumat..."
+                    onChange={(html) => setFormData({ ...formData, summary: { ...formData.summary, [activeLang]: html } })}
+                    onImageUpload={async (file) => {
+                      const response = await uploadImage(file);
+                      const path = response?.data?.path;
+                      if (!path) throw new Error('Image upload did not return a path');
+                      return path;
+                    }}
                   />
                 </div>
               </div>
@@ -438,20 +502,19 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
                   </label>
 
                   {formData.image && (
-                    <div className="relative mt-4">
-                      <img
-                        src={formData.image}
-                        className="w-full h-40 rounded-2xl"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={handleImageDelete}
-                        className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-3 py-1 rounded-lg"
-                      >
-                        x
-                      </button>
-                    </div>
+                    <NewsImageCropEditor
+                      imageUrl={formData.image}
+                      positionX={formData.imagePositionX}
+                      positionY={formData.imagePositionY}
+                      zoom={formData.imageZoom}
+                      onDelete={handleImageDelete}
+                      onChange={(crop) => setFormData((current) => ({
+                        ...current,
+                        imagePositionX: crop.positionX,
+                        imagePositionY: crop.positionY,
+                        imageZoom: crop.zoom,
+                      }))}
+                    />
                   )}
                 </div>
 
@@ -482,6 +545,51 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
               </div>
             </div>
 
+            <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 text-left">
+              <div className="mb-5">
+                <h3 className="text-base font-black text-slate-900">SEO parametrləri ({activeLang.toUpperCase()})</h3>
+                <p className="mt-1 text-xs text-slate-500">Boş saxlanılan sahələr üçün xəbər başlığı və mətni avtomatik istifadə edilir.</p>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO başlığı</label>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    value={formData.seoTitle[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoTitle: { ...current.seoTitle, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder={formData.title[activeLang] || 'Axtarış nəticəsi başlığı'}
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoTitle[activeLang].length}/200</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO açar sözləri</label>
+                  <input
+                    type="text"
+                    maxLength={500}
+                    value={formData.seoKeywords[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoKeywords: { ...current.seoKeywords, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder="günəş enerjisi, enerji xəbərləri, Solarix"
+                  />
+                  <p className="mt-2 text-[9px] text-slate-400">Vergüllə ayırın.</p>
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO təsviri</label>
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    value={formData.seoDescription[activeLang]}
+                    onChange={(event) => setFormData((current) => ({ ...current, seoDescription: { ...current.seoDescription, [activeLang]: event.target.value } }))}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium outline-none focus:border-emerald-500"
+                    placeholder="Axtarış nəticələrində göstərilən qısa təsvir"
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoDescription[activeLang].length}/500</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-4 pt-6 border-t border-slate-50">
               <button
                 type="button"
@@ -504,8 +612,17 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
         {news.map((item) => (
           <div key={item.id} className={`bg-white rounded-[2.5rem] overflow-hidden border transition-all duration-300 group ${!item.isActive ? 'border-slate-100 opacity-60' : 'border-slate-100 hover:border-emerald-500 shadow-sm hover:shadow-xl'}`}>
-            <div className="relative aspect-video">
-              <img src={item.image} alt={item.title.az || item.title.en || ''} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
+            <div className="relative aspect-video overflow-hidden bg-slate-100">
+              <img
+                src={item.image}
+                alt={item.title.az || item.title.en || ''}
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  objectPosition: `${item.imagePositionX}% ${item.imagePositionY}%`,
+                  transform: `scale(${item.imageZoom})`,
+                  transformOrigin: `${item.imagePositionX}% ${item.imagePositionY}%`,
+                }}
+              />
               <div className="absolute top-4 left-4 flex gap-2">
                 <div className={`px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${item.isActive ? 'bg-emerald-600' : 'bg-slate-400'}`}>
                   {item.isActive ? 'Aktiv' : 'Deaktiv'}
@@ -523,7 +640,7 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
 
             <div className="p-8">
               <h3 className="text-lg font-black text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-3 h-12 leading-snug">{item.title.az}</h3>
-              <p className="text-xs text-slate-500 line-clamp-2 mb-6 h-8 opacity-80 leading-relaxed font-medium">{item.summary.az}</p>
+              <p className="text-xs text-slate-500 line-clamp-2 mb-6 h-8 opacity-80 leading-relaxed font-medium">{stripRichText(item.summary.az)}</p>
 
               <div className="flex gap-2">
                 <button

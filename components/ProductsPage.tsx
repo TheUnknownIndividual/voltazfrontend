@@ -1,19 +1,24 @@
 
 import React, { useEffect, useState } from 'react';
-import ProductCard from './ProductCard';
+import ProductCard, { type ProductReturnContext } from './ProductCard';
 import { useProduct } from '../contexts/ProductContext';
 import { useCategory } from '@/contexts/CategoryContext';
 import { ChevronLeft, ChevronRight, PackageSearch } from "lucide-react";
 
 interface ProductsPageProps {
-  onSelectProduct: (id: string, returnContext?: { category?: any; subCategory?: any; search?: string }) => void;
-  onOrderNow?: (id: string, quantity: number) => void;
-  onAddToCart?: (id: string, quantity: number) => void;
+  onSelectProduct: (id: string, returnContext?: ProductReturnContext) => void;
+  onOrderNow?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
+  onAddToCart?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
   lang?: 'az' | 'en' | 'ru' | 'tr';
   onBack?: () => void;
   initialCategory?: string | number;
   initialSubCategory?: string | number;
   initialSearch?: string;
+  initialPage?: string | number;
+  lockedCategory?: boolean;
+  catalogueLabel?: string;
+  onSelectSolarPanels?: () => void;
+  onSelectInverters?: () => void;
 }
 
 const normalizeFilterId = (value?: string | number) => {
@@ -23,7 +28,12 @@ const normalizeFilterId = (value?: string | number) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang, onBack, initialCategory = 'all', initialSubCategory = 'all', initialSearch = '' }) => {
+const normalizePage = (value?: string | number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+};
+
+const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang = 'az', onBack, initialCategory = 'all', initialSubCategory = 'all', initialSearch = '', initialPage = 1, lockedCategory = false, catalogueLabel, onSelectSolarPanels, onSelectInverters }) => {
   const { getHomeProducts, productHomeData, getProducts, productData} = useProduct();
   const {
     categories,
@@ -34,10 +44,11 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow
 
   const initialCategoryId = normalizeFilterId(initialCategory);
   const initialSubCategoryId = normalizeFilterId(initialSubCategory);
+  const initialPageNumber = normalizePage(initialPage);
   const [filter, setFilter] = useState<number | null>(initialCategoryId);
   const [subFilter, setSubFilter] = useState<number | null>(initialSubCategoryId);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(initialCategoryId);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPageNumber);
 const [pageSize, setPageSize] = useState(12);
 const [search, setSearch] = useState(initialSearch);
 const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -82,13 +93,13 @@ useEffect(() => {
       getSubCategories(catId);
     }
 
-    setPage(1);
-  }, [initialCategory, initialSubCategory]);
+    setPage(initialPageNumber);
+  }, [initialCategory, initialSubCategory, initialPage]);
 
   useEffect(() => {
     setSearch(initialSearch || '');
-    setPage(1);
-  }, [initialSearch]);
+    setPage(initialPageNumber);
+  }, [initialSearch, initialPage]);
 
 
   useEffect(() => {
@@ -120,8 +131,37 @@ useEffect(() => {
 }, [filter, subFilter, page, pageSize, search, reloadToken]);
 
 useEffect(() => {
-  setPage(1);
-}, [filter, subFilter]);
+  const params = new URLSearchParams(window.location.search);
+  if (lockedCategory || filter === null) params.delete('category');
+  else params.set('category', String(filter));
+  if (subFilter === null) params.delete('subCategory');
+  else params.set('subCategory', String(subFilter));
+  if (search.trim()) params.set('search', search.trim());
+  else params.delete('search');
+  if (page > 1) params.set('page', String(page));
+  else params.delete('page');
+
+  const query = params.toString();
+  const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+  window.history.replaceState(window.history.state, '', nextUrl);
+}, [filter, subFilter, search, page, lockedCategory]);
+
+  const selectProductWithReturnState = (id: string) => {
+    const params = new URLSearchParams();
+    if (!lockedCategory && filter !== null) params.set('category', String(filter));
+    if (subFilter !== null) params.set('subCategory', String(subFilter));
+    if (search.trim()) params.set('search', search.trim());
+    if (page > 1) params.set('page', String(page));
+    const query = params.toString();
+
+    onSelectProduct(id, {
+      category: filter ?? undefined,
+      subCategory: subFilter ?? undefined,
+      search: search.trim() || undefined,
+      page,
+      returnUrl: `${window.location.pathname}${query ? `?${query}` : ''}`,
+    });
+  };
 
 
   const getItemName = (item: any) => {
@@ -229,7 +269,7 @@ useEffect(() => {
   return (
     <div className="bg-white min-h-screen">
       {/* Hero + Filter Bar */}
-      <section className="product-filter-bar relative overflow-hidden bg-emerald-950 py-5 shadow-lg shadow-emerald-950/10">
+      {!lockedCategory && <section className="product-filter-bar relative overflow-hidden bg-emerald-950 py-5 shadow-lg shadow-emerald-950/10">
         <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-12">
           <div className="mb-4 flex items-center justify-between gap-4">
             <button
@@ -257,6 +297,7 @@ useEffect(() => {
                   setActiveCategoryId(null);
                   setFilter(null);
                   setSubFilter(null);
+                  setPage(1);
                 }}
                 className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
           ${activeCategoryId === null
@@ -271,10 +312,19 @@ useEffect(() => {
                 <button
                   key={category.id}
                   onClick={() => {
+                    if (category.seoKey === 'solar-panels' && onSelectSolarPanels) {
+                      onSelectSolarPanels();
+                      return;
+                    }
+                    if (category.seoKey === 'inverters' && onSelectInverters) {
+                      onSelectInverters();
+                      return;
+                    }
                     clearProductSearch();
                     setActiveCategoryId(category.id);
                     setFilter(category.id);
                     setSubFilter(null);
+                    setPage(1);
                     getSubCategories(category.id);
                   }}
                   className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
@@ -297,6 +347,7 @@ useEffect(() => {
                   onClick={() => {
                     clearProductSearch();
                     setSubFilter(null);
+                    setPage(1);
                   }}
                   className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
           ${subFilter === null
@@ -313,6 +364,7 @@ useEffect(() => {
                     onClick={() => {
                       clearProductSearch();
                       setSubFilter(sub.id);
+                      setPage(1);
                     }}
                     className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
             ${subFilter == sub.id
@@ -327,7 +379,7 @@ useEffect(() => {
             </div>
           )}
         </div>
-      </section>
+      </section>}
 
       {/* Products Grid */}
       
@@ -352,7 +404,7 @@ useEffect(() => {
 
    
 
-<section className="py-8 md:py-12 bg-white">
+<section id={lockedCategory ? 'solar-panel-catalogue' : undefined} className="py-8 md:py-12 bg-white" aria-label={catalogueLabel}>
   <div className="max-w-7xl mx-auto px-4 md:px-6">
     {!isLoadingProducts && hasProductLoadError ? (
       <div className="mx-auto flex max-w-2xl flex-col items-center rounded-[2rem] border border-rose-100 bg-rose-50/70 px-6 py-12 text-center shadow-sm md:px-12 md:py-16">
@@ -380,8 +432,8 @@ useEffect(() => {
           type="button"
           onClick={() => {
             clearProductSearch();
-            setActiveCategoryId(null);
-            setFilter(null);
+            setActiveCategoryId(lockedCategory ? initialCategoryId : null);
+            setFilter(lockedCategory ? initialCategoryId : null);
             setSubFilter(null);
             setPage(1);
           }}
@@ -396,11 +448,12 @@ useEffect(() => {
         <ProductCard
           key={product.id}
           product={product}
-          onSelectProduct={onSelectProduct}
+          onSelectProduct={selectProductWithReturnState}
           onAddToCart={onAddToCart}
           onOrderNow={onOrderNow}
           lang={lang === 'ru' ? 'az' : lang}
           search={search}
+          enableImageGallery
         />
         ))}
       </div>

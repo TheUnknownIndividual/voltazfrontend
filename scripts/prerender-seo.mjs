@@ -2,7 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const DIST = path.join(ROOT, 'dist');
+const DIST = process.env.BUILD_DIR
+  ? path.resolve(process.env.BUILD_DIR)
+  : path.join(ROOT, 'dist');
 const LANGUAGES = ['az', 'en', 'ru', 'tr'];
 const SITE = 'https://volt.az';
 // Stable on purpose: __PRERENDER_DIR__ is only an internal IIS rewrite target
@@ -15,9 +17,21 @@ const INSTALLATION_PATHS = {
   ru: '/ru/ustanovka-solnechnyh-paneley',
   tr: '/tr/gunes-paneli-kurulumu',
 };
+const SOLAR_PANEL_PATHS = {
+  az: '/gunes-panelleri',
+  en: '/en/solar-panels',
+  ru: '/ru/solnechnye-paneli',
+  tr: '/tr/gunes-panelleri',
+};
+const INVERTER_PATHS = {
+  az: '/gunes-invertorlari',
+  en: '/en/solar-inverters',
+  ru: '/ru/solnechnye-invertory',
+  tr: '/tr/gunes-invertorleri',
+};
 
 const staticRoutes = [
-  '/', '/about', '/services', '/solar-installation', '/projects', '/products',
+  '/', '/about', '/services', '/solar-installation', '/solar-panels', '/inverters', '/projects', '/products',
   '/calculator', '/contact', '/videos', '/faq', '/how-to-start',
   '/necessary-documents', '/legislation', '/credits', '/partnership', '/pro-club',
   '/privacy-policy', '/terms-of-service', '/purchase-terms', '/news', '/blog',
@@ -26,10 +40,16 @@ const staticRoutes = [
 const text = {
   az: {
     site: 'Volt.az',
-    home: 'Günəş Panelləri Satışı və Quraşdırılması',
+    home: 'Solar Enerji və Günəş Panelləri Azərbaycanda',
     description: 'Azərbaycanda ev və biznes üçün günəş panelləri, invertorlar, enerji saxlama, layihələndirmə və quraşdırma həlləri.',
     installation: 'Günəş Paneli Quraşdırılması Azərbaycanda',
     installationDescription: 'Ev və biznes üçün günəş paneli quraşdırılması: sərfiyyat analizi, texniki baxış, layihələndirmə, avadanlıq seçimi, montaj və sistemin təhvili.',
+    panels: 'Günəş Panelləri (Gunes Panel) Satışı və Qiymət',
+    panelsH1: 'Azərbaycanda Günəş Panelləri Satışı',
+    panelsDescription: 'Günəş panelləri və gunes panel sistemləri: LONGi modelləri, texniki göstəricilər, qiymət təklifi və ev, biznes və iri layihələr üçün quraşdırma.',
+    inverters: 'Günəş İnvertorları Satışı və Qiymətləri',
+    invertersH1: 'Azərbaycanda Günəş İnvertorlarının Satışı',
+    invertersDescription: 'Günəş invertorları: Growatt şəbəkəli, hibrid və şəbəkədənkənar modellər, texniki göstəricilər, stok məlumatı və layihəyə uyğun qiymət təklifi.',
     calculator: 'Günəş Enerjisi Kalkulyatoru',
     calculatorDescription: 'Sistem gücünü, illik istehsalı, təxmini qiyməti və elektrik qənaətini hesablayın.',
     nav: ['Quraşdırma', 'Məhsullar', 'Kalkulyator', 'Layihələr', 'Əlaqə'],
@@ -41,6 +61,8 @@ const text = {
     description: 'Solar panels, inverters, energy storage, system design, and installation for homes and businesses in Azerbaijan.',
     installation: 'Solar Panel Installation in Azerbaijan',
     installationDescription: 'Solar installation for homes and businesses, including consumption analysis, site survey, design, equipment selection, installation, and handover.',
+    panels: 'Solar Panels for Sale and Prices in Azerbaijan', panelsH1: 'Solar Panels for Sale in Azerbaijan', panelsDescription: 'Solar panels and LONGi systems in Azerbaijan: specifications, quotations, warranties, stock, and installation for homes, businesses, and large projects.',
+    inverters: 'Solar Inverters for Sale and Prices in Azerbaijan', invertersH1: 'Solar Inverters for Sale in Azerbaijan', invertersDescription: 'Growatt solar inverters in Azerbaijan: grid-tied, hybrid, and off-grid models, specifications, stock information, technical selection, and quotations.',
     calculator: 'Solar Energy Calculator',
     calculatorDescription: 'Estimate solar system size, annual generation, price, and electricity savings.',
     nav: ['Installation', 'Products', 'Calculator', 'Projects', 'Contact'],
@@ -52,6 +74,8 @@ const text = {
     description: 'Солнечные панели, инверторы, накопители, проектирование и монтаж для домов и бизнеса в Азербайджане.',
     installation: 'Установка солнечных панелей в Азербайджане',
     installationDescription: 'Установка солнечных панелей для дома и бизнеса: анализ потребления, обследование, проектирование, подбор оборудования, монтаж и сдача.',
+    panels: 'Солнечные панели: продажа и цены в Азербайджане', panelsH1: 'Продажа солнечных панелей в Азербайджане', panelsDescription: 'Солнечные панели LONGi в Азербайджане: характеристики, цены, гарантия, наличие и монтаж для дома, бизнеса и крупных проектов.',
+    inverters: 'Солнечные инверторы: продажа и цены в Азербайджане', invertersH1: 'Продажа солнечных инверторов в Азербайджане', invertersDescription: 'Солнечные инверторы Growatt в Азербайджане: сетевые, гибридные и автономные модели, характеристики, наличие, подбор и расчет цены.',
     calculator: 'Калькулятор солнечной энергии',
     calculatorDescription: 'Рассчитайте мощность системы, годовую выработку, примерную цену и экономию электроэнергии.',
     nav: ['Установка', 'Продукты', 'Калькулятор', 'Проекты', 'Контакты'],
@@ -63,6 +87,8 @@ const text = {
     description: 'Azerbaycan’da evler ve işletmeler için güneş panelleri, inverterler, enerji depolama, sistem tasarımı ve kurulum.',
     installation: 'Azerbaycan’da Güneş Paneli Kurulumu',
     installationDescription: 'Ev ve işletmeler için tüketim analizi, keşif, tasarım, ekipman seçimi, güneş paneli kurulumu ve teslim hizmeti.',
+    panels: 'Güneş Panelleri Satışı ve Fiyatları', panelsH1: 'Azerbaycan’da Güneş Paneli Satışı', panelsDescription: 'Azerbaycan’da LONGi güneş panelleri: teknik özellikler, fiyat teklifi, garanti, stok ve profesyonel kurulum.',
+    inverters: 'Güneş İnverteri Satışı ve Fiyatları', invertersH1: 'Azerbaycan’da Güneş İnverteri Satışı', invertersDescription: 'Azerbaycan’da Growatt güneş inverterleri: şebeke bağlantılı, hibrit ve bağımsız modeller, teknik özellikler, stok ve fiyat teklifi.',
     calculator: 'Güneş Enerjisi Hesaplayıcı',
     calculatorDescription: 'Sistem gücünü, yıllık üretimi, tahmini fiyatı ve elektrik tasarrufunu hesaplayın.',
     nav: ['Kurulum', 'Ürünler', 'Hesaplayıcı', 'Projeler', 'İletişim'],
@@ -162,6 +188,8 @@ const cleanText = (value = '') => String(value)
 
 const localizedPath = (route, language) => {
   if (route === '/solar-installation') return INSTALLATION_PATHS[language];
+  if (route === '/solar-panels') return SOLAR_PANEL_PATHS[language];
+  if (route === '/inverters') return INVERTER_PATHS[language];
   if (language === 'az') return route;
   return route === '/' ? `/${language}` : `/${language}${route}`;
 };
@@ -170,8 +198,10 @@ const absolute = (route, language) => `${SITE}${localizedPath(route, language)}`
 
 const pageMeta = (route, language, dynamic) => {
   const localized = text[language];
-  if (route === '/') return { title: `${localized.site} | ${localized.home}`, description: localized.description };
+  if (route === '/') return { title: `${localized.home} | Volt.az`, description: localized.description };
   if (route === '/solar-installation') return { title: `${localized.installation} | Volt.az`, description: localized.installationDescription };
+  if (route === '/solar-panels') return { title: `${localized.panels} | Volt.az`, description: localized.panelsDescription };
+  if (route === '/inverters') return { title: `${localized.inverters} | Volt.az`, description: localized.invertersDescription };
   if (route === '/calculator') return { title: `${localized.calculator} | Volt.az`, description: localized.calculatorDescription };
   if (dynamic) {
     const localizedDynamic = dynamic.localized?.[language] || {};
@@ -183,7 +213,8 @@ const pageMeta = (route, language, dynamic) => {
         : `${name}. ${sourceDescription}`
       : `${name} — ${localized.description}`;
     const description = pageSpecificDescription.slice(0, 160);
-    return { title: `${name} | Volt.az`, description };
+    const productFacts = dynamic.kind === 'product' ? [dynamic.technicalPower, dynamic.effectiveness ? `${dynamic.effectiveness}%` : '', dynamic.price ? `${dynamic.price} AZN` : '', dynamic.inStock ? ({ az: 'stokda', en: 'in stock', ru: 'в наличии', tr: 'stokta' }[language]) : ''].filter(Boolean).join(', ') : '';
+    return { title: `${name} | Volt.az`, description: `${description}${productFacts ? ` ${productFacts}.` : ''}`.slice(0, 160) };
   }
   const key = route.split('/').filter(Boolean)[0];
   const values = staticTitles[key];
@@ -208,6 +239,44 @@ const fallbackMarkup = (route, language, meta) => {
   const links = navRoutes.map((item, index) =>
     `<a href="${localizedPath(item, language)}">${escapeHtml(localized.nav[index])}</a>`
   ).join(' · ');
+  if (route === '/solar-panels') {
+    const panelContent = {
+      az: {
+        intro: 'Sertifikatlaşdırılmış günəş panellərini layihənizin güc tələbinə, tətbiq sahəsinə və büdcəsinə uyğun seçin.',
+        sections: [['Ev və korporativ günəş paneli həlləri', 'Yaşayış, biznes və iri layihələr üçün panel, inverter, konstruksiya və quraşdırma həlləri.'], ['Panel seçimi, səmərəlilik və zəmanət', 'Güc, modul səmərəliliyi, sahə, məhsul və performans zəmanəti və inverter uyğunluğu birlikdə qiymətləndirilir.'], ['LONGi təchizatı və qiymət', 'Orijinal LONGi günəş panelləri, real stok məlumatı və layihəyə uyğun fərdi qiymət təklifi.']],
+        faqs: [['Gunes panel qiymetleri necə hesablanır?', 'Qiymət panel, inverter, konstruksiya, qoruma, kabel, logistika və quraşdırmaya görə hesablanır.'], ['Ev üçün neçə günəş paneli lazımdır?', 'Panel sayı sərfiyyat, panel gücü, dam sahəsi, istiqamət və kölgələnməyə əsaslanır.'], ['Solar panel sistemi nə qədər elektrik istehsal edir?', 'İstehsal güc, yerləşmə, istiqamət, kölgə, itkilər və mövsümdən asılıdır.']],
+      },
+      en: { intro: 'LONGi solar panels, specifications, quotations, warranty, stock, and installation for homes and businesses.', sections: [['Residential and corporate solar solutions', 'Panels and complete systems for homes, commercial facilities, and large projects.'], ['Selection, efficiency, and warranty', 'Compare rated power, efficiency, area requirements, warranties, and inverter compatibility.'], ['LONGi supply and pricing', 'Original LONGi panels and project-specific quotations based on real requirements.']], faqs: [['How are solar panel prices calculated?', 'Pricing includes panels, inverter, mounting, protection, cables, logistics, and installation.'], ['How many solar panels does a home need?', 'Quantity depends on consumption, wattage, roof area, orientation, and shading.'], ['How much electricity does a solar system produce?', 'Production depends on capacity, location, orientation, shading, losses, and season.']] },
+      ru: { intro: 'Панели LONGi, технический подбор, гарантия, наличие, расчет цены и монтаж в Азербайджане.', sections: [['Решения для дома и бизнеса', 'Комплексные системы для жилых, коммерческих и крупных объектов.'], ['Выбор, эффективность и гарантия', 'Сравните мощность, КПД, требования к площади, гарантию и совместимость.'], ['Поставка LONGi и цена', 'Оригинальные панели LONGi и индивидуальный расчет проекта.']], faqs: [['Как рассчитывается цена?', 'Учитываются панели, инвертор, крепления, защита, кабели, логистика и монтаж.'], ['Сколько панелей нужно для дома?', 'Количество зависит от потребления, мощности, площади, ориентации и тени.'], ['Сколько энергии производит система?', 'Производство зависит от мощности, места, ориентации, потерь и сезона.']] },
+      tr: { intro: 'Ev, işletme ve büyük projeler için LONGi güneş panelleri, teknik seçim, garanti, stok ve kurulum.', sections: [['Konut ve kurumsal çözümler', 'Evler, işletmeler ve büyük projeler için panel ve komple sistemler.'], ['Seçim, verimlilik ve garanti', 'Güç, verimlilik, alan, garanti ve inverter uyumunu karşılaştırın.'], ['LONGi tedariki ve fiyat', 'Orijinal LONGi panelleri ve projeye özel fiyat teklifi.']], faqs: [['Fiyatlar nasıl hesaplanır?', 'Panel, inverter, konstrüksiyon, koruma, kablo, lojistik ve kurulum hesaplanır.'], ['Bir ev için kaç panel gerekir?', 'Sayı tüketim, güç, alan, yön ve gölgeye bağlıdır.'], ['Bir sistem ne kadar elektrik üretir?', 'Üretim kapasite, konum, yön, kayıplar ve mevsime bağlıdır.']] },
+    }[language];
+    return `<main hidden data-seo-prerendered="true">
+      <h1>${escapeHtml(localized.panelsH1)}</h1>
+      <p>${escapeHtml(localized.panelsDescription)}</p><p>${escapeHtml(panelContent.intro)}</p>
+      ${panelContent.sections.map(([heading, body]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></section>`).join('')}
+      <section><h2>FAQ</h2>${panelContent.faqs.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join('')}</section>
+      <nav aria-label="Primary">${links}</nav>
+    </main>`;
+  }
+  if (route === '/inverters') {
+    const inverterContent = {
+      az: {
+        intro: 'Sistem gücünə, panel konfiqurasiyasına və batareya ehtiyacına uyğun günəş invertoru seçimi və texniki dəstək.',
+        sections: [['Ev və korporativ invertor həlləri', 'Yaşayış, biznes və iri layihələr üçün şəbəkəli, hibrid və şəbəkədənkənar invertorlar.'], ['Güc, MPPT və batareya uyğunluğu', 'Faza sayı, panel sətirləri, giriş diapazonu, monitorinq və iş rejimi birlikdə qiymətləndirilir.'], ['Growatt təchizatı və qiymət', 'Mövcud Growatt modelləri, stok məlumatı və layihəyə uyğun fərdi qiymət təklifi.']],
+        faqs: [['Günəş invertorunun qiyməti necə hesablanır?', 'Qiymət güc, faza sayı, sistem növü, batareya uyğunluğu, MPPT sayı və qoruma funksiyalarına görə dəyişir.'], ['Ev üçün hansı gücdə invertor lazımdır?', 'Güc sərfiyyat, panel massivinin gücü, eyni vaxtda işləyən yüklər və genişlənmə planına əsasən hesablanır.'], ['Hibrid və şəbəkəli invertor arasında fərq nədir?', 'Hibrid invertor uyğun batareya və ehtiyat enerji ssenarilərini dəstəkləyə bilər.']],
+      },
+      en: { intro: 'Choose a solar inverter matched to system capacity, panel configuration, operating mode, and battery requirements.', sections: [['Residential and corporate inverter solutions', 'Grid-tied, hybrid, and off-grid inverters for homes, businesses, and large projects.'], ['Power, MPPT, and battery compatibility', 'Phase configuration, strings, input range, monitoring, and operating mode are evaluated together.'], ['Growatt supply and pricing', 'Available Growatt models, stock information, and project-specific quotations.']], faqs: [['How are solar inverter prices calculated?', 'Prices vary by power, phase configuration, system type, battery compatibility, MPPT count, and protection.'], ['What inverter capacity does a home need?', 'Capacity depends on consumption, array size, simultaneous loads, and expansion plans.'], ['What is the difference between hybrid and grid-tied inverters?', 'A compatible hybrid inverter can also support battery storage and backup scenarios.']] },
+      ru: { intro: 'Подбор солнечного инвертора по мощности, конфигурации панелей, режиму работы и требованиям к аккумулятору.', sections: [['Решения для дома и бизнеса', 'Сетевые, гибридные и автономные инверторы для жилых, коммерческих и крупных объектов.'], ['Мощность, MPPT и аккумулятор', 'Фазы, стринги, входной диапазон, мониторинг и режим работы оцениваются вместе.'], ['Поставка Growatt и цена', 'Доступные модели Growatt, наличие и индивидуальный расчет проекта.']], faqs: [['Как рассчитывается цена инвертора?', 'Учитываются мощность, фазы, тип системы, аккумулятор, MPPT и защита.'], ['Какая мощность инвертора нужна для дома?', 'Мощность зависит от потребления, массива панелей, нагрузок и планов расширения.'], ['Чем гибридный инвертор отличается от сетевого?', 'Совместимый гибридный инвертор может поддерживать аккумулятор и резервное питание.']] },
+      tr: { intro: 'Sistem gücü, panel dizilimi, çalışma şekli ve batarya ihtiyacına uygun güneş inverteri seçimi.', sections: [['Konut ve kurumsal çözümler', 'Evler, işletmeler ve büyük projeler için şebeke bağlantılı, hibrit ve bağımsız inverterler.'], ['Güç, MPPT ve batarya uyumu', 'Faz yapısı, diziler, giriş aralığı, izleme ve çalışma modu birlikte değerlendirilir.'], ['Growatt tedariki ve fiyat', 'Mevcut Growatt modelleri, stok bilgisi ve projeye özel fiyat teklifi.']], faqs: [['Güneş inverteri fiyatı nasıl hesaplanır?', 'Fiyat güç, faz yapısı, sistem türü, batarya, MPPT ve korumaya göre değişir.'], ['Bir ev için hangi güçte inverter gerekir?', 'Güç tüketim, panel dizisi, eş zamanlı yükler ve genişleme planına göre hesaplanır.'], ['Hibrit ve şebeke bağlantılı inverter arasındaki fark nedir?', 'Uyumlu hibrit inverter batarya ve yedek enerji senaryolarını da destekleyebilir.']] },
+    }[language];
+    return `<main hidden data-seo-prerendered="true">
+      <h1>${escapeHtml(localized.invertersH1)}</h1>
+      <p>${escapeHtml(localized.invertersDescription)}</p><p>${escapeHtml(inverterContent.intro)}</p>
+      ${inverterContent.sections.map(([heading, body]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></section>`).join('')}
+      <section><h2>FAQ</h2>${inverterContent.faqs.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join('')}</section>
+      <nav aria-label="Primary">${links}</nav>
+    </main>`;
+  }
   return `<main hidden data-seo-prerendered="true">
       <h1 style="font-size:clamp(2rem,5vw,4rem);line-height:1.05">${escapeHtml(meta.title.replace(/ \| Volt\.az$/, ''))}</h1>
       <p style="max-width:48rem;font-size:1.1rem;line-height:1.7;color:#475569">${escapeHtml(meta.description)}</p>
@@ -218,7 +287,7 @@ const fallbackMarkup = (route, language, meta) => {
 const render = (template, route, language, dynamic) => {
   const meta = pageMeta(route, language, dynamic);
   const canonical = absolute(route, language);
-  const image = dynamic?.image || `${SITE}/volt-site-icon.png`;
+  const image = dynamic?.image || (route === '/inverters' ? `${SITE}/inverters-hero.webp` : `${SITE}/volt-site-icon.png`);
   const type = dynamic?.kind === 'product' ? 'product' : dynamic?.kind === 'blog' || dynamic?.kind === 'news' ? 'article' : 'website';
   const schema = route === '/solar-installation'
     ? {
@@ -231,6 +300,48 @@ const render = (template, route, language, dynamic) => {
         areaServed: { '@type': 'Country', name: 'Azerbaijan' },
         inLanguage: language,
       }
+    : route === '/solar-panels'
+      ? (() => {
+          const products = dynamicRoutes
+            .filter((item) => item.kind === 'product' && item.categorySeoKey === 'solar-panels')
+            .slice(0, 5);
+          const schemaFaqs = {
+            az: [['Gunes panel qiymetleri necə hesablanır?', 'Qiymət panel, inverter, konstruksiya, qoruma, kabel, logistika və quraşdırmaya görə hesablanır.'], ['Ev üçün neçə günəş paneli lazımdır?', 'Panel sayı sərfiyyat, panel gücü, dam sahəsi, istiqamət və kölgələnməyə əsaslanır.'], ['Solar panel sistemi nə qədər elektrik istehsal edir?', 'İstehsal güc, yerləşmə, istiqamət, kölgə, itkilər və mövsümdən asılıdır.']],
+            en: [['How are solar panel prices calculated?', 'Pricing includes panels, inverter, mounting, protection, cables, logistics, and installation.'], ['How many solar panels does a home need?', 'Quantity depends on consumption, wattage, roof area, orientation, and shading.'], ['How much electricity does a solar system produce?', 'Production depends on capacity, location, orientation, shading, losses, and season.']],
+            ru: [['Как рассчитывается цена?', 'Учитываются панели, инвертор, крепления, защита, кабели, логистика и монтаж.'], ['Сколько панелей нужно для дома?', 'Количество зависит от потребления, мощности, площади, ориентации и тени.'], ['Сколько энергии производит система?', 'Производство зависит от мощности, места, ориентации, потерь и сезона.']],
+            tr: [['Fiyatlar nasıl hesaplanır?', 'Panel, inverter, konstrüksiyon, koruma, kablo, lojistik ve kurulum hesaplanır.'], ['Bir ev için kaç panel gerekir?', 'Sayı tüketim, güç, alan, yön ve gölgeye bağlıdır.'], ['Bir sistem ne kadar elektrik üretir?', 'Üretim kapasite, konum, yön, kayıplar ve mevsime bağlıdır.']],
+          }[language];
+          return {
+          '@context': 'https://schema.org',
+          '@graph': [
+            { '@type': 'CollectionPage', '@id': `${canonical}#collection`, name: text[language].panelsH1, description: text[language].panelsDescription, url: canonical, inLanguage: language, isPartOf: { '@id': `${SITE}/#website` } },
+            { '@type': 'BreadcrumbList', '@id': `${canonical}#breadcrumb`, itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Volt.az', item: `${SITE}/` }, { '@type': 'ListItem', position: 2, name: text[language].panelsH1, item: canonical }] },
+            { '@type': 'FAQPage', '@id': `${canonical}#faq`, mainEntity: schemaFaqs.map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })) },
+            ...(products.length ? [{ '@type': 'ItemList', '@id': `${canonical}#products`, itemListElement: products.map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.localized?.[language]?.title || item.title, url: `${SITE}${localizedPath(item.path, language)}` })) }] : []),
+          ],
+        };
+        })()
+    : route === '/inverters'
+      ? (() => {
+          const products = dynamicRoutes
+            .filter((item) => item.kind === 'product' && item.categorySeoKey === 'inverters')
+            .slice(0, 5);
+          const schemaFaqs = {
+            az: [['Günəş invertorunun qiyməti necə hesablanır?', 'Qiymət güc, faza sayı, sistem növü, batareya uyğunluğu, MPPT sayı və qoruma funksiyalarına görə dəyişir.'], ['Ev üçün hansı gücdə invertor lazımdır?', 'Güc sərfiyyat, panel massivinin gücü, eyni vaxtda işləyən yüklər və genişlənmə planına əsasən hesablanır.'], ['Hibrid və şəbəkəli invertor arasında fərq nədir?', 'Uyğun hibrid invertor batareya və ehtiyat enerji ssenarilərini dəstəkləyə bilər.']],
+            en: [['How are solar inverter prices calculated?', 'Prices vary by power, phase configuration, system type, battery compatibility, MPPT count, and protection.'], ['What inverter capacity does a home need?', 'Capacity depends on consumption, array size, simultaneous loads, and expansion plans.'], ['What is the difference between hybrid and grid-tied inverters?', 'A compatible hybrid inverter can also support battery storage and backup scenarios.']],
+            ru: [['Как рассчитывается цена инвертора?', 'Учитываются мощность, фазы, тип системы, аккумулятор, MPPT и защита.'], ['Какая мощность инвертора нужна для дома?', 'Мощность зависит от потребления, массива панелей, нагрузок и планов расширения.'], ['Чем гибридный инвертор отличается от сетевого?', 'Совместимый гибридный инвертор может поддерживать аккумулятор и резервное питание.']],
+            tr: [['Güneş inverteri fiyatı nasıl hesaplanır?', 'Fiyat güç, faz yapısı, sistem türü, batarya, MPPT ve korumaya göre değişir.'], ['Bir ev için hangi güçte inverter gerekir?', 'Güç tüketim, panel dizisi, eş zamanlı yükler ve genişleme planına göre hesaplanır.'], ['Hibrit ve şebeke bağlantılı inverter arasındaki fark nedir?', 'Uyumlu hibrit inverter batarya ve yedek enerji senaryolarını da destekleyebilir.']],
+          }[language];
+          return {
+            '@context': 'https://schema.org',
+            '@graph': [
+              { '@type': 'CollectionPage', '@id': `${canonical}#collection`, name: text[language].invertersH1, description: text[language].invertersDescription, url: canonical, inLanguage: language, isPartOf: { '@id': `${SITE}/#website` }, primaryImageOfPage: { '@type': 'ImageObject', contentUrl: `${SITE}/inverters-hero.webp` } },
+              { '@type': 'BreadcrumbList', '@id': `${canonical}#breadcrumb`, itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Volt.az', item: `${SITE}/` }, { '@type': 'ListItem', position: 2, name: text[language].invertersH1, item: canonical }] },
+              { '@type': 'FAQPage', '@id': `${canonical}#faq`, mainEntity: schemaFaqs.map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })) },
+              ...(products.length ? [{ '@type': 'ItemList', '@id': `${canonical}#products`, itemListElement: products.map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.localized?.[language]?.title || item.title, url: `${SITE}${localizedPath(item.path, language)}` })) }] : []),
+            ],
+          };
+        })()
     : dynamic?.kind === 'product'
       ? {
           '@context': 'https://schema.org',
@@ -241,6 +352,8 @@ const render = (template, route, language, dynamic) => {
           url: canonical,
           sku: dynamic.id,
           ...(dynamic.image ? { image: [dynamic.image] } : {}),
+          ...(dynamic.price ? { offers: { '@type': 'Offer', url: canonical, priceCurrency: 'AZN', price: String(dynamic.price), availability: dynamic.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', itemCondition: 'https://schema.org/NewCondition' } } : {}),
+          ...((dynamic.technicalPower || dynamic.effectiveness) ? { additionalProperty: [dynamic.technicalPower ? { '@type': 'PropertyValue', name: 'Power', value: String(dynamic.technicalPower) } : null, dynamic.effectiveness ? { '@type': 'PropertyValue', name: 'Efficiency', value: `${dynamic.effectiveness}%` } : null].filter(Boolean) } : {}),
           inLanguage: language,
         }
       : dynamic?.kind === 'blog' || dynamic?.kind === 'news'

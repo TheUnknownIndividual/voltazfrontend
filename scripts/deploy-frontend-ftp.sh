@@ -5,11 +5,19 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 REMOTE_DIR="${REMOTE_DIR:-/voltaz}"
-BUILD_DIR="$ROOT_DIR/dist"
+SKIP_PRERENDER="${SKIP_PRERENDER:-0}"
 
 : "${FTP_USER:?Set FTP_USER before running this script.}"
 : "${FTP_PASS:?Set FTP_PASS before running this script.}"
 : "${FTP_HOST:?Set FTP_HOST before running this script.}"
+
+case "$SKIP_PRERENDER" in
+  0|1) ;;
+  *)
+    echo "SKIP_PRERENDER must be 0 or 1." >&2
+    exit 1
+    ;;
+esac
 
 command -v npm >/dev/null || {
   echo "npm is required but was not found in PATH." >&2
@@ -23,6 +31,7 @@ command -v lftp >/dev/null || {
 
 echo "Frontend remote directory: $REMOTE_DIR"
 echo "Frontend API base URL: ${VITE_API_BASE_URL:-https://test.api.volt.az/api/}"
+echo "Frontend prerender: $([ "$SKIP_PRERENDER" = "1" ] && echo disabled || echo enabled)"
 
 cd "$ROOT_DIR"
 
@@ -37,11 +46,40 @@ fi
 echo "Checking TypeScript..."
 npm run lint
 
-echo "Building frontend..."
-npm run build
+DEPLOY_TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/volt-frontend-deploy.XXXXXX")"
+BUILD_DIR="$DEPLOY_TEMP_DIR/dist"
+
+cleanup() {
+  rm -rf -- "$DEPLOY_TEMP_DIR"
+}
+trap cleanup EXIT
+
+echo "Generating sitemap..."
+npm run sitemap
+
+echo "Building isolated frontend output..."
+npx vite build --outDir "$BUILD_DIR"
+
+if [ "$SKIP_PRERENDER" = "1" ]; then
+  echo "Preparing SPA-only routing..."
+  BUILD_DIR="$BUILD_DIR" node scripts/prepare-spa-web-config.mjs
+else
+  echo "Prerendering frontend..."
+  BUILD_DIR="$BUILD_DIR" node scripts/prerender-seo.mjs
+fi
 
 if [ ! -d "$BUILD_DIR" ]; then
-  echo "Build directory does not exist after npm run build: $BUILD_DIR" >&2
+  echo "Build directory does not exist after the frontend build: $BUILD_DIR" >&2
+  exit 1
+fi
+
+if [ ! -f "$BUILD_DIR/index.html" ] || [ ! -f "$BUILD_DIR/web.config" ] || [ ! -d "$BUILD_DIR/assets" ]; then
+  echo "Build output is incomplete; refusing to upload." >&2
+  exit 1
+fi
+
+if grep -q '__PRERENDER_DIR__' "$BUILD_DIR/web.config"; then
+  echo "Build output contains an unresolved prerender placeholder; refusing to upload." >&2
   exit 1
 fi
 
@@ -52,7 +90,7 @@ echo "Mirroring build output to $FTP_HOST:$REMOTE_DIR..."
 lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" <<LFTP_COMMANDS
 set ftp:ssl-allow no
 lcd "$BUILD_DIR"
-mirror -R --ignore-time --no-perms --verbose \
+mirror -R --transfer-all --no-perms --verbose \
   --exclude-glob .git \
   --exclude-glob .git/** \
   --exclude-glob .github \

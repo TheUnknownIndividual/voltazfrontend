@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Header from './components/Header';
 import LoginModal from './components/LoginModal';
 import HeroSlider from './components/HeroSlider';
+import HomeCategoryStrip from './components/HomeCategoryStrip';
 import Calculator from './components/Calculator';
 import Projects from './components/Projects';
 import Products from './components/Products';
@@ -25,6 +26,7 @@ import { ServiceProvider } from './contexts/ServiceContext';
 const AboutPage = lazy(() => import('./components/AboutPage'));
 const AboutDetail = lazy(() => import('./components/AboutDetail'));
 const ServicesPage = lazy(() => import('./components/ServicesPage'));
+const ServiceDetailPage = lazy(() => import('./components/ServiceDetailPage'));
 const ProjectsPage = lazy(() => import('./components/ProjectsPage'));
 const ProductsPage = lazy(() => import('./components/ProductsPage'));
 const ContactPage = lazy(() => import('./components/ContactPage'));
@@ -51,10 +53,12 @@ const NecessaryDocumentsPage = lazy(() => import('./components/NecessaryDocument
 const PartnershipPage = lazy(() => import('./components/PartnershipPage'));
 const ThemeLab = lazy(() => import('./components/ThemeLab'));
 const SolarInstallationPage = lazy(() => import('./components/SolarInstallationPage'));
+const SolarPanelsPage = lazy(() => import('./components/SolarPanelsPage'));
+const InvertersPage = lazy(() => import('./components/InvertersPage'));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
  
 
-type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'solar-installation' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership' | 'not-found';
+type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'solar-installation' | 'solar-panels' | 'inverters' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership' | 'not-found';
 type Language = 'az' | 'en' | 'ru' | 'tr';
 type UserRole = 'customer' | 'master' | 'admin';
 type LocalizedText = Record<Language, string>;
@@ -65,6 +69,27 @@ type SeoMeta = {
   robots?: string;
   type?: string;
   previewImage?: string | null;
+};
+
+const HOME_SEO_INTRO: Record<Language, { title: string; text: string; link: string }> = {
+  az: { title: 'Solar Enerji və Günəş Panelləri Azərbaycanda', text: 'Ev, biznes və sənaye üçün solar enerji həlləri, günəş paneli satışı və quraşdırılması təqdim edirik. Gunes panel seçimi, sistem gücü və qiymət təklifi üçün kataloqa baxın.', link: 'Günəş panellərinə bax' },
+  en: { title: 'Solar Energy and Solar Panels in Azerbaijan', text: 'Solar panels, system design, equipment supply, and professional installation for homes, businesses, and industrial facilities across Azerbaijan.', link: 'Explore solar panels' },
+  ru: { title: 'Солнечная энергия и панели в Азербайджане', text: 'Продажа солнечных панелей, проектирование, поставка оборудования и профессиональный монтаж для дома, бизнеса и промышленности.', link: 'Смотреть солнечные панели' },
+  tr: { title: 'Azerbaycan’da Solar Enerji ve Güneş Panelleri', text: 'Evler, işletmeler ve sanayi tesisleri için güneş paneli satışı, sistem tasarımı, ekipman tedariği ve profesyonel kurulum.', link: 'Güneş panellerini incele' },
+};
+
+const getSafeProductsReturnUrl = (value: unknown) => {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null;
+
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.origin !== window.location.origin) return null;
+    const publicPath = stripLanguagePrefix(parsed.pathname).replace(/\/+$/, '') || '/';
+    if (publicPath !== '/products' && publicPath !== '/solar-panels' && publicPath !== '/inverters') return null;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
 };
 
 
@@ -89,6 +114,8 @@ import { ProductProvider, useProduct } from './contexts/ProductContext';
 import { CategoryProvider } from './contexts/CategoryContext';
 import { EmailProvider } from './contexts/EmailContext';
 import { PartnershipProvider } from './contexts/PartnershipContext';
+import { useNotification } from './contexts/NotificationContext';
+import { getProductStock, getStockWarning } from './utils/productInventory';
 
 interface CartLine {
   id: string;
@@ -349,10 +376,11 @@ interface FloatingCartPreviewProps {
   lang: Language;
   user: User | null;
   mode?: 'fixed' | 'inline';
+  contrastSurfaceSelector?: string;
   onOpenCart: () => void;
   onOpenProduct?: (id: string) => void;
   onRemoveFromCart: (id: string, power?: string) => void;
-  onUpdateCartQuantity: (id: string, quantity: number, power?: string) => void;
+  onUpdateCartQuantity: (id: string, quantity: number, power?: string, maxStock?: number) => void;
 }
 
 const getProductImage = (product: any) =>
@@ -366,11 +394,13 @@ const getCartLinePrice = (product: any, selectedPower?: string) => {
   return Number(selectedParam?.amount ?? parameters[0]?.amount ?? product?.price ?? 0);
 };
 
-const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, user, mode = 'fixed', onOpenCart, onOpenProduct, onRemoveFromCart, onUpdateCartQuantity }) => {
+const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, user, mode = 'fixed', contrastSurfaceSelector, onOpenCart, onOpenProduct, onRemoveFromCart, onUpdateCartQuantity }) => {
   const { getProductById } = useProduct();
   const [isOpen, setIsOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [useDarkContrast, setUseDarkContrast] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const cartButtonRef = useRef<HTMLButtonElement>(null);
   const totalQuantity = cart.reduce((acc, item) => acc + item.quantity, 0);
   const cartPreviewKey = cart.map((item) => `${item.id}:${item.power || ''}:${item.quantity}`).join('|');
   const isInline = mode === 'inline';
@@ -429,7 +459,48 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
     };
   }, [isOpen]);
 
-  if (user?.role === 'admin' || cart.length === 0) return null;
+  useEffect(() => {
+    if (isInline || !contrastSurfaceSelector) {
+      setUseDarkContrast(false);
+      return;
+    }
+
+    let animationFrame = 0;
+    const updateContrast = () => {
+      const button = cartButtonRef.current;
+      const surface = document.querySelector<HTMLElement>(contrastSurfaceSelector);
+      if (!button || !surface || window.innerWidth >= 640) {
+        setUseDarkContrast(false);
+        return;
+      }
+
+      const buttonRect = button.getBoundingClientRect();
+      const surfaceRect = surface.getBoundingClientRect();
+      const overlaps = buttonRect.left < surfaceRect.right
+        && buttonRect.right > surfaceRect.left
+        && buttonRect.top < surfaceRect.bottom
+        && buttonRect.bottom > surfaceRect.top;
+      setUseDarkContrast((current) => current === overlaps ? current : overlaps);
+    };
+    const scheduleContrastUpdate = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        updateContrast();
+      });
+    };
+
+    scheduleContrastUpdate();
+    window.addEventListener('scroll', scheduleContrastUpdate, { passive: true });
+    window.addEventListener('resize', scheduleContrastUpdate);
+    return () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('scroll', scheduleContrastUpdate);
+      window.removeEventListener('resize', scheduleContrastUpdate);
+    };
+  }, [cart.length, contrastSurfaceSelector, isInline]);
+
+  if (cart.length === 0) return null;
 
   const subtotal = products.reduce((sum, item) => sum + getCartLinePrice(item, item.selectedPower) * item.quantity, 0);
   const itemWord = lang === 'az' ? 'məhsul' : lang === 'ru' ? 'товаров' : lang === 'tr' ? 'ürün' : 'items';
@@ -458,12 +529,14 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
       onRemoveFromCart(id, item.selectedPower);
       return;
     }
+    const maxStock = getProductStock(item, item.selectedPower);
+    const safeQuantity = Math.min(Math.max(0, nextQuantity), maxStock);
     setProducts((current) => current.map((product) =>
       String(product.cartId ?? product.id) === id && product.selectedPower === item.selectedPower
-        ? { ...product, quantity: nextQuantity }
+        ? { ...product, quantity: safeQuantity }
         : product
     ));
-    onUpdateCartQuantity(id, nextQuantity, item.selectedPower);
+    onUpdateCartQuantity(id, nextQuantity, item.selectedPower, maxStock);
   };
 
   const handlePreviewQuantityInput = (item: any, value: string) => {
@@ -507,8 +580,11 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
             ) : (
               products.map((item) => {
                 const price = getCartLinePrice(item, item.selectedPower);
+                const maxStock = getProductStock(item, item.selectedPower);
+                const exceedsStock = item.quantity > maxStock;
                 return (
-                  <div key={`${item.id}-${item.selectedPower || 'base'}`} className="flex items-center gap-3 rounded-xl bg-slate-50 p-2 transition-all hover:bg-slate-100">
+                  <div key={`${item.id}-${item.selectedPower || 'base'}`} className="rounded-xl bg-slate-50 p-2 transition-all hover:bg-slate-100">
+                    <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={(event) => {
@@ -523,6 +599,7 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-black text-slate-900">{item.productName}</div>
                       {item.selectedPower && <div className="text-[10px] font-bold text-slate-400">{item.selectedPower}</div>}
+                      <div className="text-[9px] font-bold text-slate-400">{lang === 'az' ? 'Stok' : lang === 'ru' ? 'Остаток' : lang === 'tr' ? 'Stok' : 'Stock'}: {maxStock}</div>
                       <div className="mt-1 text-[11px] font-black text-emerald-600">{(price * item.quantity).toFixed(2)} AZN</div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
@@ -541,6 +618,7 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
                       <input
                         type="number"
                         min={0}
+                        max={maxStock}
                         inputMode="numeric"
                         value={item.quantity}
                         onPointerDown={stopPreviewPointer}
@@ -552,12 +630,13 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
                       />
                       <button
                         type="button"
+                        disabled={item.quantity >= maxStock}
                         onPointerDown={stopPreviewPointer}
                         onClick={(event) => {
                           event.stopPropagation();
                           changePreviewQuantity(item, item.quantity + 1);
                         }}
-                        className="flex h-8 w-8 touch-manipulation items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-600 active:scale-95"
+                        className="flex h-8 w-8 touch-manipulation items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label="Increase quantity"
                       >
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
@@ -575,6 +654,12 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" /></svg>
                       </button>
                     </div>
+                    </div>
+                    {exceedsStock && (
+                      <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[9px] font-bold text-amber-800" role="alert">
+                        {getStockWarning(lang, maxStock, item.quantity)}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -592,11 +677,12 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
       )}
 
       <button
+        ref={cartButtonRef}
         type="button"
         onClick={handleMainClick}
         className={isInline
           ? "product-floating-cart-button group flex h-full min-h-12 items-center justify-center rounded-xl bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-slate-900 active:scale-95"
-          : "group rounded-full bg-emerald-600 p-4 text-white shadow-2xl shadow-emerald-600/40 transition-all hover:bg-slate-900 active:scale-95 animate-in fade-in zoom-in duration-300"}
+          : `group rounded-full p-4 text-white shadow-2xl transition-all hover:bg-slate-900 active:scale-95 animate-in fade-in zoom-in duration-300 ${useDarkContrast ? 'bg-[var(--color-dark)] shadow-black/30' : 'bg-emerald-600 shadow-emerald-600/40'}`}
         aria-expanded={isOpen}
         aria-label={label}
       >
@@ -604,7 +690,7 @@ const FloatingCartPreview: React.FC<FloatingCartPreviewProps> = ({ cart, lang, u
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-[10px] font-black text-emerald-600 shadow-md">
+          <span className={`absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 bg-white text-[10px] font-black shadow-md transition-colors ${useDarkContrast && !isInline ? 'border-[var(--color-dark)] text-[var(--color-dark)]' : 'border-emerald-600 text-emerald-600'}`}>
             {totalQuantity}
           </span>
         </div>
@@ -717,6 +803,7 @@ const App: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const { role } = useAuth();
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
   const [view, setView] = useState<{ page: PageView; id?: string; extra?: any }>({ page: 'home' });
   const [lang, setLang] = useState<Language>(() => getLanguageFromPath(window.location.pathname));
@@ -810,6 +897,7 @@ const AppContent: React.FC = () => {
       case 'about': return '/about';
       case 'about-detail': return `/about/detail/${extra?.section || id || ''}`;
       case 'services': {
+        if (extra?.slug) return `/services/${extra.slug}`;
         const service = extra?.service ?? extra?.serviceId;
         const params = new URLSearchParams();
         if (service !== undefined && service !== null) params.set('service', String(service));
@@ -818,6 +906,8 @@ const AppContent: React.FC = () => {
         return query ? `/services?${query}` : '/services';
       }
       case 'solar-installation': return '/solar-installation';
+      case 'solar-panels': return '/solar-panels';
+      case 'inverters': return '/inverters';
       case 'projects': return '/projects';
       case 'project-detail': return `/projects/${id || ''}`;
       case 'products': {
@@ -825,15 +915,19 @@ const AppContent: React.FC = () => {
         const category = extra?.category ?? extra?.categoryId;
         const subCategory = extra?.subCategory ?? extra?.subCategoryId;
         const search = extra?.search;
+        const page = Number(extra?.page);
         if (category !== undefined && category !== null) params.set('category', String(category));
         if (subCategory !== undefined && subCategory !== null) params.set('subCategory', String(subCategory));
         if (search !== undefined && search !== null && String(search).trim()) params.set('search', String(search).trim());
+        if (Number.isFinite(page) && page > 1) params.set('page', String(Math.floor(page)));
         const query = params.toString();
         return query ? `/products?${query}` : '/products';
       }
       case 'product-detail': {
         const params = new URLSearchParams();
         if (extra?.returnToProducts) params.set('return', 'products');
+        const safeReturnUrl = getSafeProductsReturnUrl(extra?.returnUrl);
+        if (safeReturnUrl) params.set('returnUrl', safeReturnUrl);
         if (extra?.returnCategory !== undefined && extra?.returnCategory !== null) {
           params.set('returnCategory', String(extra.returnCategory));
         }
@@ -843,6 +937,8 @@ const AppContent: React.FC = () => {
         if (extra?.returnSearch !== undefined && extra?.returnSearch !== null && String(extra.returnSearch).trim()) {
           params.set('returnSearch', String(extra.returnSearch).trim());
         }
+        const returnPage = Number(extra?.returnPage);
+        if (Number.isFinite(returnPage) && returnPage > 1) params.set('returnPage', String(Math.floor(returnPage)));
         const query = params.toString();
         return query ? `/product/${id || ''}?${query}` : `/product/${id || ''}`;
       }
@@ -893,12 +989,21 @@ const AppContent: React.FC = () => {
     if (parts[0] === 'about' && parts[1] === 'detail') return { page: 'about-detail', id: parts[2], extra: { section: parts[2] } };
     if (parts[0] === 'about') return { page: 'about' };
     if (parts[0] === 'services') {
+      if (parts[1]) return { page: 'services', id: parts[1], extra: { slug: parts[1] } };
       const params = new URLSearchParams(search);
       const service = params.get('service') || undefined;
       const focus = params.get('focus') || undefined;
       return { page: 'services', extra: { service, focus } };
     }
     if (parts[0] === 'solar-installation') return { page: 'solar-installation' };
+    if (parts[0] === 'solar-panels') {
+      const params = new URLSearchParams(search);
+      return { page: 'solar-panels', extra: { page: params.get('page') || undefined } };
+    }
+    if (parts[0] === 'inverters') {
+      const params = new URLSearchParams(search);
+      return { page: 'inverters', extra: { page: params.get('page') || undefined } };
+    }
     if (parts[0] === 'projects' && parts[1]) return { page: 'project-detail', id: parts[1] };
     if (parts[0] === 'projects') return { page: 'projects' };
     if (parts[0] === 'products') {
@@ -906,7 +1011,8 @@ const AppContent: React.FC = () => {
       const category = params.get('category') || undefined;
       const subCategory = params.get('subCategory') || undefined;
       const productSearch = params.get('search') || undefined;
-      return { page: 'products', extra: { category, subCategory, search: productSearch } };
+      const productPage = params.get('page') || undefined;
+      return { page: 'products', extra: { category, subCategory, search: productSearch, page: productPage } };
     }
     if (parts[0] === 'product' && parts[1]) {
       const params = new URLSearchParams(search);
@@ -915,9 +1021,11 @@ const AppContent: React.FC = () => {
         id: parts[1],
         extra: {
           returnToProducts: params.get('return') === 'products',
+          returnUrl: getSafeProductsReturnUrl(params.get('returnUrl')) || undefined,
           returnCategory: params.get('returnCategory') || undefined,
           returnSubCategory: params.get('returnSubCategory') || undefined,
           returnSearch: params.get('returnSearch') || undefined,
+          returnPage: params.get('returnPage') || undefined,
         },
       };
     }
@@ -954,6 +1062,18 @@ const AppContent: React.FC = () => {
     setView({ page, id, extra });
   };
 
+  const handleOrderNow = (productId: string, quantity: number, power?: string, maxStock?: number) => {
+    const requestedQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
+    const stockLimit = Number.isFinite(maxStock) ? Math.max(0, Math.floor(Number(maxStock))) : null;
+
+    if (stockLimit !== null && requestedQuantity > stockLimit) {
+      showNotification(getStockWarning(lang, stockLimit, requestedQuantity), 'warning');
+      return;
+    }
+
+    navigateTo('order', productId, { quantity: requestedQuantity, power });
+  };
+
   const handleLanguageChange = (nextLang: Language) => {
     localStorage.setItem('lang', nextLang);
     setLang(nextLang);
@@ -978,30 +1098,47 @@ const AppContent: React.FC = () => {
     saveVisibleCart(normalizedCart);
   };
 
-  const handleAddToCart = (productId: string, quantity: number = 1, power?: string) => {
+  const handleAddToCart = (productId: string, quantity: number = 1, power?: string, maxStock?: number) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => isSameCartLine(item, productId, power));
+      const requestedQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
+      const nextLineQuantity = (existingItem?.quantity || 0) + requestedQuantity;
+      const stockLimit = Number.isFinite(maxStock) ? Math.max(0, Math.floor(Number(maxStock))) : null;
+
+      if (stockLimit !== null && nextLineQuantity > stockLimit) {
+        showNotification(getStockWarning(lang, stockLimit, nextLineQuantity), 'warning');
+        return prevCart;
+      }
+
       let updatedCart;
       if (existingItem) {
         updatedCart = prevCart.map(item =>
-          isSameCartLine(item, productId, power) ? { ...item, quantity: item.quantity + quantity } : item
+          isSameCartLine(item, productId, power) ? { ...item, quantity: nextLineQuantity } : item
         );
       } else {
-        updatedCart = [...prevCart, { id: productId, quantity, power }];
+        updatedCart = [...prevCart, { id: productId, quantity: requestedQuantity, power }];
       }
       persistCart(updatedCart);
       return updatedCart;
     });
   };
 
-  const handleUpdateCartQuantity = (productId: string, quantity: number, power?: string) => {
+  const handleUpdateCartQuantity = (productId: string, quantity: number, power?: string, maxStock?: number) => {
     if (quantity < 0) {
       handleRemoveFromCart(productId, power);
       return;
     }
+    const requestedQuantity = Math.max(0, Math.floor(Number(quantity) || 0));
+    const stockLimit = Number.isFinite(maxStock) ? Math.max(0, Math.floor(Number(maxStock))) : null;
+    const nextQuantity = stockLimit === null ? requestedQuantity : Math.min(requestedQuantity, stockLimit);
+
+    if (stockLimit !== null && requestedQuantity > stockLimit) {
+      showNotification(getStockWarning(lang, stockLimit, requestedQuantity), 'warning');
+    }
+
     setCart(prevCart => {
       const updatedCart = prevCart.map(item =>
-        isSameCartLine(item, productId, power) ? { ...item, quantity } : item
+        isSameCartLine(item, productId, power) ? { ...item, quantity: nextQuantity } : item
       );
       persistCart(updatedCart);
       return updatedCart;
@@ -1161,10 +1298,10 @@ const AppContent: React.FC = () => {
     const seoByPage: Record<PageView, SeoMeta> = {
       home: {
         title: {
-          az: 'Volt.az | Günəş Panelləri Satışı və Quraşdırılması | SOLARIX',
-          en: 'Volt.az | Solar Panels, Installation and Energy Solutions',
-          ru: 'Volt.az | Солнечные панели, монтаж и энергетические решения',
-          tr: 'Volt.az | Güneş Panelleri, Kurulum ve Enerji Çözümleri'
+          az: 'Solar Enerji və Günəş Panelləri Azərbaycanda | Volt.az',
+          en: 'Solar Energy and Solar Panels in Azerbaijan | Volt.az',
+          ru: 'Солнечная энергия и панели в Азербайджане | Volt.az',
+          tr: 'Azerbaycan’da Solar Enerji ve Güneş Panelleri | Volt.az'
         },
         description: {
           az: 'Volt.az Azərbaycanda günəş panelləri, invertorlar, enerji saxlama, quraşdırma və solar kalkulyator xidmətləri təqdim edir.',
@@ -1220,6 +1357,41 @@ const AppContent: React.FC = () => {
         keywords: 'günəş paneli quraşdırılması, günəş sistemi quraşdırılması, solar panel installation Azerbaijan, güneş paneli kurulumu, установка солнечных панелей',
         robots: publicRobots,
         type: 'website'
+      },
+      'solar-panels': {
+        title: {
+          az: 'Günəş Panelləri (Gunes Panel) Satışı və Qiymət | Volt.az',
+          en: 'Solar Panels for Sale and Prices in Azerbaijan | Volt.az',
+          ru: 'Солнечные панели: продажа и цены в Азербайджане | Volt.az',
+          tr: 'Güneş Panelleri Satışı ve Fiyatları | Volt.az'
+        },
+        description: {
+          az: 'Günəş panelləri və gunes panel sistemləri: LONGi modelləri, texniki göstəricilər, qiymət təklifi və ev, biznes və iri layihələr üçün quraşdırma.',
+          en: 'Solar panels and LONGi systems in Azerbaijan: specifications, quotations, warranties, stock, and installation for homes, businesses, and large projects.',
+          ru: 'Солнечные панели LONGi в Азербайджане: характеристики, цены, гарантия, наличие и монтаж для дома, бизнеса и крупных проектов.',
+          tr: 'Azerbaycan’da LONGi güneş panelleri: teknik özellikler, fiyat teklifi, garanti, stok ve profesyonel kurulum.'
+        },
+        keywords: 'günəş paneli, günəş panelləri, gunes panel, gunes paneli, gunes panelleri, solar panel, panel qiymeti, LONGi Azərbaycan',
+        robots: publicRobots,
+        type: 'website'
+      },
+      inverters: {
+        title: {
+          az: 'Günəş İnvertorları Satışı və Qiymətləri | Volt.az',
+          en: 'Solar Inverters for Sale and Prices in Azerbaijan | Volt.az',
+          ru: 'Солнечные инверторы: продажа и цены в Азербайджане | Volt.az',
+          tr: 'Güneş İnverteri Satışı ve Fiyatları | Volt.az'
+        },
+        description: {
+          az: 'Günəş invertorları: Growatt şəbəkəli, hibrid və şəbəkədənkənar modellər, texniki göstəricilər, stok məlumatı və layihəyə uyğun qiymət təklifi.',
+          en: 'Growatt solar inverters in Azerbaijan: grid-tied, hybrid, and off-grid models, specifications, stock information, technical selection, and quotations.',
+          ru: 'Солнечные инверторы Growatt в Азербайджане: сетевые, гибридные и автономные модели, характеристики, наличие, подбор и расчет цены.',
+          tr: 'Azerbaycan’da Growatt güneş inverterleri: şebeke bağlantılı, hibrit ve bağımsız modeller, teknik özellikler, stok ve fiyat teklifi.'
+        },
+        keywords: 'günəş invertoru, günəş invertorları, gunes invertor, gunes inverter, gunes inventor, gunes panel inverter, inverter, invertor, inventor, Growatt Azərbaycan',
+        robots: publicRobots,
+        type: 'website',
+        previewImage: 'https://volt.az/inverters-hero.webp'
       },
       'not-found': {
         title: { az: 'Səhifə tapılmadı | Volt.az', en: 'Page Not Found | Volt.az', ru: 'Страница не найдена | Volt.az', tr: 'Sayfa Bulunamadı | Volt.az' },
@@ -1528,17 +1700,33 @@ const AppContent: React.FC = () => {
     document.documentElement.lang = lang;
 
     let routeSchema = document.getElementById('route-seo-schema') as HTMLScriptElement | null;
-    if (view.page === 'solar-installation') {
+    if (view.page === 'solar-installation' || view.page === 'solar-panels' || view.page === 'inverters') {
       if (!routeSchema) {
         routeSchema = document.createElement('script');
         routeSchema.type = 'application/ld+json';
         routeSchema.id = 'route-seo-schema';
         document.head.appendChild(routeSchema);
       }
+      const solarPanelFaqs: Record<Language, Array<[string, string]>> = {
+        az: [
+          ['Gunes panel qiymetleri necə hesablanır?', 'Qiymət panel sayı və gücü ilə yanaşı inverter, konstruksiya, qoruma, kabel, çatdırılma və quraşdırma şərtlərinə görə hesablanır.'],
+          ['Ev üçün neçə günəş paneli lazımdır?', 'Panel sayı elektrik sərfiyyatı, panel gücü, dam sahəsi, istiqamət və kölgələnmə əsasında müəyyən edilir.'],
+          ['Solar panel sistemi nə qədər elektrik istehsal edir?', 'İstehsal sistem gücü, yerləşmə, istiqamət, kölgə, itkilər və mövsümi günəşlənmədən asılıdır.'],
+        ],
+        en: [['How are solar panel prices calculated?', 'Pricing reflects panels, inverter, mounting, protection, cables, delivery, and installation conditions.'], ['How many solar panels does a home need?', 'The quantity depends on consumption, panel wattage, roof area, orientation, and shading.'], ['How much electricity does a solar panel system produce?', 'Production varies with capacity, location, orientation, shading, losses, and seasonal irradiation.']],
+        ru: [['Как рассчитывается цена солнечных панелей?', 'Учитываются панели, инвертор, крепления, защита, кабели, доставка и монтаж.'], ['Сколько панелей нужно для дома?', 'Количество зависит от потребления, мощности, площади и ориентации крыши и затенения.'], ['Сколько энергии производит система?', 'Результат зависит от мощности, места, ориентации, затенения, потерь и сезона.']],
+        tr: [['Güneş paneli fiyatları nasıl hesaplanır?', 'Panel, inverter, konstrüksiyon, koruma, kablo, teslimat ve kurulum birlikte hesaplanır.'], ['Bir ev için kaç panel gerekir?', 'Sayı tüketim, panel gücü, çatı alanı, yön ve gölgeye göre belirlenir.'], ['Bir sistem ne kadar elektrik üretir?', 'Üretim güç, konum, yön, gölge, kayıplar ve mevsime bağlıdır.']],
+      };
+      const inverterFaqs: Record<Language, Array<[string, string]>> = {
+        az: [['Günəş invertorunun qiyməti necə hesablanır?', 'Qiymət güc, faza sayı, sistem növü, batareya uyğunluğu, MPPT sayı və qoruma funksiyalarına görə dəyişir.'], ['Ev üçün hansı gücdə invertor lazımdır?', 'Güc sərfiyyat, panel massivinin gücü, eyni vaxtda işləyən yüklər və genişlənmə planına əsasən hesablanır.'], ['Hibrid və şəbəkəli invertor arasında fərq nədir?', 'Şəbəkəli invertor şəbəkə ilə paralel işləyir, uyğun hibrid invertor isə batareya və ehtiyat enerji ssenarilərini də dəstəkləyə bilər.']],
+        en: [['How are solar inverter prices calculated?', 'Prices vary by power, phase configuration, system type, battery compatibility, MPPT count, and protection features.'], ['What inverter capacity does a home need?', 'Capacity is based on consumption, array size, simultaneous loads, and expansion plans.'], ['What is the difference between hybrid and grid-tied inverters?', 'Grid-tied inverters work in parallel with the utility grid, while compatible hybrid inverters can also support battery storage and backup scenarios.']],
+        ru: [['Как рассчитывается цена инвертора?', 'Учитываются мощность, фазы, тип системы, аккумулятор, количество MPPT и функции защиты.'], ['Какая мощность инвертора нужна для дома?', 'Мощность рассчитывается по потреблению, массиву панелей, одновременным нагрузкам и планам расширения.'], ['Чем гибридный инвертор отличается от сетевого?', 'Сетевой инвертор работает параллельно с сетью, а совместимый гибридный инвертор может поддерживать аккумулятор и резервное питание.']],
+        tr: [['Güneş inverteri fiyatı nasıl hesaplanır?', 'Fiyat güç, faz yapısı, sistem türü, batarya uyumu, MPPT sayısı ve koruma özelliklerine göre değişir.'], ['Bir ev için hangi güçte inverter gerekir?', 'Güç tüketim, panel dizisi, eş zamanlı yükler ve genişleme planına göre hesaplanır.'], ['Hibrit ve şebeke bağlantılı inverter arasındaki fark nedir?', 'Şebeke bağlantılı inverter şebekeyle paralel çalışır; uyumlu hibrit inverter batarya ve yedek enerji senaryolarını da destekleyebilir.']],
+      };
       routeSchema.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@graph': [
-          {
+          view.page === 'solar-installation' ? {
             '@type': 'Service',
             '@id': `${canonicalUrl}#service`,
             name: title.replace(' | Volt.az', ''),
@@ -1547,6 +1735,14 @@ const AppContent: React.FC = () => {
             provider: { '@id': 'https://volt.az/#organization' },
             areaServed: { '@type': 'Country', name: 'Azerbaijan' },
             serviceType: 'Solar panel system design and installation',
+          } : {
+            '@type': 'CollectionPage',
+            '@id': `${canonicalUrl}#collection`,
+            name: title.replace(' | Volt.az', ''),
+            description,
+            url: canonicalUrl,
+            isPartOf: { '@id': 'https://volt.az/#website' },
+            about: { '@type': 'Thing', name: view.page === 'inverters' ? 'Solar inverters' : 'Solar panels' },
           },
           {
             '@type': 'BreadcrumbList',
@@ -1556,6 +1752,15 @@ const AppContent: React.FC = () => {
               { '@type': 'ListItem', position: 2, name: title.replace(' | Volt.az', ''), item: canonicalUrl },
             ],
           },
+          ...(view.page === 'solar-panels' ? [{
+            '@type': 'FAQPage',
+            '@id': `${canonicalUrl}#faq`,
+            mainEntity: solarPanelFaqs[lang].map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })),
+          }] : view.page === 'inverters' ? [{
+            '@type': 'FAQPage',
+            '@id': `${canonicalUrl}#faq`,
+            mainEntity: inverterFaqs[lang].map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })),
+          }] : []),
         ],
       });
     } else {
@@ -1576,8 +1781,50 @@ const AppContent: React.FC = () => {
     switch (view.page) {
       case 'about': return <AboutProvider><AboutPage lang={lang} onBack={handleBack} onNavigate={navigateTo} sectionId={view.extra?.section} /></AboutProvider>;
       case 'about-detail': return <AboutProvider><AboutDetail lang={lang} onBack={() => navigateTo('about', undefined, { section: view.extra?.section })} sectionId={view.extra?.section} /></AboutProvider>;
-      case 'services': return <ServiceProvider><ServicesPage lang={lang} onBack={handleBack} initialService={view.extra?.service} focusToken={view.extra?.focus} /></ServiceProvider>;
+      case 'services': return (
+        <ServiceProvider>
+          {view.extra?.slug
+            ? <ServiceDetailPage lang={lang} slug={view.extra.slug} onBack={() => navigateTo('services')} />
+            : <ServicesPage lang={lang} onBack={handleBack} initialService={view.extra?.service} focusToken={view.extra?.focus} />}
+        </ServiceProvider>
+      );
       case 'solar-installation': return <SolarInstallationPage lang={lang} onNavigate={(page) => navigateTo(page as PageView)} />;
+      case 'solar-panels': return (
+        <ProductProvider>
+          <CategoryProvider>
+            <SolarPanelsPage
+              lang={lang}
+              initialPage={view.extra?.page}
+              onNavigate={(page, id, extra) => navigateTo(page as PageView, id, extra)}
+              onSelectProduct={(id, returnContext) => navigateTo('product-detail', id, {
+                returnToProducts: true,
+                returnUrl: returnContext?.returnUrl,
+                returnPage: returnContext?.page,
+              })}
+              onOrderNow={handleOrderNow}
+              onAddToCart={handleAddToCart}
+            />
+          </CategoryProvider>
+        </ProductProvider>
+      );
+      case 'inverters': return (
+        <ProductProvider>
+          <CategoryProvider>
+            <InvertersPage
+              lang={lang}
+              initialPage={view.extra?.page}
+              onNavigate={(page, id, extra) => navigateTo(page as PageView, id, extra)}
+              onSelectProduct={(id, returnContext) => navigateTo('product-detail', id, {
+                returnToProducts: true,
+                returnUrl: returnContext?.returnUrl,
+                returnPage: returnContext?.page,
+              })}
+              onOrderNow={handleOrderNow}
+              onAddToCart={handleAddToCart}
+            />
+          </CategoryProvider>
+        </ProductProvider>
+      );
       case 'not-found': return <NotFoundPage lang={lang} onHome={() => navigateTo('home')} />;
       case 'legislation': return <LegislationPage lang={lang as any} onBack={handleBack} sectionId={view.extra?.section} />;
       case 'pro-club': return <ProClubPage lang={lang as any} onBack={handleBack} onRegisterSuccess={handleLogin} initialMode={view.extra?.mode} />;
@@ -1699,17 +1946,22 @@ const AppContent: React.FC = () => {
             <ProductsPage
               onSelectProduct={(id, returnContext) => navigateTo('product-detail', id, {
                 returnToProducts: true,
+                returnUrl: returnContext?.returnUrl,
                 returnCategory: returnContext?.category,
                 returnSubCategory: returnContext?.subCategory,
                 returnSearch: returnContext?.search,
+                returnPage: returnContext?.page,
               })}
-              onOrderNow={(id, quantity) => navigateTo('order', id, { quantity })}
+              onOrderNow={handleOrderNow}
               onAddToCart={handleAddToCart}
               lang={lang as any}
               onBack={handleBack}
               initialCategory={view.extra?.category ?? view.extra?.categoryId}
               initialSubCategory={view.extra?.subCategory ?? view.extra?.subCategoryId}
               initialSearch={view.extra?.search}
+              initialPage={view.extra?.page}
+              onSelectSolarPanels={() => navigateTo('solar-panels')}
+              onSelectInverters={() => navigateTo('inverters')}
             />
           </CategoryProvider>
         </ProductProvider>
@@ -1721,14 +1973,23 @@ const AppContent: React.FC = () => {
             <ProductDetail
               productId={view.id || ''}
               onBack={() => {
-                const navigationEntryIndex = (window.history.state as { idx?: number } | null)?.idx;
-                if (typeof navigationEntryIndex === 'number' && navigationEntryIndex > 0) {
-                  navigate(-1);
-                } else {
-                  navigateTo('products');
+                const returnUrl = getSafeProductsReturnUrl(view.extra?.returnUrl);
+                if (returnUrl) {
+                  navigate(returnUrl);
+                  return;
                 }
+                if (view.extra?.returnToProducts) {
+                  navigateTo('products', undefined, {
+                    category: view.extra?.returnCategory,
+                    subCategory: view.extra?.returnSubCategory,
+                    search: view.extra?.returnSearch,
+                    page: view.extra?.returnPage,
+                  });
+                  return;
+                }
+                navigateTo('products');
               }}
-              onOrderNow={(id, quantity, power) => navigateTo('order', id, { quantity, power })}
+              onOrderNow={handleOrderNow}
               onAddToCart={handleAddToCart}
               lang={lang}
             />
@@ -1739,12 +2000,25 @@ const AppContent: React.FC = () => {
         return (
           <>
             <HeroSlider lang={lang as any} onNavigate={navigateTo} />
+            <section hidden aria-hidden="true">
+              <h1>{HOME_SEO_INTRO[lang].title}</h1>
+              <p>{HOME_SEO_INTRO[lang].text}</p>
+              <button type="button" tabIndex={-1} onClick={() => navigateTo('solar-panels')}>{HOME_SEO_INTRO[lang].link}</button>
+            </section>
+            <CategoryProvider>
+              <HomeCategoryStrip
+                lang={lang}
+                onSelectCategory={(categoryId) => navigateTo('products', undefined, { category: categoryId })}
+                onSelectSolarPanels={() => navigateTo('solar-panels')}
+                onSelectInverters={() => navigateTo('inverters')}
+              />
+            </CategoryProvider>
             <ProductProvider>
               <CategoryProvider>
                 <Products
                   onSelectProduct={(id) => navigateTo('product-detail', id)}
                   onViewAll={() => navigateTo('products')}
-                  onOrderNow={(id, quantity) => navigateTo('order', id, { quantity })}
+                  onOrderNow={handleOrderNow}
                   onAddToCart={handleAddToCart}
                     lang={lang}
                 />
@@ -1813,30 +2087,25 @@ const AppContent: React.FC = () => {
                 <CategoryProvider>
                   <ProductDetail
                     productId={view.id || ''}
-                    onBack={(productCategory) => {
+                    onBack={() => {
                       const fromProducts = view.extra?.returnToProducts === true;
+                      const returnUrl = getSafeProductsReturnUrl(view.extra?.returnUrl);
+                      if (returnUrl) {
+                        navigate(returnUrl);
+                        return;
+                      }
                       if (fromProducts) {
                         navigateTo('products', undefined, {
                           category: view.extra?.returnCategory,
                           subCategory: view.extra?.returnSubCategory,
                           search: view.extra?.returnSearch,
+                          page: view.extra?.returnPage,
                         });
                         return;
                       }
-
-                      const navigationEntryIndex = (window.history.state as { idx?: number } | null)?.idx;
-                      const arrivedViaInAppNavigation = typeof navigationEntryIndex === 'number' && navigationEntryIndex > 0;
-                      if (arrivedViaInAppNavigation) {
-                        navigate(-1);
-                        return;
-                      }
-
-                      // Direct link / refresh on the product page — there's no real "previous page" to return to.
-                      handleBack();
+                      navigateTo('products');
                     }}
-                    onOrderNow={(id, quantity, power) =>
-                      navigateTo('order', id, { quantity, power })
-                    }
+                    onOrderNow={handleOrderNow}
                     onAddToCart={handleAddToCart}
                     cartPreview={
                       <FloatingCartPreview
@@ -1882,6 +2151,7 @@ const AppContent: React.FC = () => {
               cart={cart}
               lang={lang}
               user={user}
+              contrastSurfaceSelector={view.page === 'home' ? '[data-cart-contrast-surface]' : undefined}
               onOpenCart={() => navigateTo('cart')}
               onOpenProduct={(id) => navigateTo('product-detail', id)}
               onRemoveFromCart={handleRemoveFromCart}

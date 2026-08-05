@@ -29,6 +29,10 @@ interface BlogPost {
     ru: string;
     tr: string;
   };
+
+  seoTitle: Record<LangCode, string>;
+  seoDescription: Record<LangCode, string>;
+  seoKeywords: Record<LangCode, string>;
 }
 
 interface BlogPageProps {
@@ -86,11 +90,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
        || selectedPost.content?.[contentLanguage]
        || ''
      ).replace(/\s+/g, ' ').trim();
-     const description = (
+     const automaticDescription = (
        rawDescription.toLocaleLowerCase().includes(String(title).toLocaleLowerCase())
          ? rawDescription
          : `${title}. ${rawDescription}`
      ).slice(0, 155);
+     const metaTitle = selectedPost.seoTitle[contentLanguage].trim() || `${title} | Volt.az`;
+     const description = selectedPost.seoDescription[contentLanguage].trim() || automaticDescription;
+     const keywords = selectedPost.seoKeywords[contentLanguage].trim();
      const canonicalUrl = absoluteSiteUrl(localizePath(`/blog/${selectedPost.id}`, contentLanguage));
      const robots = contentLanguage === lang
        ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
@@ -104,36 +111,54 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
        element?.setAttribute(attr, value);
      };
 
-     document.title = `${title} | Volt.az`;
+     const image = selectedPost.image
+       ? (/^https?:\/\//i.test(selectedPost.image) ? selectedPost.image : `https://volt.az${selectedPost.image.startsWith('/') ? '' : '/'}${selectedPost.image}`)
+       : undefined;
+
+     document.title = metaTitle;
      setMeta('meta[name="description"]', 'content', description);
+     setMeta('meta[name="keywords"]', 'content', keywords, () => {
+       const tag = document.createElement('meta');
+       tag.setAttribute('name', 'keywords');
+       return tag;
+     });
      setMeta('meta[name="robots"]', 'content', robots);
      setMeta('meta[name="googlebot"]', 'content', robots);
      setMeta('meta[property="og:type"]', 'content', 'article');
-     setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
+     setMeta('meta[property="og:title"]', 'content', metaTitle);
      setMeta('meta[property="og:description"]', 'content', description);
      setMeta('meta[property="og:url"]', 'content', canonicalUrl);
-     if (selectedPost.image) {
-       setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
-       setMeta('meta[property="og:image"]', 'content', selectedPost.image, () => {
+     if (image) {
+       setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image', () => {
+         const tag = document.createElement('meta');
+         tag.setAttribute('name', 'twitter:card');
+         return tag;
+       });
+       setMeta('meta[property="og:image"]', 'content', image, () => {
          const tag = document.createElement('meta');
          tag.setAttribute('property', 'og:image');
          return tag;
        });
      }
-     setMeta('meta[property="twitter:title"]', 'content', `${title} | Volt.az`);
-     setMeta('meta[property="twitter:description"]', 'content', description);
-     if (selectedPost.image) {
-       setMeta('meta[property="twitter:image"]', 'content', selectedPost.image, () => {
+     setMeta('meta[name="twitter:title"]', 'content', metaTitle, () => {
+       const tag = document.createElement('meta');
+       tag.setAttribute('name', 'twitter:title');
+       return tag;
+     });
+     setMeta('meta[name="twitter:description"]', 'content', description, () => {
+       const tag = document.createElement('meta');
+       tag.setAttribute('name', 'twitter:description');
+       return tag;
+     });
+     if (image) {
+       setMeta('meta[name="twitter:image"]', 'content', image, () => {
          const tag = document.createElement('meta');
-         tag.setAttribute('property', 'twitter:image');
+         tag.setAttribute('name', 'twitter:image');
          return tag;
        });
      }
      setMeta('link[rel="canonical"]', 'href', canonicalUrl);
 
-     const image = selectedPost.image
-       ? (/^https?:\/\//i.test(selectedPost.image) ? selectedPost.image : `https://volt.az${selectedPost.image.startsWith('/') ? '' : '/'}${selectedPost.image}`)
-       : undefined;
      const articleJsonLd = {
        '@context': 'https://schema.org',
        '@graph': [
@@ -255,6 +280,9 @@ const transformBlog = (item: any) => {
   const titles = { az: "", en: "", ru: "", tr: "" };
   const descriptions = { az: "", en: "", ru: "", tr: "" };
   const contents = { az: "", en: "", ru: "", tr: "" };
+  const seoTitles = { az: "", en: "", ru: "", tr: "" };
+  const seoDescriptions = { az: "", en: "", ru: "", tr: "" };
+  const seoKeywords = { az: "", en: "", ru: "", tr: "" };
 
   (item.translations || []).forEach((t: any) => {
     const lang = mapLang(t.languageCode);
@@ -262,6 +290,9 @@ const transformBlog = (item: any) => {
     titles[lang] = t.title || "";
     descriptions[lang] = t.description || "";
     contents[lang] = t.content || "";
+    seoTitles[lang] = t.seoTitle || "";
+    seoDescriptions[lang] = t.seoDescription || "";
+    seoKeywords[lang] = t.seoKeywords || "";
   });
 
   return {
@@ -274,6 +305,9 @@ const transformBlog = (item: any) => {
     title: titles,
     description: descriptions,
     content: contents,
+    seoTitle: seoTitles,
+    seoDescription: seoDescriptions,
+    seoKeywords,
   };
 };
 
@@ -395,6 +429,13 @@ const transformBlog = (item: any) => {
                     ))}
                   </div>
                   <div className="pt-12 border-t border-slate-50">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.('solar-panels')}
+                      className="mb-3 mr-3 inline-flex items-center gap-3 rounded-2xl bg-[var(--color-primary)] px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-dark)]"
+                    >
+                      {{ az: 'Günəş panellərinə bax', en: 'Explore solar panels', ru: 'Смотреть солнечные панели', tr: 'Güneş panellerini incele' }[lang]}
+                    </button>
                     <button 
                       onClick={() => setSelectedPost(null)}
                       className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/20"

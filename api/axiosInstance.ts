@@ -32,6 +32,11 @@ type RefreshPayload = {
   user?: any;
 };
 
+type PublicAwareInternalConfig = InternalAxiosRequestConfig & {
+  _authRetry?: boolean;
+  skipAuth?: boolean;
+};
+
 let refreshPromise: Promise<RefreshPayload | null> | null = null;
 let authExpiryNotified = false;
 
@@ -100,10 +105,16 @@ const setBearerHeader = (config: InternalAxiosRequestConfig, token: string | nul
 };
 
 axiosInstance.interceptors.request.use(async (config) => {
+  const requestConfig = config as PublicAwareInternalConfig;
   const lang = localStorage.getItem("lang") || "en";
   let token = getStoredToken();
 
   config.headers["Accept-Language"] = lang;
+
+  if (requestConfig.skipAuth) {
+    delete config.headers.Authorization;
+    return config;
+  }
 
   if (token && !isAuthEndpoint(config.url)) {
     const expiresAt = decodeExpiry(token);
@@ -120,9 +131,13 @@ axiosInstance.interceptors.request.use(async (config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const config = error.config as (InternalAxiosRequestConfig & { _authRetry?: boolean }) | undefined;
+    const config = error.config as PublicAwareInternalConfig | undefined;
     const token = getStoredToken();
     const isUnauthorized = error.response?.status === 401;
+
+    if (config?.skipAuth) {
+      return Promise.reject(error);
+    }
 
     if (isUnauthorized && token && config && !config._authRetry && !isAuthEndpoint(config.url)) {
       const refreshed = await refreshAccessToken();

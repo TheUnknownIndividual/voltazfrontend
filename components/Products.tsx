@@ -15,8 +15,8 @@ const getResponsiveItemsPerPage = () => {
 interface ProductsProps {
   onSelectProduct: (id: string) => void;
   onViewAll?: () => void;
-  onOrderNow?: (id: string, quantity: number) => void;
-  onAddToCart?: (id: string, quantity: number) => void;
+  onOrderNow?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
+  onAddToCart?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
   lang?: 'az' | 'en' | 'ru' | 'tr';
 }
 
@@ -108,13 +108,13 @@ const getWrappedIndex = (nextIndex: number) => {
 useEffect(() => {
   if (items.length <= itemsPerPage) return;
 
-  const timer = setInterval(() => {
+  const timer = window.setTimeout(() => {
     setDirection(1);
     setStartIndex((prev) => getWrappedIndex(prev + itemsPerPage));
   }, 4000);
 
-  return () => clearInterval(timer);
-}, [items.length, itemsPerPage, totalPages]);
+  return () => window.clearTimeout(timer);
+}, [items.length, itemsPerPage, totalPages, startIndex]);
 
 const handleNext = () => {
   setDirection(1);

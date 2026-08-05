@@ -77,6 +77,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [counts, setCounts] = useState({ orders: 0, requests: 0, serviceRequests: 0 });
   const [orderUnreadCount, setOrderUnreadCount] = useState(0);
+  const [requestsUnreadCount, setRequestsUnreadCount] = useState(0);
   const [adminOrders, setAdminOrders] = useState<any[]>([]);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
 
@@ -137,6 +138,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
     };
 
     loadOrderUnreadCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRequestsUnreadCount = async () => {
+      try {
+        const [contactRes, serviceRes, partnershipRes] = await Promise.all([
+          axiosInstance.get(API_ENDPOINTS.CONTACT_REQUEST.GET_CONTACT_REQUEST()),
+          axiosInstance.get(API_ENDPOINTS.SERVICE_REQUEST.GET_SERVICE_REQUEST()),
+          axiosInstance.get(API_ENDPOINTS.PARTNERSHIP_REQUEST.GET_PARTNERSHIP_REQUEST())
+        ]);
+
+        const extractUnread = (response: any) => {
+          const list = response.data?.success && Array.isArray(response.data.data) ? response.data.data : [];
+          return list.filter((item: any) => !item.isViewedByAdmin).length;
+        };
+
+        if (!cancelled) {
+          setRequestsUnreadCount(
+            extractUnread(contactRes) + extractUnread(serviceRes) + extractUnread(partnershipRes)
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setRequestsUnreadCount(0);
+        }
+      }
+    };
+
+    loadRequestsUnreadCount();
     return () => {
       cancelled = true;
     };
@@ -311,6 +345,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
               {tab.id === 'orders' && orderUnreadCount > 0 && (
                 <span className={`ml-3 rounded-full px-2 py-0.5 text-[8px] font-black ${activeTab === tab.id ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'}`}>
                   {orderUnreadCount}
+                </span>
+              )}
+              {tab.id === 'requests' && requestsUnreadCount > 0 && (
+                <span className={`ml-3 rounded-full px-2 py-0.5 text-[8px] font-black ${activeTab === tab.id ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'}`}>
+                  {requestsUnreadCount}
                 </span>
               )}
             </button>
@@ -493,7 +532,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
           />
         )}
 
-        {activeTab === 'requests' && <AdminInquiries adminSession={adminSession} />}
+        {activeTab === 'requests' && <AdminInquiries adminSession={adminSession} onUnreadCountChange={setRequestsUnreadCount} />}
 
         {activeTab === 'warehouse' && <ProductProvider><PromotionProvider><CategoryProvider><AdminWarehouse /></CategoryProvider></PromotionProvider></ProductProvider>}
 
@@ -680,8 +719,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
                     </div>
-                    <h4 className="text-lg font-black text-slate-900 group-hover:text-white mb-2">Xidmətlərin İdarəetməsi</h4>
-                    <p className="text-xs text-slate-500 group-hover:text-emerald-100 leading-relaxed">Xidmətlər bölməsini 4 dildə idarə edin.</p>
+                    <h4 className="text-lg font-black text-slate-900 group-hover:text-white mb-2">Xidmətlər və Səhifələr</h4>
+                    <p className="text-xs text-slate-500 group-hover:text-emerald-100 leading-relaxed">Xidmət kartlarını, xüsusi URL-li səhifələri, bannerləri və zəngin məzmunu 4 dildə idarə edin.</p>
                   </button>
 
                   <button

@@ -1,5 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 import { useNews } from "../contexts/NewsContext";
 import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 
@@ -10,10 +12,18 @@ interface NewsItem {
   title: string;
   summary: string;
   image: string;
+  imagePositionX: number;
+  imagePositionY: number;
+  imageZoom: number;
   link: string;
   source: string;
   publishedAt?: string;
   updatedAt?: string;
+  requestedLanguageAvailable: boolean;
+  resolvedLanguage: LangCode;
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
 }
 
 interface NewsPageProps {
@@ -22,59 +32,6 @@ interface NewsPageProps {
   initialId?: string;
   onNavigate?: (page: any, id?: string) => void;
 }
-
-const newsData: NewsItem[] = [
-  {
-    id: 'n1',
-    category: 'Rəsmi Açılış',
-    date: '26 Oktyabr 2023',
-    title: "Azərbaycanda 230 MVt gücündə Qaradağ Günəş Elektrik Stansiyasının açılışı olub",
-    summary: "Xəzər regionunda və MDB məkanında ən böyük günəş elektrik stansiyası olan bu layihə Azərbaycanın yaşıl enerji keçidində tarixi addımdır.",
-    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=1200",
-    link: "https://president.az/az/articles/view/61821",
-    source: "President.az"
-  },
-  {
-    id: 'n2',
-    category: 'Qanunvericilik',
-    date: '15 May 2024',
-    title: "Bərpa olunan enerji mənbələri üzrə hərracların keçirilməsi qaydaları təsdiqlənib",
-    summary: "Nazirlər Kabineti bərpa olunan enerji sahəsində investorların cəlb edilməsi üçün şəffaf hərrac mexanizmini təsdiq edən yeni qərar qəbul edib.",
-    image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=1200",
-    link: "https://e-qanun.az/framework/57000",
-    source: "E-qanun.az"
-  },
-  {
-    id: 'n3',
-    category: 'COP29',
-    date: '12 Yanvar 2024',
-    title: "Azərbaycan 2024-cü ili 'Yaşıl dünya naminə həmrəylik ili' elan edib",
-    summary: "Prezident İlham Əliyevin Sərəncamı ilə Azərbaycanda COP29 konfransına hazırlıq çərçivəsində ekoloji layihələrin icrası sürətləndirilir.",
-    image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=1200",
-    link: "https://president.az/az/articles/view/62744",
-    source: "President.az"
-  },
-  {
-    id: 'n4',
-    category: 'Strateji Hədəflər',
-    date: '05 Aprel 2024',
-    title: "Energetika Nazirliyi: 2030-cu ilə qədər hədəf 30% bərpa olunan enerjidir",
-    summary: "Azərbaycanın enerji balansında yaşıl enerjinin payının artırılması məqsədilə 7 QVt-dan çox qoyuluş gücü planlaşdırılır.",
-    image: "https://images.unsplash.com/photo-1466611653911-954ffaa13b6f?auto=format&fit=crop&q=80&w=1200",
-    link: "https://minenergy.gov.az/az/berpa-olunan-enerji/strateji-hedefler",
-    source: "Minenergy.gov.az"
-  },
-  {
-    id: 'n5',
-    category: 'İnnovasiya',
-    date: '20 Fevral 2024',
-    title: "Yaşıl Enerji Zonası: İşğaldan azad edilmiş ərazilərdə solar layihələr",
-    summary: "Qarabağ və Şərqi Zəngəzurda 'Sıfır Emissiya' zonası konsepsiyası çərçivəsində yeni günəş paneli parkları salınır.",
-    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&q=80&w=1200",
-    link: "https://minenergy.gov.az/az/layiheler/yasil-enerji-zonasi",
-    source: "Minenergy.gov.az"
-  }
-];
 
 const LANGUAGES = [
   { code: 'az', name: 'Azərbaycan' },
@@ -85,14 +42,20 @@ const LANGUAGES = [
 
 type LangCode = typeof LANGUAGES[number]['code'];
 
+const plainNewsText = (value: string) => value
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/[#*_>`~\[\]()]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate }) => {
   const currentLang = lang || 'az';
   const { getPublicNews, getNewsById } = useNews();
 
-  const [news, setNews] = React.useState<any[]>([]);
-  const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
+  const [news, setNews] = React.useState<NewsItem[]>([]);
+  const [selectedNews, setSelectedNews] = React.useState<NewsItem | null>(null);
 
-  const mapNewsItem = (item: any) => {
+  const mapNewsItem = (item: any): NewsItem => {
     const requestedLangItem =
       item.languages?.find((l: any) =>
         (currentLang === 'az' && l.languageCode === 1) ||
@@ -104,18 +67,24 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
     const resolvedLanguage = ({ 1: 'az', 2: 'en', 3: 'ru', 4: 'tr' } as const)[langItem?.languageCode as 1 | 2 | 3 | 4] || 'az';
 
     return {
-      id: item.id,
-      title: langItem?.title,
-      summary: langItem?.content,
-      image: item.coverImagePath,
-      link: item.postLink,
-      source: item.source,
+      id: String(item.id),
+      title: langItem?.title || '',
+      summary: langItem?.content || '',
+      image: item.coverImagePath || '',
+      imagePositionX: item.coverImagePositionX ?? 50,
+      imagePositionY: item.coverImagePositionY ?? 50,
+      imageZoom: Number(item.coverImageZoom ?? 1),
+      link: item.postLink || '',
+      source: item.source || '',
       date: new Date(item.createdAt).toLocaleDateString("az-AZ"),
       publishedAt: item.createdAt,
       updatedAt: item.updatedAt || undefined,
       category: langItem?.description,
       requestedLanguageAvailable: Boolean(requestedLangItem),
       resolvedLanguage,
+      seoTitle: langItem?.seoTitle || '',
+      seoDescription: langItem?.seoDescription || '',
+      seoKeywords: langItem?.seoKeywords || '',
     };
   };
 
@@ -161,14 +130,15 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
     if (!selectedNews) return;
 
     const title = selectedNews.title || 'Volt.az News';
-    const summary = String(selectedNews.summary || selectedNews.category || '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const description = (
+    const summary = plainNewsText(String(selectedNews.summary || selectedNews.category || ''));
+    const automaticDescription = (
       summary.toLocaleLowerCase().includes(String(title).toLocaleLowerCase())
         ? summary
         : `${title}. ${summary}`
     ).slice(0, 155);
+    const metaTitle = selectedNews.seoTitle.trim() || `${title} | Volt.az`;
+    const description = selectedNews.seoDescription.trim() || automaticDescription;
+    const keywords = selectedNews.seoKeywords.trim();
     const canonicalLanguage = selectedNews.requestedLanguageAvailable ? currentLang : selectedNews.resolvedLanguage;
     const canonicalUrl = absoluteSiteUrl(localizePath(`/news/${selectedNews.id}`, canonicalLanguage));
     const robots = selectedNews.requestedLanguageAvailable
@@ -183,34 +153,52 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
       element?.setAttribute(attr, value);
     };
 
-    document.title = `${title} | Volt.az`;
+    const image = selectedNews.image
+      ? (/^https?:\/\//i.test(selectedNews.image) ? selectedNews.image : `https://volt.az${selectedNews.image.startsWith('/') ? '' : '/'}${selectedNews.image}`)
+      : undefined;
+
+    document.title = metaTitle;
     setMeta('meta[name="description"]', 'content', description);
+    setMeta('meta[name="keywords"]', 'content', keywords, () => {
+      const tag = document.createElement('meta');
+      tag.setAttribute('name', 'keywords');
+      return tag;
+    });
     setMeta('meta[name="robots"]', 'content', robots);
     setMeta('meta[name="googlebot"]', 'content', robots);
     setMeta('meta[property="og:type"]', 'content', 'article');
-    setMeta('meta[property="og:title"]', 'content', `${title} | Volt.az`);
+    setMeta('meta[property="og:title"]', 'content', metaTitle);
     setMeta('meta[property="og:description"]', 'content', description);
     setMeta('meta[property="og:url"]', 'content', canonicalUrl);
-    if (selectedNews.image) {
-      setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
-      setMeta('meta[property="og:image"]', 'content', selectedNews.image, () => {
+    if (image) {
+      setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image', () => {
+        const tag = document.createElement('meta');
+        tag.setAttribute('name', 'twitter:card');
+        return tag;
+      });
+      setMeta('meta[property="og:image"]', 'content', image, () => {
         const tag = document.createElement('meta');
         tag.setAttribute('property', 'og:image');
         return tag;
       });
-      setMeta('meta[property="twitter:image"]', 'content', selectedNews.image, () => {
+      setMeta('meta[name="twitter:image"]', 'content', image, () => {
         const tag = document.createElement('meta');
-        tag.setAttribute('property', 'twitter:image');
+        tag.setAttribute('name', 'twitter:image');
         return tag;
       });
     }
-    setMeta('meta[property="twitter:title"]', 'content', `${title} | Volt.az`);
-    setMeta('meta[property="twitter:description"]', 'content', description);
+    setMeta('meta[name="twitter:title"]', 'content', metaTitle, () => {
+      const tag = document.createElement('meta');
+      tag.setAttribute('name', 'twitter:title');
+      return tag;
+    });
+    setMeta('meta[name="twitter:description"]', 'content', description, () => {
+      const tag = document.createElement('meta');
+      tag.setAttribute('name', 'twitter:description');
+      return tag;
+    });
     setMeta('link[rel="canonical"]', 'href', canonicalUrl);
 
-    const image = selectedNews.image
-      ? (/^https?:\/\//i.test(selectedNews.image) ? selectedNews.image : `https://volt.az${selectedNews.image.startsWith('/') ? '' : '/'}${selectedNews.image}`)
-      : undefined;
     const newsJsonLd = {
       '@context': 'https://schema.org',
       '@graph': [
@@ -253,6 +241,16 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
 
     return () => document.getElementById('volt-news-jsonld')?.remove();
   }, [selectedNews]);
+
+  const selectedNewsHtml = React.useMemo(() => {
+    if (!selectedNews?.summary) return '';
+    const parsed = marked.parse(String(selectedNews.summary), {
+      async: false,
+      breaks: true,
+      gfm: true,
+    });
+    return DOMPurify.sanitize(parsed);
+  }, [selectedNews?.summary]);
 
   const handleBackClick = () => {
     if (selectedNews) {
@@ -324,13 +322,22 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
       <section className="py-16 md:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-12">
           {selectedNews ? (
-            <article className="mx-auto max-w-4xl rounded-[3rem] border border-slate-100 bg-white shadow-2xl overflow-hidden">
+            <article className="mx-auto w-full bg-white">
               {selectedNews.image && (
-                <div className="aspect-video w-full overflow-hidden bg-slate-100">
-                  <img src={selectedNews.image} alt={selectedNews.title || ''} className="h-full w-full object-cover" />
+                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={selectedNews.image}
+                    alt={selectedNews.title || ''}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{
+                      objectPosition: `${selectedNews.imagePositionX}% ${selectedNews.imagePositionY}%`,
+                      transform: `scale(${selectedNews.imageZoom})`,
+                      transformOrigin: `${selectedNews.imagePositionX}% ${selectedNews.imagePositionY}%`,
+                    }}
+                  />
                 </div>
               )}
-              <div className="p-8 md:p-14">
+              <div className="mx-auto max-w-5xl px-2 py-10 md:px-8 md:py-16">
                 <div className="mb-6 flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   <span>{selectedNews.date}</span>
                   {selectedNews.source && <span>{selectedNews.source}</span>}
@@ -341,11 +348,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                     {selectedNews.category}
                   </div>
                 )}
-                <div className="mt-8 space-y-5 text-base leading-relaxed text-slate-600">
-                  {(selectedNews.summary || '').split('\n').map((paragraph: string, index: number) => (
-                    <p key={index}>{paragraph.trim()}</p>
-                  ))}
-                </div>
+                <div className="news-rich-content mt-10 text-slate-600" dangerouslySetInnerHTML={{ __html: selectedNewsHtml }} />
                 {selectedNews.link && (
                   <a
                     href={selectedNews.link}
@@ -376,8 +379,17 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                 className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
               >
                 {/* Image Wrap */}
-                <div className="relative aspect-video overflow-hidden">
-                  <img src={item.image} alt={item.title || ''} className="w-full h-full transition-transform duration-700 group-hover:scale-110" />
+                <div className="relative aspect-video overflow-hidden bg-slate-100">
+                  <img
+                    src={item.image}
+                    alt={item.title || ''}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{
+                      objectPosition: `${item.imagePositionX}% ${item.imagePositionY}%`,
+                      transform: `scale(${item.imageZoom})`,
+                      transformOrigin: `${item.imagePositionX}% ${item.imagePositionY}%`,
+                    }}
+                  />
                   <div className="absolute top-4 left-4">
                     <div className="bg-emerald-600 px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest shadow-lg">
                       {item.category || ''}
@@ -396,7 +408,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                     {item.title || ''}
                   </h3>
                   <p className="text-slate-500 text-xs leading-relaxed opacity-80 line-clamp-3 mb-3">
-                    {item.summary || ''}
+                    {plainNewsText(item.summary || '')}
                   </p>
 
                   <div className="pt-6 border-t border-slate-50 flex items-center justify-between mt-auto">

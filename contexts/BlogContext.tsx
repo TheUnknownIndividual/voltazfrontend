@@ -7,6 +7,9 @@ interface Translation {
   title: string;
   description: string;
   content: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 interface CreateBlogPayload {
@@ -49,8 +52,8 @@ export const BlogProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [blogs, setBlogs] = useState<any[]>([]);
 
-  const [lang] = useState<'az' | 'en' | 'ru'>(() => {
-    return (localStorage.getItem('lang') as 'az' | 'en' | 'ru') || 'az';
+  const [lang] = useState<'az' | 'en' | 'ru' | 'tr'>(() => {
+    return (localStorage.getItem('lang') as 'az' | 'en' | 'ru' | 'tr') || 'az';
   });
 
  const mapLang = (code: number) => {
@@ -67,6 +70,9 @@ const transformBlog = (item: any) => {
   const titles = { az: "", en: "", ru: "", tr: "" };
   const descriptions = { az: "", en: "", ru: "", tr: "" };
   const contents = { az: "", en: "", ru: "", tr: "" };
+  const seoTitles = { az: "", en: "", ru: "", tr: "" };
+  const seoDescriptions = { az: "", en: "", ru: "", tr: "" };
+  const seoKeywords = { az: "", en: "", ru: "", tr: "" };
 
   (item.translations || []).forEach((t: any) => {
     const lang = mapLang(t.languageCode);
@@ -74,6 +80,9 @@ const transformBlog = (item: any) => {
     titles[lang] = t.title || "";
     descriptions[lang] = t.description || "";
     contents[lang] = t.content || "";
+    seoTitles[lang] = t.seoTitle || "";
+    seoDescriptions[lang] = t.seoDescription || "";
+    seoKeywords[lang] = t.seoKeywords || "";
   });
 
   return {
@@ -86,6 +95,9 @@ const transformBlog = (item: any) => {
     title: titles,
     description: descriptions,
     content: contents,
+    seoTitle: seoTitles,
+    seoDescription: seoDescriptions,
+    seoKeywords,
   };
 };
 

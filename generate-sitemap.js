@@ -10,12 +10,26 @@ const OUTPUT_DIR = path.resolve(process.env.SITEMAP_OUTPUT_DIR || './public');
 const SEO_CACHE_DIR = path.resolve(process.env.SEO_CACHE_DIR || './.seo-cache');
 const seoLinks = [];
 const seoRoutes = [];
+let solarPanelCategoryId = null;
+let inverterCategoryId = null;
 const LANGUAGES = ['az', 'en', 'ru', 'tr'];
 const INSTALLATION_PATHS = {
   az: '/gunes-paneli-qurasdirilmasi',
   en: '/en/solar-panel-installation',
   ru: '/ru/ustanovka-solnechnyh-paneley',
   tr: '/tr/gunes-paneli-kurulumu',
+};
+const SOLAR_PANEL_PATHS = {
+  az: '/gunes-panelleri',
+  en: '/en/solar-panels',
+  ru: '/ru/solnechnye-paneli',
+  tr: '/tr/gunes-panelleri',
+};
+const INVERTER_PATHS = {
+  az: '/gunes-invertorlari',
+  en: '/en/solar-inverters',
+  ru: '/ru/solnechnye-invertory',
+  tr: '/tr/gunes-invertorleri',
 };
 
 const sitemap = new SitemapStream({
@@ -25,6 +39,8 @@ const sitemap = new SitemapStream({
 const localizedPath = (route, language) => {
   const normalized = route === '/' ? '/' : `/${String(route).split('/').filter(Boolean).join('/')}`;
   if (normalized === '/solar-installation') return INSTALLATION_PATHS[language];
+  if (normalized === '/solar-panels') return SOLAR_PANEL_PATHS[language];
+  if (normalized === '/inverters') return INVERTER_PATHS[language];
   if (language === 'az') return normalized;
   return normalized === '/' ? `/${language}` : `/${language}${normalized}`;
 };
@@ -49,6 +65,8 @@ const staticRoutes = [
   '/about',
   '/services',
   '/solar-installation',
+  '/solar-panels',
+  '/inverters',
   '/projects',
   '/products',
   '/calculator',
@@ -71,7 +89,7 @@ const staticRoutes = [
 staticRoutes.forEach(route => {
   writeLocalizedRoute(route, {
     changefreq: route === '/calculator' ? 'daily' : 'weekly',
-    priority: route === '/' || route === '/calculator' ? 1.0 : route === '/blog' || route === '/news' ? 0.9 : 0.8,
+    priority: route === '/' || route === '/calculator' ? 1.0 : route === '/solar-panels' || route === '/inverters' || route === '/blog' || route === '/news' ? 0.9 : 0.8,
   });
 });
 
@@ -85,6 +103,54 @@ function normalizeItems(json) {
   if (json.items && typeof json.items === 'object') return Object.values(json.items);
   if (json.data && typeof json.data === 'object') return Object.values(json.data);
   return [];
+}
+
+async function resolveSolarPanelCategory() {
+  try {
+    const response = await fetch(`${API_BASE}ProductCategories/seo/solar-panels`, { headers: { 'Accept-Language': 'az' } });
+    if (response.ok) {
+      const payload = await response.json();
+      solarPanelCategoryId = Number(payload?.data?.id || payload?.id) || null;
+      return;
+    }
+  } catch {
+    // The frontend can build immediately before the API migration is deployed.
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}ProductCategories`, { headers: { 'Accept-Language': 'az' } });
+    if (!response.ok) return;
+    const categories = normalizeItems(await response.json());
+    const category = categories.find((item) => item?.seoKey === 'solar-panels'
+      || item?.languages?.some((language) => ['Günəş paneli', 'Günəş panelləri'].includes(language?.categoryName)));
+    solarPanelCategoryId = Number(category?.id) || null;
+  } catch {
+    solarPanelCategoryId = null;
+  }
+}
+
+async function resolveInverterCategory() {
+  try {
+    const response = await fetch(`${API_BASE}ProductCategories/seo/inverters`, { headers: { 'Accept-Language': 'az' } });
+    if (response.ok) {
+      const payload = await response.json();
+      inverterCategoryId = Number(payload?.data?.id || payload?.id) || null;
+      return;
+    }
+  } catch {
+    // The frontend can build immediately before the data migration is deployed.
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}ProductCategories`, { headers: { 'Accept-Language': 'az' } });
+    if (!response.ok) return;
+    const categories = normalizeItems(await response.json());
+    const category = categories.find((item) => item?.seoKey === 'inverters'
+      || item?.languages?.some((language) => ['İnvertorlar', 'Invertorlar', 'İnverterlər', 'Inverterlər'].includes(language?.categoryName)));
+    inverterCategoryId = Number(category?.id) || null;
+  } catch {
+    inverterCategoryId = null;
+  }
 }
 
 function normalizeImageUrl(image) {
@@ -194,6 +260,8 @@ async function addProducts() {
         });
         const img = getProductImages(p);
         const localized = getLocalizedSeo(p, p?.productName || p?.name || `Volt.az məhsul ${id}`);
+        const variants = Array.isArray(p?.productParametrs) ? p.productParametrs : [];
+        const representativeVariant = variants.find((variant) => variant?.technicalPower || variant?.effectiveness || Number(variant?.amount) > 0);
         const availableLanguages = [...new Set(['az', ...Object.keys(localized)])];
         seoRoutes.push({
           path: `/product/${id}`,
@@ -204,6 +272,15 @@ async function addProducts() {
           localized,
           availableLanguages,
           image: img[0]?.url,
+          technicalPower: representativeVariant?.technicalPower || undefined,
+          effectiveness: representativeVariant?.effectiveness || undefined,
+          price: Number(representativeVariant?.amount) > 0 ? Number(representativeVariant.amount) : undefined,
+          inStock: Boolean(p?.inStock && (variants.length === 0 || variants.some((variant) => Number(variant?.count) > 0))),
+          categorySeoKey: solarPanelCategoryId && Number(p?.productCategoryId) === solarPanelCategoryId
+            ? 'solar-panels'
+            : inverterCategoryId && Number(p?.productCategoryId) === inverterCategoryId
+              ? 'inverters'
+              : undefined,
           lastmod: p?.updatedAt || p?.updated_at || p?.modifiedAt || undefined,
         });
         writeLocalizedRoute(`/product/${id}`, {
@@ -374,6 +451,8 @@ async function addNews() {
   }
 }
 
+await resolveSolarPanelCategory();
+await resolveInverterCategory();
 await addProducts();
 await addProjects();
 await addBlogs();

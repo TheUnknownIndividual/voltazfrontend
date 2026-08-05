@@ -261,9 +261,11 @@ const SolarInstallationPage: React.FC<Props> = ({ lang, onNavigate }) => {
 
             <div className="relative min-h-[330px] overflow-hidden lg:min-h-[520px]">
               <img
-                src="/solar-energy-field.webp"
+                src="/solar-installation-roof.webp"
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
+                decoding="async"
+                fetchPriority="high"
                 aria-hidden="true"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-dark)] via-[color-mix(in_srgb,var(--color-dark)_20%,transparent)] to-transparent" />
@@ -415,6 +417,12 @@ const SolarInstallationPage: React.FC<Props> = ({ lang, onNavigate }) => {
                 <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 opacity-80">{t.finalText}</p>
               </div>
               <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
+                <button
+                  onClick={() => go('solar-panels', 'panels')}
+                  className="rounded-2xl border border-[color-mix(in_srgb,var(--color-dark)_22%,transparent)] bg-white px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em]"
+                >
+                  {{ az: 'Panellərə bax', en: 'View panels', ru: 'Смотреть панели', tr: 'Panellere bak' }[lang]}
+                </button>
                 <button
                   onClick={() => go('calculator', 'final_calculator')}
                   className="rounded-2xl bg-[var(--color-dark)] px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-white"

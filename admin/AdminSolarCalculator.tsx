@@ -39,6 +39,8 @@ interface InverterRecommendation extends SolarInverterOption {
   isPreliminary: boolean;
   hasStock: boolean;
   compatibilityNote: string;
+  mpptCompatibilityEvaluated: boolean;
+  mpptCompatible: boolean;
 }
 
 interface CalculationResult {
@@ -96,6 +98,29 @@ const SOLAR_CALCULATOR_DRAFT_KEY = 'volt-admin-solar-calculator-draft';
 const MIN_RECOMMENDED_DC_AC_RATIO = 1.1;
 const MAX_RECOMMENDED_DC_AC_RATIO = 1.25;
 const TARGET_DC_AC_RATIO = (MIN_RECOMMENDED_DC_AC_RATIO + MAX_RECOMMENDED_DC_AC_RATIO) / 2;
+
+// No per-panel Voc/Isc data exists in the catalog today (only panel wattage).
+// These are typical mono-PERC/TOPCon coefficients for a 550W reference panel,
+// scaled linearly by wattage - an engineering ESTIMATE for MPPT string-fit
+// scoring only, not a substitute for a real datasheet-based string design.
+const REFERENCE_PANEL_WATTAGE = 550;
+const REFERENCE_PANEL_VOC = 49.5;
+const REFERENCE_PANEL_VMP = 41.5;
+const REFERENCE_PANEL_ISC = 14.0;
+const REFERENCE_PANEL_IMP = 13.25;
+// Cold-morning worst case: open-circuit voltage rises as temperature drops below
+// the 25°C STC rating used above, so the max-string-length check adds headroom.
+const COLD_WEATHER_VOC_UPLIFT = 1.12;
+
+const estimatePanelElectricalProfile = (panelWattage: number) => {
+  const scale = panelWattage > 0 ? panelWattage / REFERENCE_PANEL_WATTAGE : 1;
+  return {
+    voc: REFERENCE_PANEL_VOC * scale,
+    vmp: REFERENCE_PANEL_VMP * scale,
+    isc: REFERENCE_PANEL_ISC,
+    imp: REFERENCE_PANEL_IMP
+  };
+};
 const documentTypeOptions = [
   { code: 'CP', label: 'Kommersiya Təklifi' },
   { code: 'QUO', label: 'Qiymət Təklifi' },
@@ -588,7 +613,12 @@ const formatMoney = (value: number) => `${formatNumber(value)} AZN`;
 const defaultPanelSpec = (wattage: number) =>
   `N-tipli günəş paneli; Pmax ${Math.round(wattage)} W; ölçü 2382 × 1134 × 30 mm; çəki 28,5 kq; 1500 V DC; anodlaşdırılmış alüminium çərçivə`;
 
-const getInverterCompatibilityNote = (panelCount: number, panelWattage: number, inverter: SolarInverterOption) => {
+const getInverterCompatibilityNote = (
+  panelCount: number,
+  panelWattage: number,
+  inverter: SolarInverterOption,
+  mppt: MpptCompatibility
+) => {
   const estimatedPanelCurrent = panelWattage >= 600 ? 'təxminən 15-16 A panel cərəyanı nəzərə alınmalıdır' : 'standart PV panel cərəyanı nəzərə alınmalıdır';
   const technicalDetails = [
     inverter.mpptCount ? `${inverter.mpptCount} MPPT` : null,
@@ -602,7 +632,13 @@ const getInverterCompatibilityNote = (panelCount: number, panelWattage: number, 
     ? 'String sayı, gərginlik və cərəyan sahə mühəndisliyi ilə təsdiqlənməlidir.'
     : 'Tam datasheet sahələri bazada yoxdur; bu yalnız ilkin tövsiyədir və string, gərginlik, cərəyan, MPPT və şəbəkə yoxlaması ilə təsdiqlənməlidir.';
 
-  return `${technicalDetails || 'İnverter texniki parametrləri'}; ${panelCount} panel üçün ${estimatedPanelCurrent}. ${reviewStatus}`;
+  const mpptVerdict = !mppt.isEvaluated
+    ? 'MPPT string uyğunluğu qiymətləndirilə bilmədi (bazada MPPT/string sahələri natamamdır).'
+    : mppt.isCompatible
+      ? `MPPT string tutumu kifayətdir (${mppt.panelsPerString} panel/string, ${mppt.totalStringCapacity} string tutumu, təxmini gərginliyə əsasən).`
+      : `Diqqət: bu invertorun MPPT string tutumu təxmini hesablamaya görə kifayət etməyə bilər (${mppt.panelsPerString ?? '—'} panel/string, ${mppt.totalStringCapacity ?? '—'} string tutumu).`;
+
+  return `${technicalDetails || 'İnverter texniki parametrləri'}; ${panelCount} panel üçün ${estimatedPanelCurrent}. ${mpptVerdict} ${reviewStatus}`;
 };
 
 const getInverterSpec = (recommendation: InverterRecommendation) =>
@@ -618,6 +654,62 @@ const getInverterSpec = (recommendation: InverterRecommendation) =>
     recommendation.maxInputCurrent ? `max. giriş cərəyanı ${recommendation.maxInputCurrent}` : null
   ].filter(Boolean).join('; ') + '.';
 
+interface MpptCompatibility {
+  // true only when the catalog has enough MPPT/string fields to actually judge
+  // fit; false candidates are still shown (never hard-filtered) but rank lower.
+  isEvaluated: boolean;
+  isCompatible: boolean;
+  totalStringCapacity: number | null;
+  panelsPerString: number | null;
+}
+
+// Estimates whether an inverter's MPPT/string inputs can actually accept the
+// sized panel array, using the wattage-derived panel profile above. This is a
+// scoring signal only - the existing compatibilityNote already tells the
+// reviewer this remains an estimate pending full engineering/string design.
+const evaluateMpptCompatibility = (
+  panelCount: number,
+  panelWattage: number,
+  inverter: SolarInverterOption
+): MpptCompatibility => {
+  const stringInputsPerMppt = inverter.stringInputsPerMppt;
+  const mpptCount = inverter.mpptCount;
+  const mpptMaxVoltageV = inverter.mpptMaxVoltageV;
+  const mpptMinVoltageV = inverter.mpptMinVoltageV ?? inverter.startVoltageV;
+  const maxCurrentPerStringA =
+    inverter.maxOperatingCurrentPerStringA ?? inverter.maxShortCircuitCurrentPerStringA;
+
+  if (
+    panelCount <= 0 ||
+    !stringInputsPerMppt ||
+    !mpptCount ||
+    !mpptMaxVoltageV ||
+    !mpptMinVoltageV
+  ) {
+    return { isEvaluated: false, isCompatible: false, totalStringCapacity: null, panelsPerString: null };
+  }
+
+  const panel = estimatePanelElectricalProfile(panelWattage);
+  const maxPanelsPerStringByVoltage = Math.floor(mpptMaxVoltageV / (panel.voc * COLD_WEATHER_VOC_UPLIFT));
+  const minPanelsPerStringByVoltage = Math.ceil(mpptMinVoltageV / panel.vmp);
+
+  if (maxPanelsPerStringByVoltage < 1 || maxPanelsPerStringByVoltage < minPanelsPerStringByVoltage) {
+    return { isEvaluated: true, isCompatible: false, totalStringCapacity: null, panelsPerString: null };
+  }
+
+  const currentFitsString = maxCurrentPerStringA ? panel.imp <= maxCurrentPerStringA : true;
+  const totalStringCapacity = stringInputsPerMppt * mpptCount;
+
+  // Pick the longest voltage-legal string length so fewer, fuller strings are
+  // preferred (matches how a real string design would be laid out), then check
+  // whether that many strings can actually hold every panel in the array.
+  const panelsPerString = maxPanelsPerStringByVoltage;
+  const stringsNeeded = Math.ceil(panelCount / panelsPerString);
+  const isCompatible = currentFitsString && stringsNeeded <= totalStringCapacity;
+
+  return { isEvaluated: true, isCompatible, totalStringCapacity, panelsPerString };
+};
+
 interface InverterCandidate {
   inverter: SolarInverterOption;
   quantity: number;
@@ -625,6 +717,7 @@ interface InverterCandidate {
   totalMaxDcKw: number;
   dcAcRatio: number;
   hasStock: boolean;
+  mppt: MpptCompatibility;
 }
 
 interface InverterRecommendations {
@@ -690,18 +783,21 @@ const recommendInverters = (
       }
 
       const key = `${inverter.productId}:${inverter.specificationId ?? inverter.technicalPower}:${quantity}`;
+      const panelsPerInverter = Math.ceil(panelCount / quantity);
       candidatesByKey.set(key, {
         inverter,
         quantity,
         totalNominalAcKw,
         totalMaxDcKw,
         dcAcRatio,
-        hasStock: inverter.inStock && inverter.availableCount >= quantity
+        hasStock: inverter.inStock && inverter.availableCount >= quantity,
+        mppt: evaluateMpptCompatibility(panelsPerInverter, panelWattage, inverter)
       });
     });
   });
 
   const rankedCandidates = [...candidatesByKey.values()].sort((a, b) =>
+    Number(b.mppt.isEvaluated && b.mppt.isCompatible) - Number(a.mppt.isEvaluated && a.mppt.isCompatible) ||
     Math.abs(a.dcAcRatio - TARGET_DC_AC_RATIO) - Math.abs(b.dcAcRatio - TARGET_DC_AC_RATIO) ||
     a.quantity - b.quantity ||
     Number(b.hasStock) - Number(a.hasStock) ||
@@ -727,7 +823,14 @@ const recommendInverters = (
     dcAcRatio: candidate.dcAcRatio,
     isPreliminary: !candidate.inverter.hasCompleteEngineeringData,
     hasStock: candidate.hasStock,
-    compatibilityNote: getInverterCompatibilityNote(panelCount, panelWattage, candidate.inverter)
+    mpptCompatibilityEvaluated: candidate.mppt.isEvaluated,
+    mpptCompatible: candidate.mppt.isCompatible,
+    compatibilityNote: getInverterCompatibilityNote(
+      Math.ceil(panelCount / candidate.quantity),
+      panelWattage,
+      candidate.inverter,
+      candidate.mppt
+    )
   });
 
   return {
@@ -2170,7 +2273,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
                     ? 'Loading live inverter catalog…'
                     : 'No matching inverter'}
                 note={result.inverter
-                  ? `${formatNumber(result.inverter.totalDcKw, 2)} kWp DC / ${formatNumber(result.inverter.totalNominalAcKw, 2)} kW AC · DC/AC ${formatNumber(result.inverter.dcAcRatio, 3)} (hədəf ${TARGET_DC_AC_RATIO.toFixed(3)}, diapazon ${MIN_RECOMMENDED_DC_AC_RATIO.toFixed(2)}–${MAX_RECOMMENDED_DC_AC_RATIO.toFixed(2)}) · ${result.inverter.hasStock ? 'In stock' : 'Out of stock — procurement review required'} · ${result.inverter.hasCompleteEngineeringData ? 'Engineering data complete' : 'Preliminary — engineering review required'}`
+                  ? `${formatNumber(result.inverter.totalDcKw, 2)} kWp DC / ${formatNumber(result.inverter.totalNominalAcKw, 2)} kW AC · DC/AC ${formatNumber(result.inverter.dcAcRatio, 3)} (hədəf ${TARGET_DC_AC_RATIO.toFixed(3)}, diapazon ${MIN_RECOMMENDED_DC_AC_RATIO.toFixed(2)}–${MAX_RECOMMENDED_DC_AC_RATIO.toFixed(2)}) · ${result.inverter.hasStock ? 'In stock' : 'Out of stock — procurement review required'} · ${result.inverter.hasCompleteEngineeringData ? 'Engineering data complete' : 'Preliminary — engineering review required'} · ${!result.inverter.mpptCompatibilityEvaluated ? 'MPPT fit unknown (incomplete data)' : result.inverter.mpptCompatible ? 'MPPT string fit OK (estimated)' : 'MPPT string fit questionable (estimated)'}`
                   : inverterCatalogError
                     ? 'Live inverter catalog could not be loaded. You can enter an explicit manual override below.'
                     : `No eligible inverter meets the ${MIN_RECOMMENDED_DC_AC_RATIO.toFixed(2)}–${MAX_RECOMMENDED_DC_AC_RATIO.toFixed(2)} DC/AC range and PV-power limit for this DC size.`}
@@ -2192,7 +2295,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
                   ? `${result.secondBestInverter.quantity} x ${result.secondBestInverter.modelLabel}`
                   : 'No second fitting option available'}
                 note={result.secondBestInverter
-                  ? `${formatNumber(result.secondBestInverter.totalDcKw, 2)} kWp DC / ${formatNumber(result.secondBestInverter.totalNominalAcKw, 2)} kW AC · DC/AC ${formatNumber(result.secondBestInverter.dcAcRatio, 3)} (hədəf ${TARGET_DC_AC_RATIO.toFixed(3)}, diapazon ${MIN_RECOMMENDED_DC_AC_RATIO.toFixed(2)}–${MAX_RECOMMENDED_DC_AC_RATIO.toFixed(2)}) · ${result.secondBestInverter.hasStock ? 'In stock' : 'Out of stock — procurement review required'} · ${result.secondBestInverter.hasCompleteEngineeringData ? 'Engineering data complete' : 'Preliminary — engineering review required'}`
+                  ? `${formatNumber(result.secondBestInverter.totalDcKw, 2)} kWp DC / ${formatNumber(result.secondBestInverter.totalNominalAcKw, 2)} kW AC · DC/AC ${formatNumber(result.secondBestInverter.dcAcRatio, 3)} (hədəf ${TARGET_DC_AC_RATIO.toFixed(3)}, diapazon ${MIN_RECOMMENDED_DC_AC_RATIO.toFixed(2)}–${MAX_RECOMMENDED_DC_AC_RATIO.toFixed(2)}) · ${result.secondBestInverter.hasStock ? 'In stock' : 'Out of stock — procurement review required'} · ${result.secondBestInverter.hasCompleteEngineeringData ? 'Engineering data complete' : 'Preliminary — engineering review required'} · ${!result.secondBestInverter.mpptCompatibilityEvaluated ? 'MPPT fit unknown (incomplete data)' : result.secondBestInverter.mpptCompatible ? 'MPPT string fit OK (estimated)' : 'MPPT string fit questionable (estimated)'}`
                   : 'No distinct second configuration satisfies the inverter DC limit and preferred DC/AC range.'}
               />
               {isManualInverterOpen && (

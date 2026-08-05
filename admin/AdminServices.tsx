@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { useService } from "../contexts/ServiceContext";
+import { useUpload } from '../contexts/UploadContext';
+import RichTextEditor from './RichTextEditor';
 
 interface ServiceItem {
   id: string;
@@ -66,10 +68,14 @@ export const ICON_MAP = {
 
 const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
   const { showNotification, confirm } = useNotification();
+  const { uploadImage } = useUpload();
   const {
     services,
+    categorySettings,
     loading,
-    getServices,
+    getAdminServices,
+    getCategorySettings,
+    updateCategorySetting,
     createService,
     getServiceById,
     updateService,
@@ -79,6 +85,7 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
   const [activeLang, setActiveLang] = useState<LangCode>('az');
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [updatingCategory, setUpdatingCategory] = useState<number | null>(null);
 
 
   // Form State
@@ -90,12 +97,41 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
     content2: { az: '', en: '', ru: '', tr: '' },
     content3: { az: '', en: '', ru: '', tr: '' },
     content4: { az: '', en: '', ru: '', tr: '' },
+    detailContentHtml: { az: '', en: '', ru: '', tr: '' },
+    seoTitle: { az: '', en: '', ru: '', tr: '' },
+    seoDescription: { az: '', en: '', ru: '', tr: '' },
+    seoKeywords: { az: '', en: '', ru: '', tr: '' },
 
     icon: DEFAULT_ICONS[0].name,
+    category: 1,
+    readMoreUrl: '',
+    detailPageSlug: '',
+    bannerImageUrl: '',
   });
 
+  const uploadServiceImage = async (file: File) => {
+    const response = await uploadImage(file);
+    const path = response?.data?.path || response?.path || response?.data;
+    if (typeof path !== 'string' || !path) throw new Error('Image path was not returned');
+    return path;
+  };
+
+  const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const bannerImageUrl = await uploadServiceImage(file);
+      setFormData((current: any) => ({ ...current, bannerImageUrl }));
+      showNotification('Banner şəkli yükləndi', 'success');
+    } catch {
+      showNotification('Banner şəkli yüklənmədi', 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   useEffect(() => {
-    getServices();
+    void Promise.all([getAdminServices(), getCategorySettings()]);
   }, []);
 
   const resetForm = () => {
@@ -107,8 +143,16 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
       content2: { az: '', en: '', ru: '', tr: '' },
       content3: { az: '', en: '', ru: '', tr: '' },
       content4: { az: '', en: '', ru: '', tr: '' },
+      detailContentHtml: { az: '', en: '', ru: '', tr: '' },
+      seoTitle: { az: '', en: '', ru: '', tr: '' },
+      seoDescription: { az: '', en: '', ru: '', tr: '' },
+      seoKeywords: { az: '', en: '', ru: '', tr: '' },
 
       icon: DEFAULT_ICONS[0].name,
+      category: 1,
+      readMoreUrl: '',
+      detailPageSlug: '',
+      bannerImageUrl: '',
     });
 
     setIsEditing(false);
@@ -116,7 +160,7 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
   };
 
   const handleEdit = async (id: string) => {
-    const data = await getServiceById(id);
+    const data = services.find((service) => String(service.id) === String(id)) || await getServiceById(id);
 
     if (!data) return;
 
@@ -127,7 +171,15 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
       content2: { az: '', en: '', ru: '', tr: '' },
       content3: { az: '', en: '', ru: '', tr: '' },
       content4: { az: '', en: '', ru: '', tr: '' },
+      detailContentHtml: { az: '', en: '', ru: '', tr: '' },
+      seoTitle: { az: '', en: '', ru: '', tr: '' },
+      seoDescription: { az: '', en: '', ru: '', tr: '' },
+      seoKeywords: { az: '', en: '', ru: '', tr: '' },
       icon: data.icon || "Günəş",
+      category: Number(data.category || 1),
+      readMoreUrl: data.readMoreUrl || '',
+      detailPageSlug: data.detailPageSlug || '',
+      bannerImageUrl: data.bannerImageUrl || '',
     };
 
     data.languages?.forEach((lang: any) => {
@@ -141,6 +193,10 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
       newFormData.content2[code] = lang.content2 || '';
       newFormData.content3[code] = lang.content3 || '';
       newFormData.content4[code] = lang.content4 || '';
+      newFormData.detailContentHtml[code] = lang.detailContentHtml || '';
+      newFormData.seoTitle[code] = lang.seoTitle || '';
+      newFormData.seoDescription[code] = lang.seoDescription || '';
+      newFormData.seoKeywords[code] = lang.seoKeywords || '';
     });
 
     setFormData(newFormData);
@@ -164,6 +220,10 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
             content2: formData.content2.az,
             content3: formData.content3.az,
             content4: formData.content4.az,
+            detailContentHtml: formData.detailContentHtml.az,
+            seoTitle: formData.seoTitle.az,
+            seoDescription: formData.seoDescription.az,
+            seoKeywords: formData.seoKeywords.az,
           },
           {
             languageCode: 2,
@@ -173,6 +233,10 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
             content2: formData.content2.en,
             content3: formData.content3.en,
             content4: formData.content4.en,
+            detailContentHtml: formData.detailContentHtml.en,
+            seoTitle: formData.seoTitle.en,
+            seoDescription: formData.seoDescription.en,
+            seoKeywords: formData.seoKeywords.en,
           },
           {
             languageCode: 3,
@@ -182,6 +246,10 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
             content2: formData.content2.ru,
             content3: formData.content3.ru,
             content4: formData.content4.ru,
+            detailContentHtml: formData.detailContentHtml.ru,
+            seoTitle: formData.seoTitle.ru,
+            seoDescription: formData.seoDescription.ru,
+            seoKeywords: formData.seoKeywords.ru,
           },
           {
             languageCode: 4,
@@ -191,9 +259,17 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
             content2: formData.content2.tr,
             content3: formData.content3.tr,
             content4: formData.content4.tr,
+            detailContentHtml: formData.detailContentHtml.tr,
+            seoTitle: formData.seoTitle.tr,
+            seoDescription: formData.seoDescription.tr,
+            seoKeywords: formData.seoKeywords.tr,
           }
         ],
-        icon: formData.icon
+        icon: formData.icon,
+        category: Number(formData.category),
+        readMoreUrl: formData.readMoreUrl.trim() || undefined,
+        detailPageSlug: formData.detailPageSlug.trim().replace(/^\/+|\/+$/g, '') || undefined,
+        bannerImageUrl: formData.bannerImageUrl.trim() || undefined,
       };
 
       if (editingId) {
@@ -203,7 +279,6 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
         await createService(payload);
         showNotification("Yeni xidmət əlavə edildi");
       }
-      await getServices(); 
       resetForm();
     } catch (error) {
       showNotification("Xəta baş verdi", "error");
@@ -235,6 +310,10 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
       content3: langItem?.content3 ?? "",
       content4: langItem?.content4 ?? "",
       icon: item.icon ?? "Günəş",
+      category: Number(item.category || 1),
+      readMoreUrl: item.readMoreUrl || '',
+      detailPageSlug: item.detailPageSlug || '',
+      bannerImageUrl: item.bannerImageUrl || '',
     };
   };;
   const safeServices = services.map(s =>
@@ -245,8 +324,8 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Xidmətlər İdarəetməsi</h2>
-          <p className="text-slate-500">Saytın xidmətlər bölməsini 4 dildə tənzimləyin.</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Xidmətlər və Səhifələr</h2>
+          <p className="text-slate-500">Xidmət kartlarını və onların xüsusi URL-li ətraflı səhifələrini 4 dildə tənzimləyin.</p>
         </div>
         <div className="flex gap-4">
           <button
@@ -260,9 +339,53 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
               onClick={() => setIsEditing(true)}
               className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 text-xs uppercase tracking-widest"
             >
-              Yeni xidmət
+              Yeni xidmət / səhifə
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="mb-10 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm md:p-8">
+        <div className="mb-5">
+          <h3 className="text-lg font-black text-slate-900">“Ətraflı oxu” düymələri</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Hər kateqoriya bütöv idarə olunur. Söndürüləndə kart URL-ləri və səhifə məlumatları saxlanılır.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {[
+            { category: 1, label: 'Əhali' },
+            { category: 2, label: 'Korporativ' },
+          ].map((item) => {
+            const enabled = categorySettings.find((setting) => setting.category === item.category)?.isReadMoreEnabled
+              ?? item.category === 2;
+            return (
+              <label key={item.category} className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <span>
+                  <span className="block text-sm font-black text-slate-800">{item.label}</span>
+                  <span className="mt-1 block text-[10px] font-bold text-slate-400">Bütün kartlar: {enabled ? 'aktiv' : 'deaktiv'}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  disabled={updatingCategory === item.category}
+                  onChange={async (event) => {
+                    const nextEnabled = event.target.checked;
+                    setUpdatingCategory(item.category);
+                    try {
+                      await updateCategorySetting(item.category, nextEnabled);
+                      showNotification(`${item.label} düymələri ${nextEnabled ? 'aktiv edildi' : 'söndürüldü'}`, 'success');
+                    } catch {
+                      showNotification('Parametr yenilənmədi', 'error');
+                    } finally {
+                      setUpdatingCategory(null);
+                    }
+                  }}
+                  className="h-5 w-5 accent-emerald-600 disabled:cursor-wait disabled:opacity-50"
+                />
+              </label>
+            );
+          })}
         </div>
       </div>
 
@@ -353,6 +476,118 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
               </div>
             </div>
 
+            <div className="grid gap-6 rounded-[2rem] border border-slate-100 bg-slate-50 p-6 lg:grid-cols-2">
+              <div>
+                <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Kateqoriya</label>
+                <select
+                  value={formData.category}
+                  onChange={(event) => setFormData({ ...formData, category: Number(event.target.value) })}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                >
+                  <option value={1}>Əhali</option>
+                  <option value={2}>Korporativ</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Düymə URL-i</label>
+                <input
+                  type="text"
+                  value={formData.readMoreUrl}
+                  onChange={(event) => setFormData({ ...formData, readMoreUrl: event.target.value })}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                  placeholder="Xarici URL və ya boş saxlayın"
+                />
+                <p className="mt-2 text-[10px] text-slate-400">Boş olduqda aşağıdakı daxili səhifə URL-i istifadə edilir. Kateqoriya düymələri sönülü olsa da saxlanılır.</p>
+              </div>
+              <div>
+                <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Daxili səhifə URL-i</label>
+                <div className="flex overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:border-emerald-500">
+                  <span className="flex items-center border-r border-slate-200 px-4 text-xs font-bold text-slate-400">/services/</span>
+                  <input
+                    type="text"
+                    value={formData.detailPageSlug}
+                    onChange={(event) => setFormData({ ...formData, detailPageSlug: event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                    className="min-w-0 flex-1 px-4 py-4 text-sm font-bold outline-none"
+                    placeholder="xidmet-sehifesi"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Banner şəkli</label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="url"
+                    value={formData.bannerImageUrl}
+                    onChange={(event) => setFormData({ ...formData, bannerImageUrl: event.target.value })}
+                    className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-xs font-bold outline-none focus:border-emerald-500"
+                    placeholder="Şəkil URL-i"
+                  />
+                  <label className="cursor-pointer rounded-2xl bg-slate-900 px-5 py-4 text-center text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-600">
+                    Şəkil yüklə
+                    <input type="file" accept="image/*" className="hidden" onChange={(event) => void handleBannerUpload(event)} />
+                  </label>
+                </div>
+                {formData.bannerImageUrl && <img src={formData.bannerImageUrl} alt="Banner önizləməsi" className="mt-3 h-28 w-full rounded-xl object-cover" />}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Səhifə mətni ({activeLang.toUpperCase()})</label>
+                <p className="mt-1 text-xs text-slate-500">Mətn sahəsinə kliklədikdə və ya mətn seçdikdə format paneli göstərilir. Şəkillər mətnin daxilinə əlavə oluna bilər. Rich text və Markdown yapışdırıldıqda format avtomatik qorunur.</p>
+              </div>
+              <RichTextEditor
+                value={formData.detailContentHtml[activeLang]}
+                onChange={(html) => setFormData((current: any) => ({ ...current, detailContentHtml: { ...current.detailContentHtml, [activeLang]: html } }))}
+                onImageUpload={uploadServiceImage}
+              />
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6">
+              <div className="mb-5">
+                <h3 className="text-base font-black text-slate-900">SEO parametrləri ({activeLang.toUpperCase()})</h3>
+                <p className="mt-1 text-xs text-slate-500">Boş saxlanılan sahələrdə səhifənin başlığı və qısa təsviri avtomatik istifadə edilir.</p>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO başlığı</label>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    value={formData.seoTitle[activeLang]}
+                    onChange={(event) => setFormData((current: any) => ({ ...current, seoTitle: { ...current.seoTitle, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder={formData.title[activeLang] || 'Axtarış nəticəsi başlığı'}
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoTitle[activeLang].length}/200</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO açar sözləri</label>
+                  <input
+                    type="text"
+                    maxLength={500}
+                    value={formData.seoKeywords[activeLang]}
+                    onChange={(event) => setFormData((current: any) => ({ ...current, seoKeywords: { ...current.seoKeywords, [activeLang]: event.target.value } }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold outline-none focus:border-emerald-500"
+                    placeholder="günəş enerjisi, inverter, quraşdırma"
+                  />
+                  <p className="mt-2 text-[9px] text-slate-400">Vergüllə ayırın.</p>
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">SEO təsviri</label>
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    value={formData.seoDescription[activeLang]}
+                    onChange={(event) => setFormData((current: any) => ({ ...current, seoDescription: { ...current.seoDescription, [activeLang]: event.target.value } }))}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium outline-none focus:border-emerald-500"
+                    placeholder={formData.description[activeLang] || 'Axtarış nəticələrində göstərilən qısa təsvir'}
+                  />
+                  <p className="mt-2 text-right text-[9px] font-bold text-slate-400">{formData.seoDescription[activeLang].length}/500</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2">İkon Seçimi</label>
               <div className="grid grid-cols-6 gap-4">
@@ -425,6 +660,16 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
 
               <h3 className="text-xl font-black text-slate-900 group-hover:text-emerald-600 transition-colors">{service.title}</h3>
               <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{service.description}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                  {service.category === 2 ? 'Korporativ' : 'Əhali'}
+                </span>
+                {(service.readMoreUrl || service.detailPageSlug) && (
+                  <span className="max-w-full truncate rounded-full bg-emerald-50 px-3 py-1 text-[9px] font-bold text-emerald-700">
+                    {service.readMoreUrl || `/services/${service.detailPageSlug}`}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -446,6 +691,12 @@ const AdminServices: React.FC<AdminServicesProps> = ({ onBack }) => {
                 <span className="text-[10px] font-bold text-slate-600">{service.content4}</span>
               </div>
 
+            </div>
+
+            <div className="mt-6 space-y-2 border-t border-slate-100 pt-5 text-[10px] font-bold text-slate-500">
+              <p className="break-all"><span className="text-slate-400">Düymə URL-i:</span> {service.readMoreUrl || 'Daxili səhifə URL-i'}</p>
+              <p className="break-all"><span className="text-slate-400">Səhifə:</span> {service.detailPageSlug ? `/services/${service.detailPageSlug}` : 'Yaradılmayıb'}</p>
+              {service.bannerImageUrl && <p className="break-all"><span className="text-slate-400">Banner:</span> {service.bannerImageUrl}</p>}
             </div>
           </div>
         ))}

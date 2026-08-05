@@ -43,6 +43,7 @@ interface ContactContextType {
     id: string | number,
     data: UpdateContactRequestStatusPayload
   ) => Promise<any>;
+  markContactRequestViewed: (id: string | number) => Promise<any>;
 
 }
 
@@ -67,7 +68,7 @@ export const ContactProvider = ({ children }: { children: React.ReactNode }) => 
   // ✅ GET ALL
   const getContactInfo = async () => {
     try {
-      const res = await get(API_ENDPOINTS.CONTACT_INFO.GET_CONTACT_INFO);
+      const res = await get(API_ENDPOINTS.CONTACT_INFO.GET_CONTACT_INFO, { skipAuth: true });
       if (res) {
         setContactData(res.data[0]);
       }
@@ -110,10 +111,15 @@ const createContactRequest = async (
   try {
     const res = await post(
       API_ENDPOINTS.CONTACT_REQUEST.CREATE_CONTACT_REQUEST,
-      data
+      data,
+      { skipAuth: true }
     );
 
-    return res?.data;
+    if (res?.success === false) {
+      throw new Error(res?.error?.details || "Contact request could not be created");
+    }
+
+    return res?.data ?? res;
   } catch (error) {
     console.error("CREATE CONTACT REQUEST ERROR:", error);
     throw error;
@@ -138,6 +144,17 @@ const updateContactRequestStatus = async (
   }
 };
 
+// PATCH VIEWED
+const markContactRequestViewed = async (id: string | number) => {
+  try {
+    const res = await patch(API_ENDPOINTS.CONTACT_REQUEST.MARK_CONTACT_REQUEST_VIEWED(id));
+    return res?.data;
+  } catch (error) {
+    console.error("MARK CONTACT REQUEST VIEWED ERROR:", error);
+    throw error;
+  }
+};
+
   
    useEffect(() => {
         getContactInfo();
@@ -158,6 +175,7 @@ const updateContactRequestStatus = async (
         getContactRequests,
         createContactRequest,
         updateContactRequestStatus,
+        markContactRequestViewed,
       }}
     >
       {children}

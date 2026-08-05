@@ -3,6 +3,7 @@ import { Check, ChevronDown, Edit3, Home, Loader2, MapPin, PackageCheck, Phone, 
 import axiosInstance from '../api/axiosInstance';
 import { useProduct } from '../contexts/ProductContext';
 import { API_ENDPOINTS } from '../utils/constants';
+import { getStockWarning } from '../utils/productInventory';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 type StepKey = 'contact' | 'delivery' | 'payment' | 'review' | 'confirmation';
@@ -542,6 +543,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const deliveryFee = deliveryIsKnown ? 0 : null;
   const hasQuoteLine = lines.some((item) => !item.currentPrice || item.currentPrice <= 0);
   const hasOutOfStockLine = lines.some((item) => !item.inStock || Number(item.currentCount || 0) < item.quantity);
+  const stockIssueLines = lines.filter((item) => !item.inStock || Number(item.currentCount || 0) < item.quantity);
   const orderIntent = hasQuoteLine ? 2 : hasOutOfStockLine ? 3 : 1;
   const isContactRequest = orderIntent !== 1;
   const requiresManualConfirmation = !deliveryIsKnown || hasQuoteLine || hasOutOfStockLine;
@@ -913,11 +915,23 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <div className="mb-2 text-xs font-black uppercase tracking-widest text-amber-600">{copy.submitRequest}</div>
               <h1 className="text-2xl font-black text-slate-900">{copy.contact}</h1>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">{copy.manual}</p>
+              {stockIssueLines.length > 0 && (
+                <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-relaxed text-amber-800" role="alert">
+                  {stockIssueLines.map((item) => (
+                    <div key={`${item.lineId}-stock-warning`}>
+                      {item.productName}: {getStockWarning(lang, Number(item.currentCount || 0), item.quantity)}
+                    </div>
+                  ))}
+                  <button type="button" onClick={onBackToCart} className="mt-2 font-black underline underline-offset-2">
+                    {lang === 'az' ? 'Səbətə qayıdıb sayı azaldın' : lang === 'ru' ? 'Вернуться в корзину и уменьшить количество' : lang === 'tr' ? 'Sepete dönüp miktarı azaltın' : 'Return to cart and reduce the quantity'}
+                  </button>
+                </div>
+              )}
             </div>
             <div className="checkout-step-panel border-t border-slate-100 p-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} className={inputClass} /></Field>
-                <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="+994501234567" className={inputClass} /></Field>
+                <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="050 123 45 67" className={inputClass} /></Field>
                 <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} className={inputClass} /></Field>
               </div>
               {renderErrors('contact')}
@@ -953,7 +967,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {user && <div className="mb-4 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700">{copy.contactPrefill}</div>}
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} className={inputClass} /></Field>
-                  <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="+994501234567" className={inputClass} /></Field>
+                  <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="050 123 45 67" className={inputClass} /></Field>
                   <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} className={inputClass} /></Field>
                 </div>
                 <label className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={form.contact.saveToProfile} onChange={(e) => updateContact('saveToProfile', e.target.checked)} /> {copy.saveProfile}</label>

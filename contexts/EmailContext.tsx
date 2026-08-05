@@ -46,7 +46,7 @@ export const EmailProvider = ({ children }: { children: React.ReactNode }) => {
   // GET ALL + STATE UPDATE
   const getApplicationTypes = async () => {
     try {
-      const res = await get(API_ENDPOINTS.APPLICATIONTYPE.GET_APPLICATION_TYPE);
+      const res = await get(API_ENDPOINTS.APPLICATIONTYPE.GET_APPLICATION_TYPE, { skipAuth: true });
 
       const data = res?.data || res;
       setApplicationTypes(data);

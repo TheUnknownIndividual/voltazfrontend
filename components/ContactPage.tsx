@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useContact } from "../contexts/ContactContext";
 import { useEmail } from "../contexts/EmailContext";
 import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
+import { useNotification } from '../contexts/NotificationContext';
 
 
 interface ContactPageProps {
@@ -20,6 +21,7 @@ const languageReverseMap = {
 } as const;
 
 const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService, initialProduct }) => {
+  const { showNotification } = useNotification();
   const { contactData, loading, createContactRequest } = useContact();
   const { applicationTypes, getApplicationTypes } = useEmail();
   const [selectedType, setSelectedType] = useState<string>('');
@@ -35,6 +37,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_ISO2);
   const [message, setMessage] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
 
@@ -392,9 +395,11 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
 
+    setIsSubmitting(true);
     try {
       await createContactRequest({
         name: formData.firstName,
@@ -406,6 +411,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
       });
 
       setShowSuccessPopup(true);
+      showNotification(t.successTitle, 'success');
 
       setFormData({
         firstName: '',
@@ -421,6 +427,12 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
       setSelectedType('');
     } catch (error) {
       console.error('CREATE CONTACT REQUEST ERROR:', error);
+      showNotification(
+        lang === 'az' ? 'Müraciəti göndərmək mümkün olmadı.' : lang === 'ru' ? 'Не удалось отправить запрос.' : lang === 'tr' ? 'Talep gönderilemedi.' : 'The request could not be sent.',
+        'error'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -550,9 +562,9 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                         onCountryChange={setPhoneCountry}
                         localNumber={formData.phone}
                         onLocalNumberChange={(value) => setFormData((prev) => ({ ...prev, phone: value }))}
-                        placeholder="XX XXX XX XX"
-                        selectClassName="focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
-                        inputClassName="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all"
+                        placeholder="50 123 45 67"
+                        containerClassName="border-slate-100 bg-slate-50 focus-within:bg-white"
+                        inputClassName="px-5 py-4 text-sm font-bold text-slate-700"
                       />
                     </div>
                   </div>
@@ -572,7 +584,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="w-full bg-emerald-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98]">
+                  <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-600">
+                    {isSubmitting && (
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" /><path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 00-9 9h3a6 6 0 016-6V3z" /></svg>
+                    )}
                     {t.labels.submit}
                   </button>
                 </form>

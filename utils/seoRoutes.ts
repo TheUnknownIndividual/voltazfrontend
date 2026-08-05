@@ -16,6 +16,20 @@ export const INSTALLATION_PATHS: Record<SiteLanguage, string> = {
   tr: '/tr/gunes-paneli-kurulumu',
 };
 
+export const SOLAR_PANEL_PATHS: Record<SiteLanguage, string> = {
+  az: '/gunes-panelleri',
+  en: '/en/solar-panels',
+  ru: '/ru/solnechnye-paneli',
+  tr: '/tr/gunes-panelleri',
+};
+
+export const INVERTER_PATHS: Record<SiteLanguage, string> = {
+  az: '/gunes-invertorlari',
+  en: '/en/solar-inverters',
+  ru: '/ru/solnechnye-invertory',
+  tr: '/tr/gunes-invertorleri',
+};
+
 export const getLanguageFromPath = (pathname: string): SiteLanguage => {
   const firstSegment = pathname.split('/').filter(Boolean)[0];
   return PREFIXED_LANGUAGES.includes(firstSegment as SiteLanguage)
@@ -28,6 +42,12 @@ export const stripLanguagePrefix = (pathname: string) => {
   const installationEntry = Object.entries(INSTALLATION_PATHS)
     .find(([, localizedPath]) => normalized.replace(/\/+$/, '') === localizedPath);
   if (installationEntry) return '/solar-installation';
+  const solarPanelEntry = Object.entries(SOLAR_PANEL_PATHS)
+    .find(([, localizedPath]) => normalized.replace(/\/+$/, '') === localizedPath);
+  if (solarPanelEntry) return '/solar-panels';
+  const inverterEntry = Object.entries(INVERTER_PATHS)
+    .find(([, localizedPath]) => normalized.replace(/\/+$/, '') === localizedPath);
+  if (inverterEntry) return '/inverters';
 
   const segments = normalized.split('/').filter(Boolean);
   if (PREFIXED_LANGUAGES.includes(segments[0] as SiteLanguage)) {
@@ -44,6 +64,12 @@ export const localizePath = (pathWithQuery: string, language: SiteLanguage) => {
   const basePath = stripLanguagePrefix(pathname || '/');
   if (basePath === '/solar-installation') {
     return query ? `${INSTALLATION_PATHS[language]}?${query}` : INSTALLATION_PATHS[language];
+  }
+  if (basePath === '/solar-panels') {
+    return query ? `${SOLAR_PANEL_PATHS[language]}?${query}` : SOLAR_PANEL_PATHS[language];
+  }
+  if (basePath === '/inverters') {
+    return query ? `${INVERTER_PATHS[language]}?${query}` : INVERTER_PATHS[language];
   }
   const localized = language === 'az'
     ? basePath

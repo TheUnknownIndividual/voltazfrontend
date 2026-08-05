@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminPage, type AdminUser } from '../api/adminUsers';
-import AdminRequests from './AdminRequests';
+import AdminUnifiedRequests from './AdminUnifiedRequests';
 import AdminServiceRequests from './AdminServiceRequests';
 import AdminPartnershipRequests from './AdminPartnershipRequests';
 import AdminVerificationInquiries from './AdminVerificationInquiries';
@@ -23,7 +23,7 @@ const inquiryOptions: Array<{ value: InquiryType; label: string; page: AdminPage
  * existing API, status transitions and detail view; the type selector only
  * decides which existing workflow is shown.
  */
-const AdminInquiries: React.FC<{ adminSession: AdminUser | null }> = ({ adminSession }) => {
+const AdminInquiries: React.FC<{ adminSession: AdminUser | null; onUnreadCountChange?: (count: number) => void }> = ({ adminSession, onUnreadCountChange }) => {
   const availableOptions = useMemo(() => inquiryOptions.filter((option) =>
     adminSession?.isSuperAdmin || Boolean(adminSession?.allowedPages.includes(option.page))
   ), [adminSession]);
@@ -52,7 +52,17 @@ const AdminInquiries: React.FC<{ adminSession: AdminUser | null }> = ({ adminSes
       </label>
     </div>
 
-    {type === 'contact' && <ContactProvider><EmailProvider><AdminRequests embedded /></EmailProvider></ContactProvider>}
+    {type === 'contact' && (
+      <ContactProvider>
+        <EmailProvider>
+          <ServiceProvider>
+            <PartnershipProvider>
+              <AdminUnifiedRequests embedded onUnreadCountChange={onUnreadCountChange} />
+            </PartnershipProvider>
+          </ServiceProvider>
+        </EmailProvider>
+      </ContactProvider>
+    )}
     {type === 'service' && <ServiceProvider><AdminServiceRequests embedded /></ServiceProvider>}
     {type === 'partnership' && <PartnershipProvider><AdminPartnershipRequests embedded /></PartnershipProvider>}
     {type === 'verification' && <AdminVerificationInquiries embedded />}

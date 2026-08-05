@@ -1,7 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
+import {
+  BadgeCheck,
+  ChartNoAxesCombined,
+  CircleDollarSign,
+  ClipboardCheck,
+  Container,
+  FileCheck2,
+  Gauge,
+  PanelsTopLeft,
+  Truck,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import { useService } from "../contexts/ServiceContext";
 import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface ServicesPageProps {
   lang?: 'az' | 'en' | 'ru' | 'tr';
@@ -19,19 +33,321 @@ const languageReverseMap = {
 
 type LangCode = 'az' | 'en' | 'ru' | 'tr';
 
-export const ICON_MAP = {
-  "Günəş": "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z",
+const SERVICE_ICON_MAP: Record<string, LucideIcon> = {
+  "Günəş": PanelsTopLeft,
+  "Sayğac": Gauge,
+  "Maliyyə": CircleDollarSign,
+  "Parametrlər": Wrench,
+  "Texniki": FileCheck2,
+  "Konsultasiya": ClipboardCheck,
+};
 
-  "Sayğac": "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+interface CorporateService {
+  title: string;
+  description: string;
+  bullets: string[];
+  icon: LucideIcon;
+  detailPageSlug: string;
+}
 
-  "Maliyyə": "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0116 0z",
-
-  "Parametrlər": "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z",
-
-  "Texniki": "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z",
-
-  "Konsultasiya": "M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
-} as const;
+const CORPORATE_SERVICES: Record<LangCode, CorporateService[]> = {
+  az: [
+    {
+      title: 'Topdan Satış və Konteyner Təchizatı',
+      description: 'Solarix korporativ müştərilər və iri layihələr üçün günəş enerjisi avadanlıqlarının topdan satışını həyata keçirir.',
+      bullets: [
+        'Günəş panelləri, inverterlər və enerji saxlama sistemləri',
+        'Tam konteyner — FCL və iri həcmli təchizat',
+        'Layihəyə uyğun qarışıq məhsul partiyalarının hazırlanması',
+        'Böyük sifarişlər üçün xüsusi korporativ qiymətlər',
+      ],
+      icon: Container,
+      detailPageSlug: 'wholesale-container-supply',
+    },
+    {
+      title: 'LONGi-nin Azərbaycanda Yeganə Rəsmi Tərəfdaşı',
+      description: 'Solarix Azərbaycanda LONGi məhsullarının yeganə rəsmi tərəfdaşı olaraq orijinal və sertifikatlaşdırılmış günəş panelləri təqdim edir.',
+      bullets: [
+        'Orijinal və sertifikatlaşdırılmış LONGi məhsulları',
+        'İstehsalçı zəmanəti və mənşə sənədləri',
+        'Məhsulun autentikliyinin və seriya nömrəsinin yoxlanılması',
+        'Rəsmi satış, texniki və zəmanət dəstəyi',
+      ],
+      icon: BadgeCheck,
+      detailPageSlug: 'longi-official-partner',
+    },
+    {
+      title: 'Açar Təhvil Günəş Enerjisi Layihələri',
+      description: 'Solarix layihələndirmə, avadanlıq təchizatı, quraşdırma və istismara vermə daxil olmaqla tam EPC xidmətləri göstərir.',
+      bullets: [
+        'Obyektə baxış və texniki qiymətləndirmə',
+        'Günəş panelləri və montaj konstruksiyalarının quraşdırılması',
+        'İnverter, kabel və elektrik avadanlıqlarının montajı',
+        'Sistemin sınaqdan keçirilməsi və istismara verilməsi',
+      ],
+      icon: PanelsTopLeft,
+      detailPageSlug: 'turnkey-solar-projects',
+    },
+    {
+      title: 'Layihələndirmə və ROI Analizi',
+      description: 'Korporativ obyektlər üçün optimal sistem gücü, enerji istehsalı və investisiyanın geri dönüşü hesablanır.',
+      bullets: [
+        'Elektrik sərfiyyatına uyğun sistem gücünün hesablanması',
+        'İllik enerji istehsalı və qənaət proqnozu',
+        'İnvestisiyanın geri dönüş müddəti və ROI analizi',
+        'Avadanlıq tərkibinin və layihə uyğunluğunun müəyyən edilməsi',
+      ],
+      icon: ChartNoAxesCombined,
+      detailPageSlug: 'design-roi-analysis',
+    },
+    {
+      title: 'Logistika və Korporativ Təchizat',
+      description: 'İri həcmli sifarişlərin istehsalçıdan layihə ünvanına qədər çatdırılması və təchizat prosesi idarə olunur.',
+      bullets: [
+        'Konteyner və beynəlxalq yükdaşımaların koordinasiyası',
+        'Gömrük və idxal sənədlərinin hazırlanmasına dəstək',
+        'Mənşə və uyğunluq sertifikatlarının təqdim edilməsi',
+        'Mərhələli çatdırılma və anbarlama imkanları',
+      ],
+      icon: Truck,
+      detailPageSlug: 'logistics-corporate-supply',
+    },
+    {
+      title: 'Texniki Xidmət və Satışdan Sonrakı Dəstək',
+      description: 'Günəş sistemlərinin uzunmüddətli, təhlükəsiz və yüksək məhsuldarlıqla işləməsi üçün tam texniki dəstək təqdim edilir.',
+      bullets: [
+        'Planlı texniki baxış və sistem diaqnostikası',
+        'Panel, inverter və elektrik bağlantılarının yoxlanılması',
+        'Monitorinq və enerji istehsalı göstəricilərinin təhlili',
+        'Zəmanət və zəmanətdən sonrakı servis dəstəyi',
+      ],
+      icon: Wrench,
+      detailPageSlug: 'maintenance-after-sales-support',
+    },
+  ],
+  en: [
+    {
+      title: 'Wholesale and Container Supply',
+      description: 'Solarix supplies solar energy equipment wholesale for corporate customers and large-scale projects.',
+      bullets: [
+        'Solar panels, inverters, and energy storage systems',
+        'Full-container (FCL) and high-volume supply',
+        'Mixed product batches prepared to project requirements',
+        'Special corporate pricing for large orders',
+      ],
+      icon: Container,
+      detailPageSlug: 'wholesale-container-supply',
+    },
+    {
+      title: "LONGi's Only Official Partner in Azerbaijan",
+      description: 'As the only official LONGi partner in Azerbaijan, Solarix provides genuine and certified solar panels.',
+      bullets: [
+        'Genuine and certified LONGi products',
+        'Manufacturer warranty and certificates of origin',
+        'Product authenticity and serial-number verification',
+        'Official sales, technical, and warranty support',
+      ],
+      icon: BadgeCheck,
+      detailPageSlug: 'longi-official-partner',
+    },
+    {
+      title: 'Turnkey Solar Energy Projects',
+      description: 'Solarix provides complete EPC services, including design, equipment supply, installation, and commissioning.',
+      bullets: [
+        'Site survey and technical assessment',
+        'Installation of solar panels and mounting structures',
+        'Installation of inverters, cabling, and electrical equipment',
+        'System testing and commissioning',
+      ],
+      icon: PanelsTopLeft,
+      detailPageSlug: 'turnkey-solar-projects',
+    },
+    {
+      title: 'Design and ROI Analysis',
+      description: 'We calculate optimal system capacity, energy generation, and investment payback for corporate facilities.',
+      bullets: [
+        'System sizing based on electricity consumption',
+        'Annual energy generation and savings forecast',
+        'Payback period and ROI analysis',
+        'Equipment selection and project suitability assessment',
+      ],
+      icon: ChartNoAxesCombined,
+      detailPageSlug: 'design-roi-analysis',
+    },
+    {
+      title: 'Logistics and Corporate Supply',
+      description: 'We manage delivery and supply of high-volume orders from the manufacturer to the project site.',
+      bullets: [
+        'Container and international freight coordination',
+        'Support with customs and import documentation',
+        'Certificates of origin and conformity',
+        'Phased delivery and warehousing options',
+      ],
+      icon: Truck,
+      detailPageSlug: 'logistics-corporate-supply',
+    },
+    {
+      title: 'Maintenance and After-Sales Support',
+      description: 'Complete technical support keeps solar systems safe, productive, and reliable over the long term.',
+      bullets: [
+        'Scheduled maintenance and system diagnostics',
+        'Inspection of panels, inverters, and electrical connections',
+        'Monitoring and energy-generation performance analysis',
+        'Warranty and post-warranty service support',
+      ],
+      icon: Wrench,
+      detailPageSlug: 'maintenance-after-sales-support',
+    },
+  ],
+  ru: [
+    {
+      title: 'Оптовые продажи и контейнерные поставки',
+      description: 'Solarix осуществляет оптовые поставки оборудования для солнечной энергетики корпоративным клиентам и крупным проектам.',
+      bullets: [
+        'Солнечные панели, инверторы и системы накопления энергии',
+        'Полные контейнеры — FCL и крупнообъёмные поставки',
+        'Комплектация смешанных партий под требования проекта',
+        'Специальные корпоративные цены для крупных заказов',
+      ],
+      icon: Container,
+      detailPageSlug: 'wholesale-container-supply',
+    },
+    {
+      title: 'Единственный официальный партнёр LONGi в Азербайджане',
+      description: 'Solarix, являясь единственным официальным партнёром LONGi в Азербайджане, предлагает оригинальные и сертифицированные солнечные панели.',
+      bullets: [
+        'Оригинальная и сертифицированная продукция LONGi',
+        'Гарантия производителя и документы о происхождении',
+        'Проверка подлинности продукции и серийного номера',
+        'Официальная техническая, гарантийная и сервисная поддержка',
+      ],
+      icon: BadgeCheck,
+      detailPageSlug: 'longi-official-partner',
+    },
+    {
+      title: 'Солнечные энергетические проекты под ключ',
+      description: 'Solarix предоставляет полный комплекс EPC-услуг: проектирование, поставку оборудования, монтаж и ввод системы в эксплуатацию.',
+      bullets: [
+        'Обследование объекта и техническая оценка',
+        'Монтаж солнечных панелей и несущих конструкций',
+        'Монтаж инверторов, кабелей и электрооборудования',
+        'Испытание системы и ввод в эксплуатацию',
+      ],
+      icon: PanelsTopLeft,
+      detailPageSlug: 'turnkey-solar-projects',
+    },
+    {
+      title: 'Проектирование и анализ ROI',
+      description: 'Для корпоративных объектов рассчитываются оптимальная мощность системы, выработка энергии и срок окупаемости инвестиций.',
+      bullets: [
+        'Расчёт мощности системы по потреблению электроэнергии',
+        'Прогноз годовой выработки энергии и экономии',
+        'Расчёт срока окупаемости и ROI',
+        'Подбор оборудования и оценка соответствия проекту',
+      ],
+      icon: ChartNoAxesCombined,
+      detailPageSlug: 'design-roi-analysis',
+    },
+    {
+      title: 'Логистика и корпоративные поставки',
+      description: 'Мы управляем доставкой и снабжением крупных заказов от производителя непосредственно до проектного объекта.',
+      bullets: [
+        'Координация контейнерных и международных перевозок',
+        'Поддержка в подготовке таможенных и импортных документов',
+        'Предоставление сертификатов происхождения и соответствия',
+        'Поэтапная доставка и возможности складского хранения',
+      ],
+      icon: Truck,
+      detailPageSlug: 'logistics-corporate-supply',
+    },
+    {
+      title: 'Техническое и послепродажное обслуживание',
+      description: 'Полная техническая поддержка обеспечивает безопасную, эффективную и долговременную работу солнечных систем.',
+      bullets: [
+        'Плановое техническое обслуживание и диагностика системы',
+        'Проверка панелей, инверторов и электрических соединений',
+        'Мониторинг и анализ показателей выработки энергии',
+        'Гарантийная и послегарантийная сервисная поддержка',
+      ],
+      icon: Wrench,
+      detailPageSlug: 'maintenance-after-sales-support',
+    },
+  ],
+  tr: [
+    {
+      title: 'Toptan Satış ve Konteyner Tedariki',
+      description: 'Solarix, kurumsal müşteriler ve büyük ölçekli projeler için güneş enerjisi ekipmanlarının toptan satışını gerçekleştirir.',
+      bullets: [
+        'Güneş panelleri, inverterler ve enerji depolama sistemleri',
+        'Tam konteyner — FCL ve yüksek hacimli tedarik',
+        'Proje gereksinimlerine uygun karma ürün partilerinin hazırlanması',
+        'Büyük siparişler için özel kurumsal fiyatlar',
+      ],
+      icon: Container,
+      detailPageSlug: 'wholesale-container-supply',
+    },
+    {
+      title: "LONGi'nin Azerbaycan'daki Tek Resmî Ortağı",
+      description: "Solarix, LONGi'nin Azerbaycan'daki tek resmî ortağı olarak orijinal ve sertifikalı güneş panelleri sunar.",
+      bullets: [
+        'Orijinal ve sertifikalı LONGi ürünleri',
+        'Üretici garantisi ve menşe belgeleri',
+        'Ürün orijinalliği ve seri numarası doğrulaması',
+        'Resmî satış, teknik ve garanti desteği',
+      ],
+      icon: BadgeCheck,
+      detailPageSlug: 'longi-official-partner',
+    },
+    {
+      title: 'Anahtar Teslim Güneş Enerjisi Projeleri',
+      description: 'Solarix; projelendirme, ekipman tedariki, kurulum ve devreye alma dâhil eksiksiz EPC hizmetleri sunar.',
+      bullets: [
+        'Saha incelemesi ve teknik değerlendirme',
+        'Güneş panelleri ve montaj konstrüksiyonlarının kurulumu',
+        'İnverter, kablo ve elektrik ekipmanlarının montajı',
+        'Sistem testleri ve devreye alma',
+      ],
+      icon: PanelsTopLeft,
+      detailPageSlug: 'turnkey-solar-projects',
+    },
+    {
+      title: 'Projelendirme ve ROI Analizi',
+      description: 'Kurumsal tesisler için optimum sistem gücü, enerji üretimi ve yatırımın geri dönüşü hesaplanır.',
+      bullets: [
+        'Elektrik tüketimine göre sistem gücü hesabı',
+        'Yıllık enerji üretimi ve tasarruf tahmini',
+        'Geri ödeme süresi ve ROI analizi',
+        'Ekipman seçimi ve projeye uygunluk değerlendirmesi',
+      ],
+      icon: ChartNoAxesCombined,
+      detailPageSlug: 'design-roi-analysis',
+    },
+    {
+      title: 'Lojistik ve Kurumsal Tedarik',
+      description: 'Yüksek hacimli siparişlerin üreticiden proje adresine kadar teslimat ve tedarik süreci yönetilir.',
+      bullets: [
+        'Konteyner ve uluslararası taşımaların koordinasyonu',
+        'Gümrük ve ithalat belgelerinin hazırlanmasına destek',
+        'Menşe ve uygunluk sertifikalarının sunulması',
+        'Aşamalı teslimat ve depolama olanakları',
+      ],
+      icon: Truck,
+      detailPageSlug: 'logistics-corporate-supply',
+    },
+    {
+      title: 'Teknik Servis ve Satış Sonrası Destek',
+      description: 'Güneş sistemlerinin uzun süre güvenli ve yüksek verimle çalışması için eksiksiz teknik destek sağlanır.',
+      bullets: [
+        'Planlı teknik bakım ve sistem teşhisi',
+        'Panel, inverter ve elektrik bağlantılarının kontrolü',
+        'İzleme ve enerji üretim verilerinin analizi',
+        'Garanti ve garanti sonrası servis desteği',
+      ],
+      icon: Wrench,
+      detailPageSlug: 'maintenance-after-sales-support',
+    },
+  ],
+};
 
 const serviceMatchers: Record<string, string[]> = {
   'smart-meter-monitoring': ['smart', 'saygac', 'inteqrasiya', 'monitorinq', 'meter', 'monitoring'],
@@ -62,11 +378,28 @@ const normalizeServiceText = (value: string) =>
     .replace(/ö/g, 'o')
     .replace(/ü/g, 'u');
 
-const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack, initialService, focusToken }) => {
+const getResidentialServiceIcon = (title: string, backendIcon?: string): LucideIcon => {
+  const normalizedTitle = normalizeServiceText(title);
+
+  if (normalizedTitle.includes('saygac') || normalizedTitle.includes('meter')) return Gauge;
+  if (normalizedTitle.includes('maliyye') || normalizedTitle.includes('finance') || normalizedTitle.includes('kredit')) return CircleDollarSign;
+  if (normalizedTitle.includes('huquqi') || normalizedTitle.includes('legal') || normalizedTitle.includes('resmilesdirme')) return FileCheck2;
+  if (normalizedTitle.includes('konsultasiya') || normalizedTitle.includes('consult') || normalizedTitle.includes('audit')) return ClipboardCheck;
+  if (normalizedTitle.includes('roi') || normalizedTitle.includes('layihelendirme') || normalizedTitle.includes('design')) return ChartNoAxesCombined;
+  if (normalizedTitle.includes('qurasdirma') || normalizedTitle.includes('installation')) return PanelsTopLeft;
+
+  return SERVICE_ICON_MAP[backendIcon || 'Günəş'] || PanelsTopLeft;
+};
+
+const ServicesPage: React.FC<ServicesPageProps> = ({ lang = 'az', onBack, initialService, focusToken }) => {
+
+  const { showNotification } = useNotification();
 
   const {
   services,
+  categorySettings,
   getServices,
+  getCategorySettings,
   createServiceRequest
 } = useService();
 
@@ -84,6 +417,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack, initialServi
   const [submitStatus, setSubmitStatus] = useState<'none' | 'success' | 'error'>('none');
   const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY_ISO2);
   const [focusedServiceId, setFocusedServiceId] = useState<string | number | null>(null);
+  const [activeAudience, setActiveAudience] = useState<'residential' | 'corporate'>('residential');
 
   const t = {
   serviceType: {
@@ -98,6 +432,27 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ lang , onBack, initialServi
     en: "Services",
     ru: "Услуги",
     tr: "Hizmetler",
+  },
+
+  residential: {
+    az: "Əhali",
+    en: "Residential",
+    ru: "Жилые",
+    tr: "Konut",
+  },
+
+  corporate: {
+    az: "Korporativ",
+    en: "Corporative",
+    ru: "Корпоративные",
+    tr: "Kurumsal",
+  },
+
+  readMore: {
+    az: "Ətraflı oxu",
+    en: "Read More",
+    ru: "Подробнее",
+    tr: "Devamını Oku",
   },
 
   back: {
@@ -209,14 +564,6 @@ const handleSubmit = async (e: React.FormEvent) => {
   setSubmitStatus("none");
 
   try {
-    const selectedService = services.find((s) => {
-      const langItem = s.languages?.find(
-        (l) => languageReverseMap[l.languageCode] === lang
-      );
-
-      return langItem?.title === formData.serviceType;
-    });
-
     const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
 
     await createServiceRequest({
@@ -229,6 +576,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 });
 
     setSubmitStatus("success");
+    showNotification(t.success[lang], 'success');
 
     setFormData({
       serviceType: "",
@@ -241,6 +589,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   } catch (error) {
     console.error(error);
     setSubmitStatus("error");
+    showNotification(t.error[lang], 'error');
   } finally {
     setIsSubmitting(false);
   }
@@ -248,29 +597,37 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     const transformService = (item: any, activeLang: LangCode) => {
     const langItem = item.languages?.find(
-      (l: any) => languageReverseMap[l.languageCode] === lang
+      (l: any) => languageReverseMap[l.languageCode] === activeLang
     );
+    const fallbackLangItem = item.languages?.find((l: any) => l.languageCode === 1);
 
     return {
       id: item.id,
-      title: langItem?.title ?? "",
-      description: langItem?.description ?? "",
-      content1: langItem?.content1 ?? "",
-      content2: langItem?.content2 ?? "",
-      content3: langItem?.content3 ?? "",
-      content4: langItem?.content4 ?? "",
+      title: langItem?.title ?? fallbackLangItem?.title ?? "",
+      description: langItem?.description ?? fallbackLangItem?.description ?? "",
+      content1: langItem?.content1 ?? fallbackLangItem?.content1 ?? "",
+      content2: langItem?.content2 ?? fallbackLangItem?.content2 ?? "",
+      content3: langItem?.content3 ?? fallbackLangItem?.content3 ?? "",
+      content4: langItem?.content4 ?? fallbackLangItem?.content4 ?? "",
       icon: item.icon ?? "Günəş",
+      iconHint: langItem?.title ?? fallbackLangItem?.title ?? "",
+      category: Number(item.category || 1),
+      readMoreUrl: item.readMoreUrl || "",
+      detailPageSlug: item.detailPageSlug || "",
+      bannerImageUrl: item.bannerImageUrl || "",
+      detailContentHtml: langItem?.detailContentHtml ?? fallbackLangItem?.detailContentHtml ?? "",
     };
   };;
   const safeServices = services.map(s =>
     transformService(s, lang)
   );
    useEffect(() => {
-      getServices();
+      void Promise.all([getServices(), getCategorySettings()]);
     }, [lang]);
 
   useEffect(() => {
     if (!initialService || safeServices.length === 0) return;
+    setActiveAudience('residential');
     const initialServiceText = String(initialService);
     const directMatch = safeServices.find((service) => String(service.id) === initialServiceText);
     const targetTitles = serviceTargetTitles[initialServiceText] || [];
@@ -311,6 +668,48 @@ const handleSubmit = async (e: React.FormEvent) => {
     };
   }, [initialService, focusToken, services.length, lang]);
 
+  const corporateLanguage = lang;
+  const populationServices = safeServices.filter((service) => service.category === 1);
+  const corporateServices = safeServices.filter((service) => service.category === 2);
+  const corporateCards = CORPORATE_SERVICES[corporateLanguage].map((fallbackService) => {
+    const managedService = corporateServices.find((service) => service.detailPageSlug === fallbackService.detailPageSlug);
+    if (!managedService) return fallbackService;
+
+    return {
+      ...fallbackService,
+      ...managedService,
+      title: managedService.title || fallbackService.title,
+      description: managedService.description || fallbackService.description,
+      bullets: [managedService.content1, managedService.content2, managedService.content3, managedService.content4].filter(Boolean),
+    };
+  });
+  const activeCategory = activeAudience === 'residential' ? 1 : 2;
+  const activeReadMoreEnabled = categorySettings.find((setting) => setting.category === activeCategory)?.isReadMoreEnabled
+    ?? activeCategory === 2;
+  const visibleServiceCards = activeAudience === 'residential'
+    ? populationServices.map((service) => ({
+        key: `residential-${service.id}`,
+        elementId: `service-${service.id}`,
+        serviceId: service.id,
+        title: service.title,
+        description: service.description,
+        bullets: [service.content1, service.content2, service.content3, service.content4].filter(Boolean),
+        icon: getResidentialServiceIcon(service.iconHint, service.icon),
+        readMoreUrl: service.readMoreUrl,
+        detailPageSlug: service.detailPageSlug,
+      }))
+    : corporateCards.map((service: any, index) => ({
+        key: `corporate-${index}`,
+        elementId: `corporate-service-${index + 1}`,
+        serviceId: null,
+        title: service.title,
+        description: service.description,
+        bullets: service.bullets || [service.content1, service.content2, service.content3, service.content4].filter(Boolean),
+        icon: service.iconHint ? getResidentialServiceIcon(service.iconHint, service.icon) : service.icon,
+        readMoreUrl: service.readMoreUrl || '',
+        detailPageSlug: service.detailPageSlug || '',
+      }));
+
   return (
     <div className="bg-white min-h-screen">
       <section className="bg-emerald-950 py-4 relative overflow-hidden">
@@ -325,68 +724,84 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       <section className="py-12 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-12">
+          <div className="mb-10 flex justify-center">
+            <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" role="tablist" aria-label={t.title[lang]}>
+              {(['residential', 'corporate'] as const).map((audience) => {
+                const isActive = activeAudience === audience;
+                return (
+                  <button
+                    key={audience}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveAudience(audience)}
+                    className={`rounded-xl px-6 py-3 text-[11px] font-black uppercase tracking-widest transition-colors sm:px-9 ${
+                      isActive
+                        ? 'bg-[var(--color-dark)] text-white shadow-md'
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    {t[audience][lang]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {safeServices.map((service) => {
-              const isFocused = String(focusedServiceId) === String(service.id);
+            {visibleServiceCards.map((service) => {
+              const ServiceIcon = service.icon;
+              const isFocused = service.serviceId !== null && String(focusedServiceId) === String(service.serviceId);
+              const localizedServiceBase = lang === 'az' ? '/services' : `/${lang}/services`;
+              const readMoreHref = service.readMoreUrl
+                || (service.detailPageSlug ? `${localizedServiceBase}/${service.detailPageSlug}` : '')
+                || (service.serviceId !== null ? `${localizedServiceBase}?service=${service.serviceId}` : localizedServiceBase);
               return (
-              <div 
-                key={service.id}
-                id={`service-${service.id}`}
-                className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-2xl hover:border-[var(--color-primary)] transition-all duration-500 flex flex-col group ${
-                  isFocused
-                    ? 'bg-emerald-50 border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/30 shadow-2xl shadow-emerald-900/10'
-                    : 'bg-white border-slate-100'
-                }`}
-              >
-               <div className="mb-6">
-  <div className="flex items-center gap-4 mb-3">
-    <div className="w-14 h-14 bg-[color-mix(in_srgb,var(--color-primary)_9%,white)] text-[var(--color-primary)] rounded-2xl flex items-center justify-center group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-dark)] transition-all duration-500 shadow-inner">
-      <svg
-        className="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-          d={ICON_MAP[service.icon ?? "Günəş"]}
-        />
-      </svg>
-    </div>
+                <article
+                  key={service.key}
+                  id={service.elementId}
+                  className={`group flex flex-col rounded-[2rem] border p-8 shadow-sm transition-all duration-500 hover:border-[var(--color-primary)] hover:shadow-2xl ${
+                    isFocused
+                      ? 'border-[var(--color-primary)] bg-emerald-50 ring-2 ring-[var(--color-primary)]/30 shadow-2xl shadow-emerald-900/10'
+                      : 'border-slate-100 bg-white'
+                  }`}
+                >
+                  <div className="mb-6">
+                    <div className="mb-3 flex items-start gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-primary)_9%,white)] text-[var(--color-primary)] shadow-inner transition-all duration-500 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-dark)]">
+                        <ServiceIcon className="h-6 w-6" strokeWidth={1.7} aria-hidden="true" />
+                      </div>
+                      <h3 className="pt-1 text-lg font-black leading-tight text-slate-900 transition-colors group-hover:text-[var(--color-primary)]">
+                        {service.title || ''}
+                      </h3>
+                    </div>
+                    <p className="text-[11px] font-medium leading-relaxed text-slate-400">
+                      {service.description}
+                    </p>
+                  </div>
 
-    <h3 className="text-lg font-black text-slate-900 group-hover:text-[var(--color-primary)] transition-colors">
-      {service.title || ""}
-    </h3>
-  </div>
+                  <ul className="space-y-3">
+                    {service.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-start gap-3">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
+                        <span className="text-xs font-bold leading-relaxed text-slate-600">{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-  <p className="text-[11px] text-slate-400 font-medium leading-tight">
-    {service.description}
-  </p>
-</div>
-
-                <div className="space-y-3">
-                  
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full"></div>
-                      <span className="text-xs font-bold text-slate-600">{service.content1}</span>
+                  {activeReadMoreEnabled && readMoreHref && (
+                    <div className="mt-auto pt-8">
+                      <a
+                        href={readMoreHref}
+                        target={/^https?:\/\//i.test(readMoreHref) ? '_blank' : undefined}
+                        rel={/^https?:\/\//i.test(readMoreHref) ? 'noreferrer' : undefined}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-dark)] px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)]"
+                      >
+                        {t.readMore[lang]}
+                      </a>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full"></div>
-                      <span className="text-xs font-bold text-slate-600">{service.content2}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full"></div>
-                      <span className="text-xs font-bold text-slate-600">{service.content3}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full"></div>
-                      <span className="text-xs font-bold text-slate-600">{service.content4}</span>
-                    </div>
-               
-                </div>
-              </div>
+                  )}
+                </article>
               );
             })}
           </div>
@@ -486,9 +901,9 @@ const handleSubmit = async (e: React.FormEvent) => {
                       onCountryChange={setPhoneCountry}
                       localNumber={formData.phone}
                       onLocalNumberChange={(value) => setFormData((prev) => ({ ...prev, phone: value }))}
-                      placeholder="-- --- -- --"
-                      selectClassName="h-14 rounded-2xl"
-                      inputClassName="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
+                      placeholder="50 123 45 67"
+                      containerClassName="h-14 border-transparent bg-slate-50 focus-within:bg-white"
+                      inputClassName="px-6 text-sm font-bold text-slate-900"
                     />
                   </div>
                 </div>
@@ -512,9 +927,19 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`relative flex w-full items-center justify-center gap-2 overflow-hidden py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-[0.98] disabled:cursor-not-allowed ${submitStatus === 'success' ? 'bg-emerald-600 text-white shadow-emerald-600/20' : isSubmitting ? 'bg-sky-600 text-white shadow-sky-600/20' : 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-slate-900'}`}
                 >
-                  {isSubmitting ? '...' : t.send[lang]}
+                  {submitStatus === 'success' ? (
+                    <>
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                      {t.success[lang]}
+                    </>
+                  ) : isSubmitting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" /><path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 00-9 9h3a6 6 0 016-6V3z" /></svg>
+                      {t.send[lang]}
+                    </>
+                  ) : t.send[lang]}
                 </button>
 
                 {submitStatus === 'success' && (

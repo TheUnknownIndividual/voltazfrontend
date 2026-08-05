@@ -12,9 +12,11 @@ const webConfig = read('dist/web.config');
 if (webConfig.includes('__PRERENDER_DIR__')) fail('dist/web.config still contains the prerender placeholder.');
 if (!webConfig.includes('Noindex test environment')) fail('test.volt.az noindex rule is missing.');
 if (!webConfig.includes('Unknown route is a real 404')) fail('real 404 rule is missing.');
+if (!webConfig.includes('Removed compromised namespaces')) fail('410 rule for compromised namespaces is missing.');
+if (!webConfig.includes('existingResponse="Auto"')) fail('IIS custom errors can replace genuine 404 status codes.');
 
-const prerenderDirectory = webConfig.match(/url="\/(_prerender_[0-9a-f]{12})\/\{R:1\}\.html"/)?.[1];
-if (!prerenderDirectory) fail('versioned prerender rewrite target was not found.');
+const prerenderDirectory = webConfig.match(/url="\/(_prerender(?:_[0-9a-f]{12})?)\/\{R:1\}\.html"/)?.[1];
+if (!prerenderDirectory) fail('prerender rewrite target was not found.');
 const prerenderRoot = path.join(dist, prerenderDirectory);
 if (!fs.statSync(prerenderRoot).isDirectory()) fail(`${prerenderDirectory} does not exist.`);
 
@@ -32,6 +34,14 @@ const requiredUrls = [
   'https://volt.az/en/solar-panel-installation',
   'https://volt.az/ru/ustanovka-solnechnyh-paneley',
   'https://volt.az/tr/gunes-paneli-kurulumu',
+  'https://volt.az/gunes-panelleri',
+  'https://volt.az/en/solar-panels',
+  'https://volt.az/ru/solnechnye-paneli',
+  'https://volt.az/tr/gunes-panelleri',
+  'https://volt.az/gunes-invertorlari',
+  'https://volt.az/en/solar-inverters',
+  'https://volt.az/ru/solnechnye-invertory',
+  'https://volt.az/tr/gunes-invertorleri',
   'https://volt.az/product/261',
 ];
 for (const url of requiredUrls) {
@@ -53,6 +63,24 @@ const checkPage = (relativeFile, expectedCanonical) => {
 checkPage('index.html', 'https://volt.az/');
 checkPage(path.join(prerenderDirectory, 'en.html'), 'https://volt.az/en');
 checkPage(path.join(prerenderDirectory, 'en', 'solar-panel-installation.html'), 'https://volt.az/en/solar-panel-installation');
+checkPage(path.join(prerenderDirectory, 'gunes-panelleri.html'), 'https://volt.az/gunes-panelleri');
+const solarPanelsAz = fs.readFileSync(path.join(prerenderRoot, 'gunes-panelleri.html'), 'utf8');
+for (const term of ['Günəş Panelləri (Gunes Panel)', 'solar panel', 'Gunes panel qiymetleri']) {
+  if (!solarPanelsAz.toLocaleLowerCase('az').includes(term.toLocaleLowerCase('az'))) fail(`solar-panel landing page is missing “${term}”.`);
+}
+for (const schemaType of ['CollectionPage', 'BreadcrumbList', 'FAQPage', 'ItemList']) {
+  if (!solarPanelsAz.includes(schemaType)) fail(`solar-panel landing page is missing ${schemaType} structured data.`);
+}
+
+checkPage(path.join(prerenderDirectory, 'gunes-invertorlari.html'), 'https://volt.az/gunes-invertorlari');
+const invertersAz = fs.readFileSync(path.join(prerenderRoot, 'gunes-invertorlari.html'), 'utf8');
+for (const term of ['Günəş İnvertorları', 'Growatt', 'Hibrid və şəbəkəli invertor']) {
+  if (!invertersAz.toLocaleLowerCase('az').includes(term.toLocaleLowerCase('az'))) fail(`inverter landing page is missing “${term}”.`);
+}
+for (const schemaType of ['CollectionPage', 'BreadcrumbList', 'FAQPage', 'ItemList']) {
+  if (!invertersAz.includes(schemaType)) fail(`inverter landing page is missing ${schemaType} structured data.`);
+}
+if (!webConfig.includes('Canonical inverter landing aliases')) fail('inverter alias redirects are missing.');
 
 const product261 = path.join(prerenderDirectory, 'product', '261.html');
 if (fs.existsSync(path.join(dist, product261))) {

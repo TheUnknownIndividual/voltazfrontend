@@ -8,6 +8,10 @@ interface ApiState<T> {
   error: string | null;
 }
 
+type PublicAwareAxiosRequestConfig = AxiosRequestConfig & {
+  skipAuth?: boolean;
+};
+
 function useApi<T = any>() {
   const [state, setState] = useState<ApiState<T>>({
     data: null,
@@ -20,7 +24,7 @@ function useApi<T = any>() {
       method: AxiosRequestConfig["method"],
       endpoint: string,
       data?: any,
-      config: AxiosRequestConfig = {}
+      config: PublicAwareAxiosRequestConfig = {}
     ) => {
       setState({ data: null, loading: true, error: null });
 
@@ -55,15 +59,15 @@ function useApi<T = any>() {
 
   return {
     ...state,
-    get: (url: string, config?: AxiosRequestConfig) =>
+    get: (url: string, config?: PublicAwareAxiosRequestConfig) =>
       request("GET", url, undefined, config),
-    post: (url: string, data?: any, config?: AxiosRequestConfig) =>
+    post: (url: string, data?: any, config?: PublicAwareAxiosRequestConfig) =>
       request("POST", url, data, config),
-    put: (url: string, data?: any, config?: AxiosRequestConfig) =>
+    put: (url: string, data?: any, config?: PublicAwareAxiosRequestConfig) =>
       request("PUT", url, data, config),
-    patch: (url: string, data?: any, config?: AxiosRequestConfig) =>
+    patch: (url: string, data?: any, config?: PublicAwareAxiosRequestConfig) =>
       request("PATCH", url, data, config),
-    del: (url: string, config?: AxiosRequestConfig) =>
+    del: (url: string, config?: PublicAwareAxiosRequestConfig) =>
       request("DELETE", url, undefined, config),
   };
 }

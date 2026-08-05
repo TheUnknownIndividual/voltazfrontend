@@ -4,6 +4,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { useProduct } from '../contexts/ProductContext';
 import axiosInstance from '../api/axiosInstance';
 import { API_ENDPOINTS } from '../utils/constants';
+import { getProductStock, getStockWarning } from '../utils/productInventory';
 interface Address {
   id: string;
   title: string;
@@ -19,7 +20,7 @@ interface CustomerDashboardProps {
   onUpdateUser: (updatedUser: any) => void;
   cart?: { id: string; quantity: number; power?: string }[];
   onRemoveFromCart?: (id: string, power?: string) => void;
-  onUpdateCartQuantity?: (id: string, q: number, power?: string) => void;
+  onUpdateCartQuantity?: (id: string, q: number, power?: string, maxStock?: number) => void;
   onNavigate?: (page: string) => void;
   initialTab?: 'profile' | 'cart' | 'orders';
 }
@@ -103,6 +104,8 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
       : null;
     return Number(selectedParam?.amount ?? parameters[0]?.amount ?? product?.price ?? 0);
   };
+
+  const getLineStock = (product: any) => getProductStock(product, product.selectedPower);
 
   useEffect(() => {
     let cancelled = false;
@@ -224,6 +227,8 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
 
   const subtotal = cartProducts.reduce((sum, item) => sum + getLinePrice(item) * item.quantity, 0);
   const totalQuantity = cartProducts.reduce((sum, item) => sum + item.quantity, 0);
+  const stockIssueLines = cartProducts.filter((item) => item.quantity > getLineStock(item));
+  const hasStockIssue = stockIssueLines.length > 0;
 
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -312,6 +317,11 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   }, [activeTab, user?.email]);
 
   const handleCheckoutAction = () => {
+    if (hasStockIssue) {
+      const item = stockIssueLines[0];
+      showNotification(getStockWarning(lang, getLineStock(item), item.quantity), 'warning');
+      return;
+    }
     onNavigate?.('checkout');
     return;
     if (checkoutStep < 3) {
@@ -534,6 +544,8 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   <div className="lg:col-span-2 space-y-4">
                     {cartProducts.map(item => {
                       const linePrice = getLinePrice(item);
+                      const lineStock = getLineStock(item);
+                      const exceedsStock = item.quantity > lineStock;
                       return (
                       <div key={`${item.id}-${item.selectedPower || 'base'}`} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-6 shadow-sm">
                         <div className="w-20 h-20 shrink-0 rounded-2xl bg-slate-50 p-2">
@@ -545,13 +557,19 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                             <div className="mt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.selectedPower}</div>
                           )}
                           <div className="text-emerald-600 font-black text-sm mt-2">{linePrice.toFixed(2)} AZN</div>
+                          <div className="mt-1 text-[10px] font-bold text-slate-400">{lang === 'az' ? 'Stok' : 'Stock'}: {lineStock}</div>
+                          {exceedsStock && (
+                            <div className="mt-2 text-[10px] font-bold leading-relaxed text-amber-700" role="alert">
+                              {getStockWarning(lang, lineStock, item.quantity)}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl">
-                          <button onClick={() => onUpdateCartQuantity?.(String(item.id), item.quantity - 1, item.selectedPower)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors">
+                          <button onClick={() => onUpdateCartQuantity?.(String(item.id), item.quantity - 1, item.selectedPower, lineStock)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M20 12H4" /></svg>
                           </button>
                           <span className="text-sm font-black text-slate-900 w-4 text-center">{item.quantity}</span>
-                          <button onClick={() => onUpdateCartQuantity?.(String(item.id), item.quantity + 1, item.selectedPower)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors">
+                          <button onClick={() => onUpdateCartQuantity?.(String(item.id), item.quantity + 1, item.selectedPower, lineStock)} disabled={item.quantity >= lineStock} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
                           </button>
                         </div>
@@ -581,7 +599,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                         <span className="font-black text-emerald-600 text-lg">{subtotal.toFixed(2)} AZN</span>
                       </div>
                     </div>
-                    <button onClick={handleCheckoutAction} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20">
+                    <button onClick={handleCheckoutAction} disabled={hasStockIssue} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
                       {t.checkout}
                     </button>
                   </div>

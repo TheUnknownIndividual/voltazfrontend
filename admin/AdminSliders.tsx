@@ -1,479 +1,286 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react';
+import SliderImageCropper from '../components/SliderImageCropper';
 import { useNotification } from '../contexts/NotificationContext';
+import { useUpload } from '../contexts/UploadContext';
+import useApi from '../hooks/useApi';
+import { DEFAULT_HOME_SLIDES, normalizeHomeSlides, type HomeSlide } from '../types/homeSlider';
+import { API_ENDPOINTS } from '../utils/constants';
 
-interface Slide {
-  id: number;
-  title: string;
-  subtitle: string;
-  image: string;
-  mobileImage?: string;
-  video?: string;
-  cta?: string;
-  description?: string;
-  linkText?: string;
-  page?: string;
-  centered?: boolean;
-}
+type ImageField = 'image' | 'mobileImage';
+
+type CropRequest = {
+  field: ImageField;
+  source: string;
+  sourceType: string;
+  fileName: string;
+};
+
+const emptySlide = (): Partial<HomeSlide> => ({
+  title: '',
+  subtitle: '',
+  image: '',
+  mobileImage: '',
+  video: '',
+  cta: 'Ətraflı Öyrən',
+  centered: true,
+});
 
 const AdminSliders: React.FC = () => {
   const { showNotification, confirm } = useNotification();
-  const [heroSlides, setHeroSlides] = useState<Slide[]>([]);
-  const [sideSlides, setSideSlides] = useState<Slide[]>([]);
-  const [editingSlide, setEditingSlide] = useState<{ type: 'hero' | 'side', slide: Slide } | null>(null);
-  const [isAdding, setIsAdding] = useState<'hero' | 'side' | null>(null);
-
-  const [formData, setFormData] = useState<Partial<Slide>>({});
+  const { uploadImage } = useUpload();
+  const { get, put } = useApi();
+  const [slides, setSlides] = useState<HomeSlide[]>([]);
+  const [editingSlide, setEditingSlide] = useState<HomeSlide | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState<Partial<HomeSlide>>(emptySlide());
+  const [pendingFiles, setPendingFiles] = useState<Partial<Record<ImageField, File>>>({});
+  const [cropRequest, setCropRequest] = useState<CropRequest | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const savedHero = JSON.parse(localStorage.getItem('volt_hero_slides') || '[]');
-    const savedSide = JSON.parse(localStorage.getItem('volt_side_slides') || '[]');
-    
-    // If empty, initialize with defaults from HeroSlider.tsx (mocking the initial state)
-    if (savedHero.length === 0) {
-      const initialHero = [
-        { 
-          id: 1, 
-          title: "Günəş Enerjisi ilə Gələcəyi Aydınlat", 
-          subtitle: "", 
-          image: "/sliderphoto.png",
-          mobileImage: "/sliderphotomobile.png",
-          cta: "Ətraflı Öyrən",
-          centered: true
-        },
-        { id: 2, title: "Enerji qənaəti", subtitle: "", image: "/sliderphoto2.png", mobileImage: "/sliderphotomobile2.png", cta: "Ətraflı Öyrən", centered: true }
-      ];
-      setHeroSlides(initialHero);
-      localStorage.setItem('volt_hero_slides', JSON.stringify(initialHero));
-    } else {
-      setHeroSlides(savedHero);
-    }
-
-    if (savedSide.length === 0) {
-      const initialSide = [
-        { id: 1, title: "Biznes tərəfdaşlar üçün yeni fürsətlər", subtitle: "Tərəfdaşlıq", description: "Tərəfdaşlarımız üçün xüsusi kampaniyalar və özəl fürsətlər yaratdıq. Yaralanmaq üçün keçid edin.", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1000", linkText: "Keçid et", page: 'partnership' },
-        { id: 2, title: "Ustalar klubuna qoşul, endirimlərdən yararlan", subtitle: "Pro Club", description: "Peşəkar ustalar üçün nəzərdə tutulmuş özəl imtiyazlar və endirim proqramı.", image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=1000", linkText: "Keçid et", page: 'pro-club' }
-      ];
-      setSideSlides(initialSide);
-      localStorage.setItem('volt_side_slides', JSON.stringify(initialSide));
-    } else {
-      setSideSlides(savedSide);
-    }
+    const load = async () => {
+      try {
+        const response = await get(API_ENDPOINTS.HOME_SLIDER.GET, { skipAuth: true });
+        const loaded = normalizeHomeSlides(response?.data || response);
+        setSlides(loaded.length ? loaded : DEFAULT_HOME_SLIDES);
+      } catch {
+        setSlides(DEFAULT_HOME_SLIDES);
+        showNotification('Slider məlumatları yüklənmədi', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
   }, []);
 
-  const handleSave = async () => {
-    if (!formData.title || !formData.image) {
-      showNotification('Başlıq və Şəkil mütləqdir', 'error');
-      return;
-    }
-
-    let finalImage = formData.image;
-    let finalMobileImage = formData.mobileImage;
-
-    // Compress if it's a base64 string (uploaded from PC)
-    if (finalImage.startsWith('data:image')) {
-      try {
-        finalImage = await compressImage(finalImage);
-      } catch (err) {
-        console.error('Compression error:', err);
-      }
-    }
-    if (finalMobileImage?.startsWith('data:image')) {
-      try {
-        finalMobileImage = await compressImage(finalMobileImage, 900, 1400);
-      } catch (err) {
-        console.error('Mobile compression error:', err);
-      }
-    }
-
-    try {
-      if (editingSlide) {
-        const { type, slide } = editingSlide;
-        if (type === 'hero') {
-          const updated = heroSlides.map(s => s.id === slide.id ? { ...s, ...formData, image: finalImage, mobileImage: finalMobileImage } : s).slice(0, 3);
-          setHeroSlides(updated as Slide[]);
-          localStorage.setItem('volt_hero_slides', JSON.stringify(updated));
-        } else {
-          const updated = sideSlides.map(s => s.id === slide.id ? { ...s, ...formData, image: finalImage, mobileImage: finalMobileImage } : s);
-          setSideSlides(updated as Slide[]);
-          localStorage.setItem('volt_side_slides', JSON.stringify(updated));
-        }
-        showNotification('Slider yeniləndi');
-      } else if (isAdding) {
-        const newSlide = {
-          id: Date.now(),
-          ...formData,
-          image: finalImage
-        } as Slide;
-
-        if (isAdding === 'hero') {
-          if (heroSlides.length >= 3) {
-            showNotification('Maksimum 3 hero slider əlavə edilə bilər', 'warning');
-            return;
-          }
-          const updated = [...heroSlides, newSlide].slice(0, 3);
-          setHeroSlides(updated);
-          localStorage.setItem('volt_hero_slides', JSON.stringify(updated));
-        } else {
-          const updated = [...sideSlides, newSlide];
-          setSideSlides(updated);
-          localStorage.setItem('volt_side_slides', JSON.stringify(updated));
-        }
-        showNotification('Yeni slider əlavə edildi');
-      }
-    } catch (error) {
-      console.error('LocalStorage error:', error);
-      showNotification('Yadda saxlama xətası: Şəkil çox böyük ola bilər. Zəhmət olmasa daha kiçik şəkil sınayın.', 'error');
-      return;
-    }
-
+  const closeEditor = () => {
+    if (saving) return;
     setEditingSlide(null);
-    setIsAdding(null);
-    setFormData({});
-    window.dispatchEvent(new Event('volt_data_updated'));
+    setIsAdding(false);
+    setFormData(emptySlide());
+    setPendingFiles({});
+    setCropRequest(null);
   };
 
-  const compressImage = (base64Str: string, maxWidth = 1280, maxHeight = 720): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject('Canvas context not found');
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        // Convert to JPEG with 0.6 quality to significantly reduce size
-        resolve(canvas.toDataURL('image/jpeg', 0.6));
-      };
-      img.onerror = (err) => reject(err);
-    });
+  const startAdd = () => {
+    setEditingSlide(null);
+    setIsAdding(true);
+    setFormData(emptySlide());
+    setPendingFiles({});
   };
 
-  const handleDelete = async (type: 'hero' | 'side', id: number) => {
-    if (await confirm('Bu slideri silmək istədiyinizə əminsiniz?')) {
-      if (type === 'hero') {
-        const updated = heroSlides.filter(s => s.id !== id);
-        setHeroSlides(updated);
-        localStorage.setItem('volt_hero_slides', JSON.stringify(updated));
-      } else {
-        const updated = sideSlides.filter(s => s.id !== id);
-        setSideSlides(updated);
-        localStorage.setItem('volt_side_slides', JSON.stringify(updated));
-      }
-      showNotification('Slider silindi', 'warning');
-      window.dispatchEvent(new Event('volt_data_updated'));
-    }
-  };
-
-  const startEdit = (type: 'hero' | 'side', slide: Slide) => {
-    setEditingSlide({ type, slide });
+  const startEdit = (slide: HomeSlide) => {
+    setEditingSlide(slide);
+    setIsAdding(false);
     setFormData(slide);
-    setIsAdding(null);
+    setPendingFiles({});
   };
 
-  const startAdd = (type: 'hero' | 'side') => {
-    setIsAdding(type);
-    setFormData({
-      title: '',
-      subtitle: '',
-      image: '',
-      mobileImage: type === 'hero' ? '' : undefined,
-      cta: type === 'hero' ? 'Ətraflı Öyrən' : undefined,
-      description: type === 'side' ? '' : undefined,
-      linkText: type === 'side' ? 'Keçid et' : undefined,
-      page: type === 'side' ? 'home' : undefined
+  const beginCrop = (event: React.ChangeEvent<HTMLInputElement>, field: ImageField) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+      showNotification('PNG, JPG və ya digər raster şəkil seçin', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setCropRequest({
+      field,
+      source: String(reader.result),
+      sourceType: file.type,
+      fileName: file.name,
     });
-    setEditingSlide(null);
+    reader.onerror = () => showNotification('Şəkil oxunmadı', 'error');
+    reader.readAsDataURL(file);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'mobileImage' = 'image') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, [field]: reader.result as string });
+  const uploadPending = async (field: ImageField, currentValue?: string) => {
+    const file = pendingFiles[field];
+    if (!file) return currentValue || '';
+    const response = await uploadImage(file);
+    const path = response?.data?.path || response?.path || response?.data;
+    if (typeof path !== 'string' || !path) throw new Error('Upload path was not returned');
+    return path;
+  };
+
+  const save = async () => {
+    if (!formData.title?.trim() || !formData.image) {
+      showNotification('Başlıq və desktop şəkli mütləqdir', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const image = await uploadPending('image', formData.image);
+      const mobileImage = await uploadPending('mobileImage', formData.mobileImage);
+      const completed: HomeSlide = {
+        id: editingSlide?.id || Date.now(),
+        title: formData.title.trim(),
+        subtitle: formData.subtitle?.trim() || '',
+        image,
+        mobileImage: mobileImage || undefined,
+        video: formData.video?.trim() || undefined,
+        cta: formData.cta?.trim() || undefined,
+        centered: formData.centered !== false,
       };
-      reader.readAsDataURL(file);
+      const next = editingSlide
+        ? slides.map(slide => slide.id === editingSlide.id ? completed : slide)
+        : [...slides, completed];
+      const response = await put(API_ENDPOINTS.HOME_SLIDER.UPDATE, { slides: next.slice(0, 3) });
+      const saved = normalizeHomeSlides(response?.data || response);
+      setSlides(saved);
+      setSaving(false);
+      closeEditor();
+      window.dispatchEvent(new Event('volt_data_updated'));
+      showNotification(editingSlide ? 'Slider yeniləndi' : 'Yeni slider əlavə edildi');
+    } catch (error) {
+      console.error('Slider save error:', error);
+      showNotification('Slider yadda saxlanmadı', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (slide: HomeSlide) => {
+    if (slides.length === 1) {
+      showNotification('Ən azı bir slider saxlanmalıdır', 'warning');
+      return;
+    }
+    if (!await confirm('Bu slideri silmək istədiyinizə əminsiniz?')) return;
+    try {
+      const next = slides.filter(item => item.id !== slide.id);
+      const response = await put(API_ENDPOINTS.HOME_SLIDER.UPDATE, { slides: next });
+      setSlides(normalizeHomeSlides(response?.data || response));
+      window.dispatchEvent(new Event('volt_data_updated'));
+      showNotification('Slider silindi', 'warning');
+    } catch {
+      showNotification('Slider silinmədi', 'error');
     }
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-widest">Slider İdarəetməsi</h2>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">Slider İdarəetməsi</h2>
+          <p className="mt-1 text-xs font-medium text-slate-400">Ana səhifənin hero şəkilləri bütün istifadəçilər üçün yayımlanır.</p>
+        </div>
+        <button type="button" onClick={startAdd} disabled={slides.length >= 3} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
+          <Plus className="h-4 w-4" /> Əlavə et
+        </button>
       </div>
 
-      {/* Hero Sliders Section */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-black text-slate-900">Əsas Hero Sliderlər</h3>
-            <p className="text-xs text-slate-400 mt-1">Ana səhifənin yuxarı hissəsində görünən böyük sliderlər</p>
-          </div>
-          <button 
-            onClick={() => startAdd('hero')}
-            disabled={heroSlides.length >= 3}
-            className="px-6 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-            Əlavə Et
-          </button>
+      <section className="overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white shadow-xl">
+        <div className="border-b border-slate-50 p-7">
+          <h3 className="text-lg font-black text-slate-900">Ana səhifə hero slideri</h3>
+          <p className="mt-1 text-xs text-slate-400">Desktop və mobil görünüşlər ayrıca uyğunlaşdırılır. Maksimum 3 şəkil.</p>
         </div>
-        
-        <div className="p-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {heroSlides.map(slide => (
-            <div key={slide.id} className="group relative bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:shadow-lg transition-all scale-75 origin-top-left">
-              <div className="aspect-video relative">
-                <picture>
-                  {slide.mobileImage && <source media="(max-width: 768px)" srcSet={slide.mobileImage} />}
-                  <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
-                </picture>
-                {slide.video && (
-                  <div className="absolute top-2 left-2 bg-emerald-600 text-white p-1 rounded-md shadow-lg">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <button onClick={() => startEdit('hero', slide)} className="p-2 bg-white text-emerald-600 rounded-full hover:scale-110 transition-transform shadow-lg">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button onClick={() => handleDelete('hero', slide.id)} className="p-2 bg-white text-red-600 rounded-full hover:scale-110 transition-transform shadow-lg">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+        <div className="grid gap-5 p-7 md:grid-cols-2 xl:grid-cols-3">
+          {loading && <p className="text-sm font-bold text-slate-400">Yüklənir…</p>}
+          {!loading && slides.map(slide => (
+            <article key={slide.id} className="group overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+              <div className="relative aspect-[16/7] overflow-hidden bg-white">
+                <img src={slide.image} alt={slide.title} className="h-full w-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center gap-3 bg-slate-950/50 opacity-0 transition group-hover:opacity-100">
+                  <button type="button" onClick={() => startEdit(slide)} aria-label="Redaktə et" className="rounded-full bg-white p-3 text-emerald-600 shadow-lg"><Pencil className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => void remove(slide)} aria-label="Sil" className="rounded-full bg-white p-3 text-red-600 shadow-lg"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
-              <div className="p-3">
-                <h4 className="font-black text-slate-900 text-[10px] mb-0.5 line-clamp-1">{slide.title}</h4>
-                <p className="text-[8px] text-slate-500 line-clamp-1">{slide.subtitle}</p>
+              <div className="p-4">
+                <h4 className="truncate text-sm font-black text-slate-900">{slide.title}</h4>
+                <p className="mt-1 text-[10px] font-bold text-slate-400">{slide.mobileImage ? 'Desktop + mobil şəkil' : 'Yalnız desktop şəkli'}</p>
               </div>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Edit/Add Modal */}
       {(editingSlide || isAdding) && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">
-                {editingSlide ? 'Slideri Redaktə Et' : 'Yeni Slider Əlavə Et'}
-              </h3>
-              <button onClick={() => { setEditingSlide(null); setIsAdding(null); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button type="button" aria-label="Redaktoru bağla" className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeEditor} />
+          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-5">
+              <h3 className="text-lg font-black uppercase tracking-widest text-slate-900">{editingSlide ? 'Slideri redaktə et' : 'Yeni slider əlavə et'}</h3>
+              <button type="button" onClick={closeEditor} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100" aria-label="Bağla"><X className="h-5 w-5" /></button>
             </div>
-            
-            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Başlıq</label>
-                  <input 
-                    type="text" 
-                    value={formData.title || ''} 
-                    onChange={e => setFormData({...formData, title: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                  />
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                    {editingSlide?.type === 'side' || isAdding === 'side' ? 'Alt Başlıq (Etiket)' : 'Alt Başlıq (Mətn)'}
-                  </label>
-                  <textarea 
-                    value={formData.subtitle || ''} 
-                    onChange={e => setFormData({...formData, subtitle: e.target.value})}
-                    rows={editingSlide?.type === 'hero' || isAdding === 'hero' ? 3 : 1}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                  />
-                </div>
-
-                {(editingSlide?.type === 'side' || isAdding === 'side') && (
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Təsvir</label>
-                    <textarea 
-                      value={formData.description || ''} 
-                      onChange={e => setFormData({...formData, description: e.target.value})}
-                      rows={3}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                    />
-                  </div>
-                )}
-
-                {(editingSlide?.type === 'hero' || isAdding === 'hero') && (
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Video URL (Könüllü)</label>
-                    <input 
-                      type="text" 
-                      value={formData.video || ''} 
-                      onChange={e => setFormData({...formData, video: e.target.value})}
-                      placeholder="https://... (mp4 format tövsiyə olunur)"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                    />
-                    <p className="text-[8px] text-slate-400 mt-1">Video əlavə edildikdə şəkil arxa fon (fallback) kimi istifadə olunacaq.</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Desktop şəkil URL</label>
-                    <input 
-                      type="text" 
-                      value={formData.image || ''} 
-                      onChange={e => setFormData({...formData, image: e.target.value})}
-                      placeholder="1920x1080 üçün URL"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                      Desktop yüklə
-                      <span className="ml-2 text-emerald-500 lowercase font-bold">
-                        ({(editingSlide?.type === 'hero' || isAdding === 'hero') ? 'Tövsiyə: 1920x1080' : 'Tövsiyə: 800x600'})
-                      </span>
-                    </label>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'image')}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-emerald-500 transition-all file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                    />
-                  </div>
-                </div>
-
-                {(editingSlide?.type === 'hero' || isAdding === 'hero') && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Mobil şəkil URL</label>
-                      <input 
-                        type="text" 
-                        value={formData.mobileImage || ''} 
-                        onChange={e => setFormData({...formData, mobileImage: e.target.value})}
-                        placeholder="Mobil ölçü üçün URL"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                        Mobil yüklə
-                        <span className="ml-2 text-emerald-500 lowercase font-bold">(Tövsiyə: 900x1400)</span>
-                      </label>
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, 'mobileImage')}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-emerald-500 transition-all file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {formData.image && (
-                  <div className="mt-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Önizləmə</label>
-                    <div className="flex gap-3">
-                      <div className="w-32 h-20 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                        <img src={formData.image} alt="Desktop preview" className="w-full h-full object-cover" />
-                      </div>
-                      {formData.mobileImage && (
-                        <div className="w-14 h-20 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                          <img src={formData.mobileImage} alt="Mobile preview" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {(editingSlide?.type === 'hero' || isAdding === 'hero') && (
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Düymə Mətni (CTA)</label>
-                    <input 
-                      type="text" 
-                      value={formData.cta || ''} 
-                      onChange={e => setFormData({...formData, cta: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                    />
-                  </div>
-                )}
-
-                {(editingSlide?.type === 'side' || isAdding === 'side') && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Link Mətni</label>
-                      <input 
-                        type="text" 
-                        value={formData.linkText || ''} 
-                        onChange={e => setFormData({...formData, linkText: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Keçid Səhifəsi</label>
-                      <select 
-                        value={formData.page || 'home'} 
-                        onChange={e => setFormData({...formData, page: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                      >
-                        <option value="home">Ana Səhifə</option>
-                        <option value="partnership">Tərəfdaşlıq</option>
-                        <option value="pro-club">Pro Club</option>
-                        <option value="calculator">Kalkulyator</option>
-                        <option value="contact">Əlaqə</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {(editingSlide?.type === 'hero' || isAdding === 'hero') && (
-                  <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4">
-                    <input 
-                      type="checkbox" 
-                      id="centered"
-                      checked={formData.centered || false} 
-                      onChange={e => setFormData({...formData, centered: e.target.checked})}
-                      className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <label htmlFor="centered" className="text-xs font-bold text-slate-700 cursor-pointer">Mətni mərkəzləşdir</label>
-                  </div>
-                )}
+            <div className="space-y-6 p-6 md:p-8">
+              <div>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Başlıq</label>
+                <input value={formData.title || ''} onChange={event => setFormData(current => ({ ...current, title: event.target.value }))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500" />
               </div>
 
-              <div className="flex gap-4 pt-4">
-                <button 
-                  onClick={handleSave}
-                  className="flex-grow bg-emerald-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
-                >
-                  Yadda Saxla
-                </button>
-                <button 
-                  onClick={() => { setEditingSlide(null); setIsAdding(null); }}
-                  className="flex-grow bg-slate-100 text-slate-600 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
-                >
-                  Ləğv Et
-                </button>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
+                <div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Desktop görünüşü</label>
+                      <p className="mt-1 text-[10px] font-bold text-emerald-600">Geniş 16:7 çərçivə</p>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                      <ImagePlus className="h-4 w-4" /> Şəkil seç
+                      <input type="file" accept="image/*" className="hidden" onChange={event => beginCrop(event, 'image')} />
+                    </label>
+                  </div>
+                  <div className="aspect-[16/7] overflow-hidden rounded-2xl border border-slate-100 bg-slate-100">
+                    {formData.image ? <img src={formData.image} alt="Desktop önizləmə" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs font-bold text-slate-400">Şəkil seçilməyib</div>}
+                  </div>
+                  <input value={formData.image || ''} onChange={event => {
+                    setPendingFiles(current => ({ ...current, image: undefined }));
+                    setFormData(current => ({ ...current, image: event.target.value }));
+                  }} placeholder="və ya desktop şəkil URL-i" className="mt-3 w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-bold outline-none focus:border-emerald-500" />
+                </div>
+
+                <div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Mobil görünüş</label>
+                      <p className="mt-1 text-[10px] font-bold text-emerald-600">Kvadrat 1:1 çərçivə</p>
+                    </div>
+                  </div>
+                  <div className="aspect-square overflow-hidden rounded-2xl border border-slate-100 bg-slate-100">
+                    {formData.mobileImage ? <img src={formData.mobileImage} alt="Mobil önizləmə" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center px-5 text-center text-[10px] font-bold leading-4 text-slate-400">Desktop mənbəyini mobil üçün də seçə və ayrıca kəsə bilərsiniz.</div>}
+                  </div>
+                  <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                    <ImagePlus className="h-4 w-4" /> Mobil şəkil seç
+                    <input type="file" accept="image/*" className="hidden" onChange={event => beginCrop(event, 'mobileImage')} />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Video URL (könüllü)</label>
+                <input value={formData.video || ''} onChange={event => setFormData(current => ({ ...current, video: event.target.value }))} placeholder="https://…" className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500" />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => void save()} disabled={saving} className="flex-1 rounded-xl bg-emerald-600 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50">{saving ? 'Yadda saxlanır…' : 'Yadda saxla və yayımla'}</button>
+                <button type="button" onClick={closeEditor} disabled={saving} className="flex-1 rounded-xl bg-slate-100 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600">Ləğv et</button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {cropRequest && (
+        <SliderImageCropper
+          source={cropRequest.source}
+          sourceType={cropRequest.sourceType}
+          fileName={cropRequest.fileName}
+          variant={cropRequest.field === 'image' ? 'desktop' : 'mobile'}
+          onCancel={() => setCropRequest(null)}
+          onDone={(file, preview) => {
+            setPendingFiles(current => ({ ...current, [cropRequest.field]: file }));
+            setFormData(current => ({ ...current, [cropRequest.field]: preview }));
+            setCropRequest(cropRequest.field === 'image'
+              ? { ...cropRequest, field: 'mobileImage' }
+              : null);
+          }}
+        />
       )}
     </div>
   );

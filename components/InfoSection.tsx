@@ -129,7 +129,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
           </div>
 
           <div className="flex min-h-0 items-stretch justify-center p-0 md:min-h-[620px] md:items-center md:p-10 lg:min-h-[720px]">
-            <aside className="w-full max-w-none rounded-b-[1.25rem] rounded-t-none bg-[var(--color-primary)] p-4 text-[var(--color-dark)] shadow-xl shadow-black/10 md:max-w-md md:rounded-[2rem] md:p-8">
+            <aside data-cart-contrast-surface className="w-full max-w-none rounded-b-[1.25rem] rounded-t-none bg-[var(--color-primary)] p-4 text-[var(--color-dark)] shadow-xl shadow-black/10 md:max-w-md md:rounded-[2rem] md:p-8">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-dark)] text-[var(--color-primary)] md:mb-4 md:h-11 md:w-11">
                 <CircleDollarSign className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.8} aria-hidden="true" />
               </div>
