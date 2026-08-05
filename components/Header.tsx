@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Logo from './Logo';
 import RegisterModal from './RegisterModal';
 import LoginModal from './LoginModal';
@@ -58,6 +58,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState<'none' | 'products' | 'usefulInfo' | 'volt'>('none');
+  const [isDesktopNavHidden, setIsDesktopNavHidden] = useState(false);
+  const desktopNavScrollFrame = useRef(0);
   const verseQuote = verseQuoteByLang[currentLang];
 
   const blurActiveInput = () => {
@@ -80,6 +82,55 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let accumulatedDistance = 0;
+    let scrollDirection: 'up' | 'down' | null = null;
+
+    setIsDesktopNavHidden(false);
+
+    const updateDesktopNav = () => {
+      desktopNavScrollFrame.current = 0;
+      const currentScrollY = Math.max(0, window.scrollY);
+      const delta = currentScrollY - lastScrollY;
+      const nextDirection = delta > 0 ? 'down' : delta < 0 ? 'up' : scrollDirection;
+
+      if (currentScrollY <= 80) {
+        setIsDesktopNavHidden(false);
+        accumulatedDistance = 0;
+      } else if (nextDirection && nextDirection !== scrollDirection) {
+        scrollDirection = nextDirection;
+        accumulatedDistance = Math.abs(delta);
+      } else {
+        accumulatedDistance += Math.abs(delta);
+      }
+
+      if (currentScrollY > 80 && accumulatedDistance >= 12) {
+        if (scrollDirection === 'down') {
+          setIsDesktopNavHidden(true);
+          setActiveDropdown('none');
+        } else if (scrollDirection === 'up') {
+          setIsDesktopNavHidden(false);
+        }
+        accumulatedDistance = 0;
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    const handleDesktopNavScroll = () => {
+      if (desktopNavScrollFrame.current) return;
+      desktopNavScrollFrame.current = window.requestAnimationFrame(updateDesktopNav);
+    };
+
+    window.addEventListener('scroll', handleDesktopNavScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleDesktopNavScroll);
+      window.cancelAnimationFrame(desktopNavScrollFrame.current);
+      desktopNavScrollFrame.current = 0;
+    };
+  }, [activePage]);
 
   const getItemName = (item: any) => {
 
@@ -879,7 +930,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
       {/* Desktop Navigation */}
       <nav
-        className="hidden lg:flex w-full h-14 px-2 md:px-4 items-center justify-center bg-white shadow-sm border-t border-gray-50 overflow-visible"
+        className={`site-desktop-nav hidden lg:flex w-full h-14 px-2 md:px-4 items-center justify-center bg-white shadow-sm border-t border-gray-50 overflow-visible ${isDesktopNavHidden ? 'is-scroll-hidden' : ''}`}
+        aria-hidden={isDesktopNavHidden}
       >
         <div className="flex items-center gap-6 lg:gap-8 whitespace-nowrap">
           <button onClick={() => handleItemClick('home')} className={getLinkClass('home')}>{t.home}</button>

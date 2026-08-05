@@ -626,11 +626,37 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   .site-header-theme {
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
   }
+  .site-desktop-nav {
+    max-height: 3.5rem;
+    opacity: 1;
+    transform: translateY(0);
+    transform-origin: top center;
+    transition:
+      max-height 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease,
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 180ms ease;
+    will-change: max-height, opacity, transform;
+  }
+  .site-desktop-nav.is-scroll-hidden {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden !important;
+    pointer-events: none;
+    transform: translateY(-0.75rem);
+    border-top-color: transparent;
+  }
   .site-header-theme > nav {
     box-shadow: none;
   }
   .site-header-theme .shadow-2xl {
     box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-desktop-nav {
+    transition-duration: 0.01ms !important;
   }
 }
 
