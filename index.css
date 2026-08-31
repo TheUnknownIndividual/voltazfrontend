@@ -683,9 +683,13 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
   }
 }
 
-/* Header palette — scoped so experimental branding does not leak into page content. */
-.site-header-theme { background: var(--color-surface) !important; color: var(--color-text); }
-.site-header-theme > nav { background: var(--color-surface); }
+/* Header palette — fixed dark-green shell; page theming never leaks into it. */
+.site-header-theme {
+  background: #081510 !important;
+  border-color: rgb(255 255 255 / 0.14) !important;
+  color: #fff;
+}
+.site-header-theme > nav { background: #081510; }
 .site-header-theme .text-emerald-400,
 .site-header-theme .text-emerald-500,
 .site-header-theme .text-emerald-600 { color: var(--color-primary); }
@@ -702,10 +706,32 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 .site-header-theme .group:hover .group-hover\:bg-emerald-600 { background-color: var(--color-primary); }
 .site-header-theme .text-slate-500,
 .site-header-theme .text-slate-600 { color: var(--color-text); }
+.site-header-theme .header-main-bar .text-emerald-400,
+.site-header-theme .header-main-bar .text-emerald-500,
+.site-header-theme .header-main-bar .text-emerald-600,
+.site-header-theme .header-main-bar .text-emerald-700,
+.site-header-theme .header-main-bar .text-slate-500,
+.site-header-theme .header-main-bar .text-slate-600,
+.site-header-theme .header-mobile-bar .text-slate-500,
+.site-header-theme .header-mobile-bar .text-slate-600,
+.site-header-theme .site-desktop-nav .text-emerald-400,
+.site-header-theme .site-desktop-nav .text-emerald-500,
+.site-header-theme .site-desktop-nav .text-emerald-600,
+.site-header-theme .site-desktop-nav .text-emerald-700,
+.site-header-theme .site-desktop-nav .text-slate-500,
+.site-header-theme .site-desktop-nav .text-slate-600 {
+  color: #fff;
+}
 .site-header-theme input:focus { border-color: var(--color-primary); }
+.site-header-theme .header-search-input { color: #081510; }
+.site-header-theme .header-search-input::placeholder { color: #64748b; }
 .site-header-theme .header-search-input,
 .site-header-theme .header-search-input:focus {
   box-shadow: none;
+}
+.site-header-theme .header-account-button,
+.site-header-theme .header-language-button:hover {
+  background-color: rgb(255 255 255 / 0.12);
 }
 @media (min-width: 1024px) {
   .site-header-theme {
