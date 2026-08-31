@@ -6,7 +6,7 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToRegister?: () => void;
-  lang?: "az" | "en";
+  lang?: "az" | "en" | "ru" | "tr";
   onCustomerLogin?: (user: any) => void;
   showRegisterLink?: boolean;
   message?: string;
@@ -29,6 +29,13 @@ const LoginModal: React.FC<LoginModalProps> = ({
   });
 
   const [error, setError] = useState("");
+  const copy = lang === 'az'
+    ? { title: 'Giriş', or: 'və ya', identifier: 'Email və ya istifadəçi adı', password: 'Şifrə', submit: 'Daxil ol', noAccount: 'Hesabınız yoxdur?', register: 'Qeydiyyat', invalid: 'İstifadəçi adı və ya şifrə yanlışdır' }
+    : lang === 'ru'
+      ? { title: 'Вход', or: 'или', identifier: 'Email или имя пользователя', password: 'Пароль', submit: 'Войти', noAccount: 'Нет аккаунта?', register: 'Регистрация', invalid: 'Неверное имя пользователя или пароль' }
+      : lang === 'tr'
+        ? { title: 'Giriş', or: 'veya', identifier: 'E-posta veya kullanıcı adı', password: 'Şifre', submit: 'Giriş yap', noAccount: 'Hesabınız yok mu?', register: 'Kayıt ol', invalid: 'Kullanıcı adı veya şifre hatalı' }
+        : { title: 'Login', or: 'or', identifier: 'Email or username', password: 'Password', submit: 'Login', noAccount: 'No account?', register: 'Register', invalid: 'Invalid username or password' };
 
   if (!isOpen) return null;
 
@@ -45,11 +52,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       onCustomerLogin?.(nextUser);
       onClose();
     } else {
-      setError(
-        lang === "az"
-          ? "İstifadəçi adı və ya şifrə yanlışdır"
-          : "Invalid username or password"
-      );
+      setError(copy.invalid);
     }
   };
 
@@ -70,7 +73,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
       <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl sm:rounded-[2.5rem] sm:p-10">
         <h2 className="text-2xl font-black mb-6">
-          {lang === "az" ? "Giriş" : "Login"}
+          {copy.title}
         </h2>
 
         {message && (
@@ -96,7 +99,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         <div className="mb-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-100" />
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            {lang === "az" ? "və ya" : "or"}
+            {copy.or}
           </span>
           <div className="h-px flex-1 bg-slate-100" />
         </div>
@@ -104,7 +107,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
-            placeholder="Email və ya username"
+            placeholder={copy.identifier}
             value={formData.identifier}
             onChange={(e) =>
               setFormData({ ...formData, identifier: e.target.value })
@@ -116,7 +119,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
           <input
             type="password"
             autoComplete="current-password"
-            placeholder="Şifrə"
+            placeholder={copy.password}
             value={formData.password}
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
@@ -128,15 +131,15 @@ const LoginModal: React.FC<LoginModalProps> = ({
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded" disabled={loading}>
-            {lang === "az" ? "Daxil ol" : "Login"}
+            {copy.submit}
           </button>
         </form>
 
         {showRegisterLink && onSwitchToRegister && (
           <p className="mt-4 text-sm text-center">
-            {lang === "az" ? "Hesabın yoxdur?" : "No account?"}{" "}
+            {copy.noAccount}{" "}
             <button onClick={onSwitchToRegister} className="text-emerald-600">
-              {lang === "az" ? "Qeydiyyat" : "Register"}
+              {copy.register}
             </button>
           </p>
         )}

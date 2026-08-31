@@ -78,6 +78,9 @@ const PartnersSlider: React.FC<{ lang?: 'az' | 'en' }> = ({ lang = 'az' }) => {
                     alt={partner.name} 
                     className="max-w-full max-h-full object-contain transition-all duration-500 transform group-hover/logo:scale-110"
                     loading="lazy"
+                    decoding="async"
+                    width="192"
+                    height="64"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = "https://www.svgrepo.com/show/491515/solar-panel.svg";

@@ -16,7 +16,9 @@ export enum AdminPage {
   Verification,
   ExecutionProjects,
   Accounting,
-  SolarInverterQa
+  SolarInverterQa,
+  MessageInbox,
+  WhatsAppOnboarding
 }
 
 export interface AdminUser {

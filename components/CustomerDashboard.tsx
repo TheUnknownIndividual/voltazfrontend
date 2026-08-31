@@ -69,30 +69,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   const [newAddress, setNewAddress] = useState({ title: '', details: '' });
   const [showAddressForm, setShowAddressForm] = useState(false);
 
-  const t = {
-    profile: lang === 'az' ? 'Profil Məlumatları' : 'Profile Information',
-    cart: lang === 'az' ? 'Səbətim' : 'My Cart',
-    orders: lang === 'az' ? 'Sifarişlərim' : 'My Orders',
-    edit: lang === 'az' ? 'Redaktə et' : 'Edit',
-    save: lang === 'az' ? 'Yadda saxla' : 'Save Changes',
-    cancel: lang === 'az' ? 'Ləğv et' : 'Cancel',
-    addAddress: lang === 'az' ? 'Yeni Ünvan Əlavə Et' : 'Add New Address',
-    primary: lang === 'az' ? 'Əsas' : 'Primary',
-    setPrimary: lang === 'az' ? 'Əsas et' : 'Set as Primary',
-    delete: lang === 'az' ? 'Sil' : 'Delete',
-    checkout: lang === 'az' ? 'Sifarişi tamamla' : 'Complete Order',
-    continue: lang === 'az' ? 'Davam et' : 'Continue',
-    confirm: lang === 'az' ? 'Təsdiqlə' : 'Confirm',
-    viewDetails: lang === 'az' ? 'Detallar' : 'Details',
-    emptyCart: lang === 'az' ? 'Səbətiniz boşdur' : 'Your cart is empty',
-    cartLoading: lang === 'az' ? 'Səbət yüklənir...' : 'Loading cart...',
-    orderPlaced: lang === 'az' ? 'Sifarişiniz qəbul edildi!' : 'Your order was placed!',
-    delivery: lang === 'az' ? 'Çatdırılma' : 'Delivery',
-    pickup: lang === 'az' ? 'Ofisdən götürmə' : 'Pickup',
-    cash: lang === 'az' ? 'Nağd / köçürmə' : 'Cash / transfer',
-    card: lang === 'az' ? 'Kartla ödəniş' : 'Card payment',
-    credit: lang === 'az' ? 'Kredit müraciəti' : 'Credit request'
-  };
+  const t = lang === 'ru'
+    ? { profile: 'Данные профиля', cart: 'Моя корзина', orders: 'Мои заказы', edit: 'Редактировать', save: 'Сохранить изменения', cancel: 'Отмена', addAddress: 'Добавить адрес', primary: 'Основной', setPrimary: 'Сделать основным', delete: 'Удалить', checkout: 'Оформить заказ', continue: 'Продолжить', confirm: 'Подтвердить', viewDetails: 'Подробнее', emptyCart: 'Ваша корзина пуста', cartLoading: 'Загрузка корзины...', orderPlaced: 'Ваш заказ принят!', delivery: 'Доставка', pickup: 'Самовывоз из офиса', cash: 'Наличные / перевод', card: 'Оплата картой', credit: 'Кредитная заявка', account: 'Аккаунт клиента', continueShopping: 'Продолжить покупки', firstName: 'Имя', lastName: 'Фамилия', email: 'Email', phone: 'Номер телефона', bankCard: 'Банковская карта', expiry: 'Срок действия', addresses: 'Мои адреса', addressTitle: 'Название адреса (например, дом, работа)', fullAddress: 'Полный адрес', add: 'Добавить', stock: 'Остаток', summary: 'Оформление заказа', productCount: 'Количество товаров:', products: 'Товары:', deliveryConfirmed: 'Подтверждается при оформлении', total: 'Итого:', startShopping: 'Перейдите в раздел товаров, чтобы начать покупки.', ordersLoading: 'Загрузка заказов...', noOrders: 'Заказов пока нет', noOrdersText: 'После оформления заказа из корзины он появится здесь.' }
+    : lang === 'tr'
+      ? { profile: 'Profil bilgileri', cart: 'Sepetim', orders: 'Siparişlerim', edit: 'Düzenle', save: 'Değişiklikleri kaydet', cancel: 'İptal', addAddress: 'Yeni adres ekle', primary: 'Birincil', setPrimary: 'Birincil yap', delete: 'Sil', checkout: 'Siparişi tamamla', continue: 'Devam et', confirm: 'Onayla', viewDetails: 'Detaylar', emptyCart: 'Sepetiniz boş', cartLoading: 'Sepet yükleniyor...', orderPlaced: 'Siparişiniz alındı!', delivery: 'Teslimat', pickup: 'Ofisten teslim alma', cash: 'Nakit / havale', card: 'Kartla ödeme', credit: 'Kredi başvurusu', account: 'Müşteri hesabı', continueShopping: 'Alışverişe devam et', firstName: 'Ad', lastName: 'Soyad', email: 'E-posta', phone: 'Telefon numarası', bankCard: 'Banka kartı', expiry: 'Son kullanma tarihi', addresses: 'Adreslerim', addressTitle: 'Adres adı (ör. ev, iş)', fullAddress: 'Tam adres', add: 'Ekle', stock: 'Stok', summary: 'Sipariş özeti', productCount: 'Ürün sayısı:', products: 'Ürünler:', deliveryConfirmed: 'Ödeme sırasında onaylanacak', total: 'Toplam:', startShopping: 'Alışverişe başlamak için ürünler bölümüne gidin.', ordersLoading: 'Siparişler yükleniyor...', noOrders: 'Henüz sipariş yok', noOrdersText: 'Sepetten sipariş oluşturduktan sonra burada görünecektir.' }
+      : lang === 'en'
+        ? { profile: 'Profile information', cart: 'My cart', orders: 'My orders', edit: 'Edit', save: 'Save changes', cancel: 'Cancel', addAddress: 'Add new address', primary: 'Primary', setPrimary: 'Set as primary', delete: 'Delete', checkout: 'Complete order', continue: 'Continue', confirm: 'Confirm', viewDetails: 'Details', emptyCart: 'Your cart is empty', cartLoading: 'Loading cart...', orderPlaced: 'Your order was placed!', delivery: 'Delivery', pickup: 'Office pickup', cash: 'Cash / transfer', card: 'Card payment', credit: 'Credit request', account: 'Customer account', continueShopping: 'Continue shopping', firstName: 'First name', lastName: 'Last name', email: 'Email address', phone: 'Phone number', bankCard: 'Bank card', expiry: 'Expiry', addresses: 'My addresses', addressTitle: 'Address name (e.g. home, work)', fullAddress: 'Full address', add: 'Add', stock: 'Stock', summary: 'Checkout', productCount: 'Product count:', products: 'Products:', deliveryConfirmed: 'Confirmed during checkout', total: 'Total:', startShopping: 'Go to products to start shopping.', ordersLoading: 'Loading orders...', noOrders: 'No orders yet', noOrdersText: 'Your orders will appear here after you create one from the cart.' }
+        : { profile: 'Profil Məlumatları', cart: 'Səbətim', orders: 'Sifarişlərim', edit: 'Redaktə et', save: 'Yadda saxla', cancel: 'Ləğv et', addAddress: 'Yeni Ünvan Əlavə Et', primary: 'Əsas', setPrimary: 'Əsas et', delete: 'Sil', checkout: 'Sifarişi tamamla', continue: 'Davam et', confirm: 'Təsdiqlə', viewDetails: 'Detallar', emptyCart: 'Səbətiniz boşdur', cartLoading: 'Səbət yüklənir...', orderPlaced: 'Sifarişiniz qəbul edildi!', delivery: 'Çatdırılma', pickup: 'Ofisdən götürmə', cash: 'Nağd / köçürmə', card: 'Kartla ödəniş', credit: 'Kredit müraciəti', account: 'Müştəri hesabı', continueShopping: 'Alış-verişə davam et', firstName: 'Ad', lastName: 'Soyad', email: 'Email ünvanı', phone: 'Əlaqə nömrəsi', bankCard: 'Bank kartı', expiry: 'Müddət', addresses: 'Yaşayış ünvanlarım', addressTitle: 'Ünvan adı (məs: ev, iş)', fullAddress: 'Tam ünvan', add: 'Əlavə et', stock: 'Stok', summary: 'Sifarişin yekunu', productCount: 'Məhsul sayı:', products: 'Məhsullar:', deliveryConfirmed: 'Checkout-da təsdiqlənəcək', total: 'Cəmi:', startShopping: 'Alış-verişə başlamaq üçün məhsullar bölməsinə keçid edin.', ordersLoading: 'Sifarişlər yüklənir...', noOrders: 'Sifariş yoxdur', noOrdersText: 'Səbətdən sifariş yaratdıqdan sonra burada görünəcək.' };
 
   const getProductImage = (product: any) =>
     Array.isArray(product?.productImage) ? product.productImage[0] : product?.productImage || '/volt-logo.png';
@@ -366,7 +349,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
             <span className="text-3xl font-black">{user?.name?.[0]}</span>
           </div>
           <h2 className="text-xl font-black text-slate-900">{user?.name}</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Müştəri Hesabı</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{t.account}</p>
         </div>
 
         <nav className="flex-grow space-y-2 px-4">
@@ -391,7 +374,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
         <div className="px-8 mt-12">
           <button onClick={onContinueShopping || onBack} className="flex items-center gap-2 text-slate-400 hover:text-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            Alış-verişə davam et
+            {t.continueShopping}
           </button>
         </div>
       </aside>
@@ -415,30 +398,30 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ad</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.firstName}</label>
                       <input disabled={!isEditing} type="text" value={profileData.firstName} onChange={e => setProfileData({...profileData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Soyad</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.lastName}</label>
                       <input disabled={!isEditing} type="text" value={profileData.lastName} onChange={e => setProfileData({...profileData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Ünvanı</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.email}</label>
                       <input disabled type="email" value={profileData.email} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 opacity-60" />
                     </div>
                   </div>
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Əlaqə Nömrəsi</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.phone}</label>
                       <input disabled={!isEditing} type="tel" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Kartı</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.bankCard}</label>
                       <input disabled={!isEditing} type="text" placeholder="**** **** **** ****" value={profileData.bankCard.number} onChange={e => setProfileData({...profileData, bankCard: {...profileData.bankCard, number: e.target.value}})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Müddət</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.expiry}</label>
                         <input disabled={!isEditing} type="text" placeholder="MM/YY" value={profileData.bankCard.expiry} onChange={e => setProfileData({...profileData, bankCard: {...profileData.bankCard, expiry: e.target.value}})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
                       </div>
                       <div className="space-y-2">
@@ -471,7 +454,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
               {/* Addresses Section */}
               <div className="bg-white rounded-[3rem] border border-slate-100 p-10 md:p-16 shadow-2xl shadow-slate-200/50">
                 <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">Yaşayış Ünvanlarım</h3>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">{t.addresses}</h3>
                   <button 
                     onClick={() => setShowAddressForm(true)}
                     className="text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:text-slate-900 transition-colors flex items-center gap-2"
@@ -486,22 +469,22 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <input 
                         type="text" 
-                        placeholder="Ünvan adı (məs: Ev, İş)" 
+                        placeholder={t.addressTitle}
                         value={newAddress.title}
                         onChange={e => setNewAddress({...newAddress, title: e.target.value})}
                         className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
                       />
                       <input 
                         type="text" 
-                        placeholder="Tam ünvan" 
+                        placeholder={t.fullAddress}
                         value={newAddress.details}
                         onChange={e => setNewAddress({...newAddress, details: e.target.value})}
                         className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
                       />
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={handleAddAddress} className="bg-emerald-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all">Əlavə et</button>
-                      <button onClick={() => setShowAddressForm(false)} className="text-slate-400 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:text-slate-600">Ləğv et</button>
+                      <button onClick={handleAddAddress} className="bg-emerald-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all">{t.add}</button>
+                      <button onClick={() => setShowAddressForm(false)} className="text-slate-400 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:text-slate-600">{t.cancel}</button>
                     </div>
                   </div>
                 )}
@@ -557,7 +540,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                             <div className="mt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.selectedPower}</div>
                           )}
                           <div className="text-emerald-600 font-black text-sm mt-2">{linePrice.toFixed(2)} AZN</div>
-                          <div className="mt-1 text-[10px] font-bold text-slate-400">{lang === 'az' ? 'Stok' : 'Stock'}: {lineStock}</div>
+                          <div className="mt-1 text-[10px] font-bold text-slate-400">{t.stock}: {lineStock}</div>
                           {exceedsStock && (
                             <div className="mt-2 text-[10px] font-bold leading-relaxed text-amber-700" role="alert">
                               {getStockWarning(lang, lineStock, item.quantity)}
@@ -580,22 +563,22 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                     )})}
                   </div>
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl h-fit">
-                    <h4 className="text-lg font-black text-slate-900 mb-6">Checkout</h4>
+                    <h4 className="text-lg font-black text-slate-900 mb-6">{t.summary}</h4>
                     <div className="space-y-4 mb-8">
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Məhsul sayı:</span>
+                        <span className="text-slate-400">{t.productCount}</span>
                         <span className="font-bold text-slate-900">{totalQuantity}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Məhsullar:</span>
+                        <span className="text-slate-400">{t.products}</span>
                         <span className="font-bold text-slate-900">{subtotal.toFixed(2)} AZN</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Çatdırılma:</span>
-                        <span className="font-bold text-amber-600">Checkout-da təsdiqlənəcək</span>
+                        <span className="text-slate-400">{t.delivery}:</span>
+                        <span className="font-bold text-amber-600">{t.deliveryConfirmed}</span>
                       </div>
                       <div className="pt-4 border-t border-slate-50 flex justify-between">
-                        <span className="font-black text-slate-900">Cəmi:</span>
+                        <span className="font-black text-slate-900">{t.total}</span>
                         <span className="font-black text-emerald-600 text-lg">{subtotal.toFixed(2)} AZN</span>
                       </div>
                     </div>
@@ -610,7 +593,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   </div>
                   <h4 className="text-lg font-black text-slate-900 mb-2">{t.emptyCart}</h4>
-                  <p className="text-slate-400 text-sm">Alış-verişə başlamaq üçün məhsullar bölməsinə keçid edin.</p>
+                  <p className="text-slate-400 text-sm">{t.startShopping}</p>
                 </div>
               )}
             </div>
@@ -622,15 +605,15 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
               {ordersLoading ? (
                 <div className="bg-white rounded-[3rem] p-16 text-center border border-slate-100 shadow-xl">
                   <div className="mx-auto mb-6 h-12 w-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin" />
-                  <h4 className="text-lg font-black text-slate-900">Sifarişlər yüklənir...</h4>
+                  <h4 className="text-lg font-black text-slate-900">{t.ordersLoading}</h4>
                 </div>
               ) : orders.length === 0 ? (
                 <div className="bg-white rounded-[3rem] p-16 text-center border border-slate-100 shadow-xl">
                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-6">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /></svg>
                   </div>
-                  <h4 className="text-lg font-black text-slate-900 mb-2">Sifariş yoxdur</h4>
-                  <p className="text-slate-400 text-sm">Səbətdən sifariş yaratdıqdan sonra burada görünəcək.</p>
+                  <h4 className="text-lg font-black text-slate-900 mb-2">{t.noOrders}</h4>
+                  <p className="text-slate-400 text-sm">{t.noOrdersText}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6">

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "sitemap": "node generate-sitemap.js",
-    "seo:verify": "node scripts/verify-seo-build.mjs"
+    "seo:verify": "node scripts/verify-seo-build.mjs",
+    "analytics:verify": "node scripts/verify-analytics.mjs"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
@@ -21,6 +22,7 @@
     "lucide-react": "^1.16.0",
     "marked": "^18.0.7",
     "motion": "^12.38.0",
+    "pdfjs-dist": "^6.2.108",
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -33,7 +35,10 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
     "sitemap": "^9.0.1",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

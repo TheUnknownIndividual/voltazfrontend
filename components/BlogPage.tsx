@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 import { useBlog } from '../contexts/BlogContext';
 import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 
@@ -50,6 +52,11 @@ const LANGUAGES = [
 
 type LangCode = typeof LANGUAGES[number]['code'];
 
+const plainBlogText = (value: string) => value
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onNavigate }) => {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
    const { blogs,getBlogs, getBlogById, loading} = useBlog();
@@ -85,11 +92,11 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, lang = 'az', initialId, onN
 
      const contentLanguage: LangCode = selectedPost.title?.[lang] ? lang : 'az';
      const title = selectedPost.title?.[contentLanguage] || 'Volt.az Blog';
-     const rawDescription = String(
+     const rawDescription = plainBlogText(String(
        selectedPost.description?.[contentLanguage]
        || selectedPost.content?.[contentLanguage]
        || ''
-     ).replace(/\s+/g, ' ').trim();
+     ));
      const automaticDescription = (
        rawDescription.toLocaleLowerCase().includes(String(title).toLocaleLowerCase())
          ? rawDescription
@@ -311,6 +318,17 @@ const transformBlog = (item: any) => {
   };
 };
 
+  const selectedPostHtml = React.useMemo(() => {
+    if (!selectedPost) return '';
+    const contentLanguage: LangCode = selectedPost.title?.[lang] ? lang : 'az';
+    const parsed = marked.parse(String(selectedPost.content?.[contentLanguage] || ''), {
+      async: false,
+      breaks: true,
+      gfm: true,
+    });
+    return DOMPurify.sanitize(parsed);
+  }, [selectedPost, lang]);
+
   return (
     <div className="bg-white min-h-screen relative">
       {/* Page Header */}
@@ -347,7 +365,7 @@ const transformBlog = (item: any) => {
                       </div>
                     </div>
                   </div> */}
-                  <div className="relative overflow-hidden">
+                  <div className="relative aspect-video overflow-hidden bg-slate-100">
   <img
     src={post.image}
     alt={post.title?.[lang]}
@@ -371,7 +389,7 @@ const transformBlog = (item: any) => {
                       <h3>{post.title?.[lang]}</h3>
                     </h3>
                     <p className="text-slate-500 text-xs leading-relaxed mb-8 flex-grow opacity-80 line-clamp-3">
-                      {post.content?.[lang]}
+                      {plainBlogText(post.content?.[lang] || '')}
                     </p>
                     
                     <div className="pt-6 border-t border-slate-50">
@@ -392,19 +410,11 @@ const transformBlog = (item: any) => {
                 {/* <div className="aspect-video w-full overflow-hidden">
                   <img src={selectedPost.image} alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']} className="w-full h-full object-contain" />
                 </div> */}
-                <div className="relative aspect-video w-full overflow-hidden">
-  {/* Background */}
-  <img
-    src={selectedPost.image}
-    alt=""
-    className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
-  />
-
-  {/* Main image */}
+                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
   <img
     src={selectedPost.image}
     alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']}
-    className="relative z-10 w-full h-full object-contain"
+    className="h-full w-full object-cover"
   />
 </div>
                 <div className="p-8 md:p-16 space-y-8">
@@ -421,13 +431,7 @@ const transformBlog = (item: any) => {
                     {selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']}
                   </h2>
                   <div className="w-20 h-1.5 bg-emerald-500 rounded-full"></div>
-                  <div className="prose prose-slate max-w-none">
-                    {selectedPost.content?.[selectedPost.title?.[lang] ? lang : 'az']?.split('\n').map((paragraph, pIdx) => (
-                      <p key={pIdx} className="text-slate-600 text-base md:text-lg leading-relaxed mb-6 whitespace-pre-line">
-                        {paragraph.trim()}
-                      </p>
-                    ))}
-                  </div>
+                  <div className="news-rich-content max-w-none text-slate-600" dangerouslySetInnerHTML={{ __html: selectedPostHtml }} />
                   <div className="pt-12 border-t border-slate-50">
                     <button
                       type="button"

@@ -157,7 +157,7 @@ const power = currentProject?.totalPower || '';
                     onClick={() => position !== 'center' && setActiveIndex(index)}
                   >
                     <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] overflow-hidden border border-slate-100 h-[190px] md:h-[300px]">
-                      <img src={project.image?.[0]} alt={pTitle} className="w-full h-full" />
+                      <img src={project.image?.[0]} alt={pTitle} width="720" height="400" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     </div>
                   </div>
                 );

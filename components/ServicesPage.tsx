@@ -16,6 +16,7 @@ import {
 import { useService } from "../contexts/ServiceContext";
 import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
 import { useNotification } from '../contexts/NotificationContext';
+import { trackConfirmedLead } from '../utils/analytics';
 
 interface ServicesPageProps {
   lang?: 'az' | 'en' | 'ru' | 'tr';
@@ -565,15 +566,23 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   try {
     const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
+    const analyticsRequestId = crypto.randomUUID();
 
     await createServiceRequest({
-  name: formData.firstName,
-  surname: formData.lastName,
-  email: formData.email,
-  phone: `${dialCode} ${formData.phone}`.trim(),
-  message: formData.message,
-  serviceManagementId: Number(formData.serviceType),
-});
+      name: formData.firstName,
+      surname: formData.lastName,
+      email: formData.email,
+      phone: `${dialCode} ${formData.phone}`.trim(),
+      message: formData.message,
+      serviceManagementId: Number(formData.serviceType),
+    });
+
+    trackConfirmedLead(
+      'quote_request_submit',
+      'service_request',
+      lang,
+      analyticsRequestId,
+    );
 
     setSubmitStatus("success");
     showNotification(t.success[lang], 'success');

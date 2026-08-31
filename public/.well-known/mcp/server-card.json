@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
+  "version": "1.0",
+  "protocolVersion": "2025-06-18",
+  "serverInfo": {
+    "name": "volt-public-catalog",
+    "title": "Volt.az Public Solar Catalogue",
+    "version": "1.0.0"
+  },
+  "description": "Search public Volt.az products and services, create non-binding solar planning estimates, and prepare contact drafts that require explicit visitor confirmation.",
+  "documentationUrl": "https://volt.az/auth.md",
+  "transport": {
+    "type": "streamable-http",
+    "endpoint": "https://mcp.volt.az/public/mcp"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "authentication": {
+    "required": false,
+    "schemes": []
+  },
+  "tools": [
+    "dynamic"
+  ]
+}

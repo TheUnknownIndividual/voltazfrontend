@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "volt-solar-advisor",
+      "type": "skill-md",
+      "description": "Discover public Volt.az solar products and services, create a non-binding planning estimate, and prepare a contact draft that only the visitor can confirm.",
+      "url": "/agent-skills/volt-solar-advisor/SKILL.md",
+      "digest": "sha256:4abb2b2715fe83abb4be93455b621ff927fe3dc414c6b3db8e977b6945230fae"
+    }
+  ]
+}

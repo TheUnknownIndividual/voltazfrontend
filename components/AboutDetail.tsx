@@ -104,7 +104,7 @@ if (!data) {
             className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            {lang === 'az' ? 'Geri qayıt' : 'Back'}
+            {lang === 'az' ? 'Geri qayıt' : lang === 'ru' ? 'Назад' : lang === 'tr' ? 'Geri dön' : 'Back'}
           </button>
           <h1 className="text-sm font-black text-white uppercase tracking-widest">{data.title?.[lang]}</h1>
         </div>

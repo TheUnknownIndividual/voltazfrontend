@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../types';
 import { useCategory } from '@/contexts/CategoryContext';
+import OutOfStockWhatsappAction from './OutOfStockWhatsappAction';
 
 export interface ProductReturnContext {
   category?: string | number;
@@ -141,7 +142,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
   const firstCount = Number(displayParam?.count || 0);
   const hasPrice = firstAmount > 0;
   const hasStock = Boolean(product.inStock && firstCount > 0);
-
   const stockCheckMessage = lang === 'az'
     ? `Salam, "${product.productName}" məhsulunun stokda olub-olmadığını öyrənmək istəyirəm.`
     : lang === 'en'
@@ -153,19 +153,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
 
   const getItemName = (item: any) => {
-
-
-    const lang = item?.languages?.find(
-      (l: any) => l.languageCode === 1
-    );
+    const languageCode = lang === 'en' ? 2 : lang === 'ru' ? 3 : lang === 'tr' ? 4 : 1;
+    const translations = Array.isArray(item?.languages) ? item.languages : [];
+    const translation = translations.find((entry: any) => Number(entry?.languageCode) === languageCode)
+      || translations.find((entry: any) => Number(entry?.languageCode) === 1)
+      || translations[0];
 
     return (
-      lang?.categoryName ||
-      lang?.subCategoryName ||
-      lang?.brandName ||
-      lang?.seriesName ||
-      lang?.technologyName ||
-      lang?.promotionName ||
+      translation?.categoryName ||
+      translation?.subCategoryName ||
+      translation?.brandName ||
+      translation?.seriesName ||
+      translation?.technologyName ||
+      translation?.promotionName ||
       ""
     );
   };
@@ -203,6 +203,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
           <img
             src={galleryImages[activeImageIndex] || '/volt-logo.png'}
             alt={product.productName || product.name}
+            loading="lazy"
+            decoding="async"
+            width="640"
+            height="720"
             draggable={false}
             className="h-full w-full select-none object-contain transition-[transform,opacity] duration-500 group-hover:scale-105"
           />
@@ -302,15 +306,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                   {!hasPrice ? t.requestPrice : t.orderNow}
                 </button>
               ) : (
-                <a
+                <OutOfStockWhatsappAction
                   href={stockCheckHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  lang={lang}
+                  placement="product_card_stock_check"
+                  product={{
+                    id: product.id,
+                    name: product.productName || product.name,
+                    category: product.category,
+                    subCategory: product.subCategory,
+                    brand: product.brand,
+                    variant: productSpecBadge,
+                    requestedQuantity: 1,
+                    availableStock: firstCount,
+                  }}
                   className="w-full py-3 md:py-4 rounded-xl bg-emerald-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all active:scale-95 shadow-lg shadow-emerald-600/20 text-center"
                 >
                   {t.check}
-                </a>
+                </OutOfStockWhatsappAction>
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); onAddToCart?.(product.id, 1, productSpecBadge, firstCount); }}

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { ProductVariant } from '../types';
 import { DEFAULT_CATEGORY_CONFIG } from '../lib/categoryConfig';
@@ -8,6 +8,16 @@ import { usePromotion } from '@/contexts/PromotionContext';
 import { useUpload } from "../contexts/UploadContext";
 import { useProduct } from "../contexts/ProductContext";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  cancelProductAiImport,
+  getProductAiImport,
+  getProductAiSettings,
+  startProductAiImport,
+  uploadProductDatasheets,
+  type ProductAiDraft,
+  type ProductAiJob,
+  type ProductDatasheetSource,
+} from '../api/productAiImport';
 
 interface WarehouseProduct {
   id: number;
@@ -54,6 +64,48 @@ const languageMap = {
 };
 
 type LangCode = typeof LANGUAGES[number]['code'];
+type AiRequiredField = 'datasheets' | 'type' | 'subCategory' | 'brand' | 'technology' | 'count' | 'amount';
+
+const emptyLocalizedText = () => ({ az: '', en: '', ru: '', tr: '' });
+
+const languageRowsToText = (languages: any[] | undefined, field: 'description' | 'features') => ({
+  az: languages?.find((item) => Number(item.languageCode) === 1)?.[field] || '',
+  en: languages?.find((item) => Number(item.languageCode) === 2)?.[field] || '',
+  ru: languages?.find((item) => Number(item.languageCode) === 3)?.[field] || '',
+  tr: languages?.find((item) => Number(item.languageCode) === 4)?.[field] || '',
+});
+
+const inferDatasheetSource = (url: string): ProductDatasheetSource => {
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  const mimeType = cleanUrl.endsWith('.pdf')
+    ? 'application/pdf'
+    : cleanUrl.endsWith('.png')
+      ? 'image/png'
+      : cleanUrl.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/jpeg';
+  return { url, mimeType, sizeBytes: 1, fileName: decodeURIComponent(url.split('/').pop() || 'datasheet') };
+};
+
+type DatasheetMode = 'pdf' | 'images' | 'mixed' | null;
+
+const getDatasheetMode = (sources: ProductDatasheetSource[] = [], urls: string[] = []): DatasheetMode => {
+  const resolved = sources.length > 0 ? sources : urls.map(inferDatasheetSource);
+  const hasPdf = resolved.some((item) => item.mimeType === 'application/pdf' || item.url.split('?')[0].toLowerCase().endsWith('.pdf'));
+  const hasImages = resolved.some((item) => !(item.mimeType === 'application/pdf' || item.url.split('?')[0].toLowerCase().endsWith('.pdf')));
+  if (hasPdf && hasImages) return 'mixed';
+  if (hasPdf) return 'pdf';
+  if (hasImages) return 'images';
+  return null;
+};
+
+const getSelectedDatasheetMode = (files: File[]): DatasheetMode => {
+  const hasPdf = files.some((file) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+  const hasImages = files.some((file) => !(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')));
+  if (hasPdf && hasImages) return 'mixed';
+  if (hasPdf) return 'pdf';
+  return files.length > 0 ? 'images' : null;
+};
 
 const BACKGROUND_COLOR_DISTANCE = 46;
 const BACKGROUND_EDGE_DISTANCE = 58;
@@ -240,14 +292,31 @@ const AdminWarehouse: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<WarehouseProduct | null>(null);
   const [categoryConfig, setCategoryConfig] = useState(DEFAULT_CATEGORY_CONFIG);
   const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [contentVariantIndex, setContentVariantIndex] = useState(0);
+  const [aiJob, setAiJob] = useState<ProductAiJob | null>(null);
+  const [aiDraft, setAiDraft] = useState<ProductAiDraft | null>(null);
+  const [isAiStarting, setIsAiStarting] = useState(false);
+  const [aiInvalidFields, setAiInvalidFields] = useState<Set<AiRequiredField>>(() => new Set());
+  const sessionDatasheetUploads = useRef<Set<string>>(new Set());
   const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(10);
 const normalizedSearch = searchQuery.trim();
 const [debouncedSearch, setDebouncedSearch] = useState(normalizedSearch);
 const selectedCategoryId = typeFilter === 'all' ? undefined : Number(typeFilter);
+const clearAiInvalidField = (field: AiRequiredField) => {
+  setAiInvalidFields((current) => {
+    if (!current.has(field)) return current;
+    const next = new Set(current);
+    next.delete(field);
+    return next;
+  });
+};
+const aiRequiredClass = (field: AiRequiredField) => aiInvalidFields.has(field)
+  ? 'border-rose-500 bg-rose-50/40 ring-2 ring-rose-100 focus:border-rose-500'
+  : 'border-slate-100 focus:border-emerald-500';
 
   useEffect(() => {
-    getCategories();
+    void getCategories({ includeAllLanguages: true });
     getProductCount();
   }, []);
 
@@ -297,6 +366,12 @@ const getProductValue = (product: any) =>
   const handleCategoryChange = async (e) => {
     const categoryId = e.target.value;
 
+    setAiInvalidFields((current) => {
+      const next = new Set(current);
+      next.delete('type');
+      return next;
+    });
+
     setNewProduct({
       ...newProduct,
       type: categoryId,
@@ -306,7 +381,7 @@ const getProductValue = (product: any) =>
     });
 
     try {
-      await getSubCategories(categoryId);
+      await getSubCategories(categoryId, { includeAllLanguages: true });
       await getBrands(categoryId);
       await getTechnology(categoryId);
 
@@ -347,6 +422,11 @@ const getProductValue = (product: any) =>
     customSpecs: {} as Record<string, string>,
     count: 0,
     amount: 0,
+    modelLabel: '',
+    parametrId: null as number | null,
+    useCommonVariantContent: false,
+    variantDescription: emptyLocalizedText(),
+    variantFeatures: emptyLocalizedText(),
     images: [] as string[],
     description: {
       az: "",
@@ -365,15 +445,26 @@ const getProductValue = (product: any) =>
     specs: '',
     datasheet: '',
     datasheets: [] as string[],
+    datasheetSources: [] as ProductDatasheetSource[],
     certificate: '',
     certificates: '',
     showOnHome: false,
     isOnOrder: false,
     status: 'in_warehouse' as 'on_site' | 'in_warehouse',
-    variants: [] as ProductVariant[]
+    variants: [] as Array<ProductVariant & {
+      modelLabel?: string;
+      description?: ReturnType<typeof emptyLocalizedText>;
+      features?: ReturnType<typeof emptyLocalizedText>;
+    }>
   };
 
   const [newProduct, setNewProduct] = useState<any>(initialNewProduct);
+  const datasheetMode = getDatasheetMode(newProduct.datasheetSources || [], newProduct.datasheets || []);
+  const datasheetAccept = datasheetMode === 'pdf'
+    ? '.pdf,application/pdf'
+    : datasheetMode === 'images'
+      ? '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp'
+      : '.pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp';
 
   // Load from localStorage
   const [products, setProducts] = useState<WarehouseProduct[]>([]);
@@ -383,6 +474,14 @@ const getProductValue = (product: any) =>
     e.preventDefault();
 
     try {
+      const toParametrLanguages = (description: Record<LangCode, string>, features: Record<LangCode, string>) =>
+        newProduct.useCommonVariantContent
+          ? []
+          : LANGUAGES.map((lang) => ({
+              languageCode: languageMap[lang.code],
+              description: description?.[lang.code] || '',
+              features: features?.[lang.code] || '',
+            }));
       const payload = {
         productName: newProduct.name,
         productCategoryId: Number(newProduct.type),
@@ -392,6 +491,7 @@ const getProductValue = (product: any) =>
 
         inStock: newProduct.isOnOrder,
         inHomePage: newProduct.showOnHome,
+        useCommonVariantContent: Boolean(newProduct.useCommonVariantContent),
 
         certificate: newProduct.certificate,
 
@@ -400,16 +500,22 @@ const getProductValue = (product: any) =>
 
         productParametrs: [
           {
+            ...(newProduct.parametrId ? { id: Number(newProduct.parametrId) } : {}),
+            modelLabel: newProduct.modelLabel || null,
             technicalPower: newProduct.power || '',
             effectiveness: Number(newProduct.efficiency) || 0,
             count: Number(newProduct.count) || 0,
             amount: Number(newProduct.amount) || 0,
+            languages: toParametrLanguages(newProduct.variantDescription, newProduct.variantFeatures),
           },
            ...newProduct.variants.map((variant) => ({
+    ...(variant.id ? { id: Number(variant.id) } : {}),
+    modelLabel: variant.modelLabel || null,
     technicalPower: variant.power || "",
     effectiveness: Number(variant.efficiency) || 0,
     count: Number(variant.count) || 0,
     amount: Number(variant.price) || 0,
+    languages: toParametrLanguages(variant.description || emptyLocalizedText(), variant.features || emptyLocalizedText()),
   })),
         ],
 
@@ -458,6 +564,9 @@ const getProductValue = (product: any) =>
       setShowAddModal(false);
       setNewProduct(initialNewProduct);
       setEditingProduct(null);
+      setContentVariantIndex(0);
+      setAiInvalidFields(new Set());
+      sessionDatasheetUploads.current.clear();
 
 
     } catch (error) {
@@ -487,6 +596,11 @@ const getProductValue = (product: any) =>
 
         power: data.productParametrs?.[0]?.technicalPower || '',
         efficiency: Number(data.productParametrs?.[0]?.effectiveness || 0),
+        modelLabel: data.productParametrs?.[0]?.modelLabel || '',
+        parametrId: data.productParametrs?.[0]?.id || null,
+        useCommonVariantContent: data.useCommonVariantContent ?? true,
+        variantDescription: languageRowsToText(data.productParametrs?.[0]?.languages, 'description'),
+        variantFeatures: languageRowsToText(data.productParametrs?.[0]?.languages, 'features'),
 
         count: data.productParametrs?.[0]?.count || 0,
         amount: data.productParametrs?.[0]?.amount || 0,
@@ -495,10 +609,14 @@ const getProductValue = (product: any) =>
           variants: (data.productParametrs || [])
     .slice(1)
     .map((p) => ({
+      id: p.id,
+      modelLabel: p.modelLabel || '',
       power: p.technicalPower || "",
       efficiency: p.effectiveness || 0,
       count: p.count || 0,
       price: p.amount || 0,
+      description: languageRowsToText(p.languages, 'description'),
+      features: languageRowsToText(p.languages, 'features'),
     })),
 
         images: data.productImage || [],
@@ -550,6 +668,7 @@ const getProductValue = (product: any) =>
         promotion: data.promotionIds?.map(Number) || [],
 
         datasheets: data.productDatasheet || [],
+        datasheetSources: (data.productDatasheet || []).map(inferDatasheetSource),
 
         certificate: data.certificate || "",
 
@@ -564,8 +683,10 @@ const getProductValue = (product: any) =>
 
         customSpecs: {},
       });
+      setContentVariantIndex(0);
+      sessionDatasheetUploads.current.clear();
 
-      await getSubCategories(data.productCategoryId);
+      await getSubCategories(data.productCategoryId, { includeAllLanguages: true });
       await getBrands(data.productCategoryId);
       await getTechnology(data.productCategoryId);
 
@@ -577,10 +698,20 @@ const getProductValue = (product: any) =>
     }
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
+    const unsavedUrls = Array.from(sessionDatasheetUploads.current);
+    await Promise.allSettled(unsavedUrls.map((url) => deleteImage(url)));
+    sessionDatasheetUploads.current.clear();
+    if (aiJob && (aiJob.status === 'queued' || aiJob.status === 'processing' || aiJob.status === 'review_ready')) {
+      await cancelProductAiImport(aiJob.id).catch(() => undefined);
+    }
+    setAiJob(null);
+    setAiDraft(null);
+    setAiInvalidFields(new Set());
     setShowAddModal(false);
     setEditingProduct(null);
     setNewProduct(initialNewProduct);
+    setContentVariantIndex(0);
   };
 
 
@@ -657,23 +788,44 @@ const handleToggleHome = async (product: any) => {
     if (!files) return;
 
     try {
-      const uploadedUrls: string[] = [];
-
-      for (const file of Array.from(files)) {
-        const url = await uploadImage(file); // 👈 backend upload
-        uploadedUrls.push(url.data.path);
+      const selectedFiles = Array.from(files);
+      const selectedMode = getSelectedDatasheetMode(selectedFiles);
+      if (selectedMode === 'mixed' || datasheetMode === 'mixed' || (datasheetMode && selectedMode && datasheetMode !== selectedMode)) {
+        showNotification('Datasheet üçün PDF və şəkilləri birlikdə istifadə etmək olmaz. Formatı dəyişmək üçün mövcud faylları silin.', 'error');
+        return;
       }
+      if (newProduct.datasheets.length + selectedFiles.length > 10) {
+        showNotification('Ən çox 10 datasheet faylı yükləmək olar.', 'error');
+        return;
+      }
+      const existingKnownBytes = (newProduct.datasheetSources || [])
+        .reduce((total: number, item: ProductDatasheetSource) => total + Math.max(0, Number(item.sizeBytes) || 0), 0);
+      const selectedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+      if (existingKnownBytes + selectedBytes > 50 * 1024 * 1024) {
+        showNotification('Datasheet fayllarının ümumi ölçüsü 50 MB-dan çox ola bilməz.', 'error');
+        return;
+      }
+      const uploaded = await uploadProductDatasheets(selectedFiles);
+      uploaded.forEach((item) => sessionDatasheetUploads.current.add(item.url));
 
       setNewProduct(prev => ({
         ...prev,
-        datasheets: [...prev.datasheets, ...uploadedUrls],
+        datasheets: [...prev.datasheets, ...uploaded.map((item) => item.url)],
+        datasheetSources: [...(prev.datasheetSources || []), ...uploaded],
       }));
+      setAiInvalidFields((current) => {
+        const next = new Set(current);
+        next.delete('datasheets');
+        return next;
+      });
 
-      showNotification("Şəkillər yükləndi", "success");
+      showNotification('Datasheet faylları yükləndi', 'success');
 
     } catch (error) {
       console.error("UPLOAD ERROR:", error);
-      showNotification("Şəkil yüklənmədi", "error");
+      showNotification('Datasheet yüklənmədi. PDF/JPEG/PNG/WebP və 50 MB ümumi limiti yoxlayın.', 'error');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -723,11 +875,15 @@ const handleToggleHome = async (product: any) => {
     try {
       const datasheetUrl = newProduct.datasheets[index];
 
-      await deleteImage(datasheetUrl);
+      if (sessionDatasheetUploads.current.has(datasheetUrl)) {
+        await deleteImage(datasheetUrl);
+        sessionDatasheetUploads.current.delete(datasheetUrl);
+      }
 
       setNewProduct(prev => ({
         ...prev,
-        datasheets: prev.datasheets.filter((_, i) => i !== index)
+        datasheets: prev.datasheets.filter((_, i) => i !== index),
+        datasheetSources: (prev.datasheetSources || []).filter((item) => item.url !== datasheetUrl),
       }));
     } catch (err) {
       console.error(err);
@@ -754,16 +910,19 @@ const handleToggleHome = async (product: any) => {
     }
   };
 
-  const addVariant = () => {
+const addVariant = () => {
   setNewProduct((prev) => ({
     ...prev,
     variants: [
       ...prev.variants,
       {
+        modelLabel: "",
         power: "",
         efficiency: "",
         count: 0,
         price: 0,
+        description: emptyLocalizedText(),
+        features: emptyLocalizedText(),
       },
     ],
   }));
@@ -774,6 +933,7 @@ const removeVariant = (index: number) => {
     ...prev,
     variants: prev.variants.filter((_, i) => i !== index),
   }));
+  setContentVariantIndex((current) => Math.min(current, Math.max(0, newProduct.variants.length - 1)));
 };
 
 const updateVariant = (
@@ -789,6 +949,183 @@ const updateVariant = (
         : variant
     ),
   }));
+};
+
+const selectedVariantContent = contentVariantIndex === 0
+  ? {
+      description: newProduct.variantDescription || emptyLocalizedText(),
+      features: newProduct.variantFeatures || emptyLocalizedText(),
+    }
+  : {
+      description: newProduct.variants?.[contentVariantIndex - 1]?.description || emptyLocalizedText(),
+      features: newProduct.variants?.[contentVariantIndex - 1]?.features || emptyLocalizedText(),
+    };
+
+const updateSelectedVariantContent = (field: 'description' | 'features', value: string) => {
+  setNewProduct((prev) => {
+    if (contentVariantIndex === 0) {
+      const target = field === 'description' ? 'variantDescription' : 'variantFeatures';
+      return { ...prev, [target]: { ...(prev[target] || emptyLocalizedText()), [activeLang]: value } };
+    }
+    return {
+      ...prev,
+      variants: prev.variants.map((variant, index) => index === contentVariantIndex - 1
+        ? { ...variant, [field]: { ...(variant[field] || emptyLocalizedText()), [activeLang]: value } }
+        : variant),
+    };
+  });
+};
+
+useEffect(() => {
+  if (!aiJob || (aiJob.status !== 'queued' && aiJob.status !== 'processing')) return;
+  let cancelled = false;
+  let timer: number | undefined;
+  const poll = async () => {
+    try {
+      const next = await getProductAiImport(aiJob.id);
+      if (cancelled) return;
+      setAiJob(next);
+      if (next.status === 'review_ready' && next.draft) {
+        setAiDraft(next.draft);
+        await getTechnology(Number(newProduct.type)).catch(() => undefined);
+        return;
+      }
+      if (next.status === 'failed') showNotification(next.errorMessage || 'AI datasheet emalı uğursuz oldu.', 'error');
+      if (next.status === 'queued' || next.status === 'processing') {
+        timer = window.setTimeout(poll, 2500);
+      }
+    } catch {
+      if (!cancelled) timer = window.setTimeout(poll, 4000);
+    }
+  };
+  timer = window.setTimeout(poll, 1200);
+  return () => {
+    cancelled = true;
+    if (timer !== undefined) window.clearTimeout(timer);
+  };
+}, [aiJob?.id]);
+
+const startAiExtraction = async () => {
+  const missing = new Set<AiRequiredField>();
+  if (!newProduct.datasheets?.length) missing.add('datasheets');
+  if (!newProduct.type) missing.add('type');
+  if (!newProduct.subCategory) missing.add('subCategory');
+  if (!newProduct.brand) missing.add('brand');
+  if (newProduct.count === '') missing.add('count');
+  if (newProduct.amount === '') missing.add('amount');
+  setAiInvalidFields(missing);
+  if (missing.size > 0) {
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-ai-required="invalid"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return;
+  }
+
+  setIsAiStarting(true);
+  try {
+    const settings = await getProductAiSettings();
+    if (!settings.enabled) {
+      showNotification('AI import serverdə konfiqurasiya edilməyib.', 'warning');
+      return;
+    }
+    const knownSources = (newProduct.datasheetSources || []) as ProductDatasheetSource[];
+    const sources = newProduct.datasheets.map((url: string) =>
+      knownSources.find((item) => item.url === url) || inferDatasheetSource(url));
+    const job = await startProductAiImport({
+      ...(editingProduct?.id ? { productId: Number(editingProduct.id) } : {}),
+      productCategoryId: Number(newProduct.type),
+      productSubCategoryId: Number(newProduct.subCategory),
+      productBrandId: Number(newProduct.brand),
+      ...(newProduct.technology ? { productTechnologyId: Number(newProduct.technology) } : {}),
+      defaultCount: Number(newProduct.count),
+      defaultAmount: Number(newProduct.amount),
+      sources,
+    });
+    setAiDraft(null);
+    setAiJob(job);
+  } catch (error) {
+    console.error('PRODUCT AI START ERROR:', error);
+    showNotification('AI datasheet emalı başladılmadı.', 'error');
+  } finally {
+    setIsAiStarting(false);
+  }
+};
+
+const closeAiImport = async () => {
+  if (aiJob) await cancelProductAiImport(aiJob.id).catch(() => undefined);
+  setAiJob(null);
+  setAiDraft(null);
+};
+
+const updateAiVariant = (index: number, patch: Partial<ProductAiDraft['variants'][number]>) => {
+  setAiDraft((current) => current ? {
+    ...current,
+    variants: current.variants.map((variant, itemIndex) => itemIndex === index ? { ...variant, ...patch } : variant),
+  } : current);
+};
+
+const updateAiVariantLanguage = (variantIndex: number, languageCode: number, field: 'description' | 'features', value: string) => {
+  setAiDraft((current) => current ? {
+    ...current,
+    variants: current.variants.map((variant, itemIndex) => itemIndex === variantIndex ? {
+      ...variant,
+      languages: variant.languages.map((language) => language.languageCode === languageCode
+        ? { ...language, [field]: value }
+        : language),
+    } : variant),
+  } : current);
+};
+
+const applyAiDraft = async () => {
+  if (!aiDraft || !aiDraft.variants.length) return;
+  if (aiDraft.variants.some((variant) => !variant.commercialValuesConfirmed)) {
+    showNotification('Bütün modellər üçün stok və qiymət təsdiqlənməlidir.', 'warning');
+    return;
+  }
+  const localized = (variant: ProductAiDraft['variants'][number], field: 'description' | 'features') => ({
+    az: variant.languages.find((item) => item.languageCode === 1)?.[field] || '',
+    en: variant.languages.find((item) => item.languageCode === 2)?.[field] || '',
+    ru: variant.languages.find((item) => item.languageCode === 3)?.[field] || '',
+    tr: variant.languages.find((item) => item.languageCode === 4)?.[field] || '',
+  });
+  const [base, ...rest] = aiDraft.variants;
+  const baseDescription = localized(base, 'description');
+  const baseFeatures = localized(base, 'features');
+  await getTechnology(Number(newProduct.type)).catch(() => undefined);
+  setNewProduct((prev) => ({
+    ...prev,
+    name: aiDraft.productName || prev.name,
+    technology: String(aiDraft.productTechnologyId || prev.technology),
+    useCommonVariantContent: false,
+    modelLabel: base.modelLabel,
+    parametrId: null,
+    power: base.technicalPower,
+    efficiency: base.effectiveness ?? 0,
+    count: base.count,
+    amount: base.amount,
+    description: baseDescription,
+    features: baseFeatures,
+    variantDescription: baseDescription,
+    variantFeatures: baseFeatures,
+    variants: rest.map((variant) => ({
+      modelLabel: variant.modelLabel,
+      power: variant.technicalPower,
+      efficiency: variant.effectiveness ?? 0,
+      count: variant.count,
+      price: variant.amount,
+      description: localized(variant, 'description'),
+      features: localized(variant, 'features'),
+    })),
+  }));
+  setContentVariantIndex(0);
+  setAiJob(null);
+  setAiDraft(null);
+  showNotification(
+    aiDraft.productTechnologyCreated
+      ? `“${aiDraft.productTechnologyName}” texnologiyası yaradıldı və AI draft formaya tətbiq edildi.`
+      : 'AI draft formaya tətbiq edildi. Yadda saxlamadan əvvəl yoxlayın.',
+    'success',
+  );
 };
 
   return (
@@ -1140,7 +1477,9 @@ const updateVariant = (
                     <select
                       value={newProduct.type}
                       onChange={handleCategoryChange}
-                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      data-ai-required={aiInvalidFields.has('type') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('type')}
+                      className={`admin-product-select w-full border bg-slate-50 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all ${aiRequiredClass('type')}`}
                     >
                       <option value="" disabled>Seçin...</option>
                       {categories?.map((category) => (
@@ -1154,8 +1493,10 @@ const updateVariant = (
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Alt Kateqoriya</label>
                     <select
                       value={newProduct.subCategory}
-                      onChange={e => setNewProduct({ ...newProduct, subCategory: e.target.value })}
-                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      onChange={e => { setNewProduct({ ...newProduct, subCategory: e.target.value }); clearAiInvalidField('subCategory'); }}
+                      data-ai-required={aiInvalidFields.has('subCategory') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('subCategory')}
+                      className={`admin-product-select w-full border bg-slate-50 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all ${aiRequiredClass('subCategory')}`}
                     >
                       <option value="" disabled>Seçin...</option>
                       {subcategories?.map((subCategory) => (
@@ -1171,8 +1512,10 @@ const updateVariant = (
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marka</label>
                     <select
                       value={String(newProduct.brand || "")}
-                      onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}
-                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      onChange={e => { setNewProduct({ ...newProduct, brand: e.target.value }); clearAiInvalidField('brand'); }}
+                      data-ai-required={aiInvalidFields.has('brand') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('brand')}
+                      className={`admin-product-select w-full border bg-slate-50 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all ${aiRequiredClass('brand')}`}
                     >
                       <option value="" disabled>Seçin...</option>
                       {brands?.map((brand) => (
@@ -1183,13 +1526,15 @@ const updateVariant = (
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texnologiyalar</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texnologiyalar <span className="normal-case text-indigo-500">· AI özü tapa bilər</span></label>
                     <select
                       value={newProduct.technology}
-                      onChange={e => setNewProduct({ ...newProduct, technology: e.target.value })}
-                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      onChange={e => { setNewProduct({ ...newProduct, technology: e.target.value }); clearAiInvalidField('technology'); }}
+                      data-ai-required={aiInvalidFields.has('technology') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('technology')}
+                      className={`admin-product-select w-full border bg-slate-50 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all ${aiRequiredClass('technology')}`}
                     >
-                      <option value="" disabled>Seçin...</option>
+                      <option value="">AI tapsın və ya seçin...</option>
                       {technologies?.map((tech) => (
                         <option key={tech.id} value={tech.id}>
                           {tech.name}
@@ -1200,6 +1545,17 @@ const updateVariant = (
 
                 </div>
 
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Əsas model adı / kodu</label>
+                  <input
+                    type="text"
+                    value={newProduct.modelLabel || ''}
+                    onChange={(event) => setNewProduct({ ...newProduct, modelLabel: event.target.value })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                    placeholder="Məs: LR5-72HTH-590M"
+                  />
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -1245,15 +1601,18 @@ const updateVariant = (
                       required
                       type="number"
                       value={newProduct.count}
-                      onChange={e =>
+                      onChange={e => {
                         setNewProduct({
                           ...newProduct,
                           count: e.target.value === ""
                             ? ""
                             : Number(e.target.value)
-                        })
-                      }
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all no-spinner"
+                        });
+                        clearAiInvalidField('count');
+                      }}
+                      data-ai-required={aiInvalidFields.has('count') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('count')}
+                      className={`w-full bg-slate-50 border rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all no-spinner ${aiRequiredClass('count')}`}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1262,21 +1621,24 @@ const updateVariant = (
                       required
                       type="number"
                       value={newProduct.amount}
-                      onChange={e =>
+                      onChange={e => {
                         setNewProduct({
                           ...newProduct,
                           amount: e.target.value === ""
                             ? ""
                             : Number(e.target.value)
-                        })
-                      }
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all no-spinner"
+                        });
+                        clearAiInvalidField('amount');
+                      }}
+                      data-ai-required={aiInvalidFields.has('amount') ? 'invalid' : undefined}
+                      aria-invalid={aiInvalidFields.has('amount')}
+                      className={`w-full bg-slate-50 border rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all no-spinner ${aiRequiredClass('amount')}`}
                     />
                   </div>
                 </div>
                  
                   <div className="space-y-1.5 pt-4 border-t border-slate-100">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Oxşar məhsul</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Model variantləri</label>
                     <div className="space-y-4">
                       {(newProduct.variants || []).map((variant, idx) => (
                         <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1289,6 +1651,16 @@ const updateVariant = (
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Model adı / kodu</label>
+                            <input
+                              type="text"
+                              value={variant.modelLabel || ''}
+                              onChange={(event) => updateVariant(idx, 'modelLabel', event.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                              placeholder="Məs: LR5-72HTH-595M"
+                            />
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
@@ -1338,11 +1710,39 @@ const updateVariant = (
                         className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-                        Oxşar məhsul əlavə et (+)
+                        Model variantı əlavə et (+)
                       </button>
                     </div>
                   </div>
-              
+
+                <label className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs font-black text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newProduct.useCommonVariantContent)}
+                    onChange={(event) => {
+                      setNewProduct({ ...newProduct, useCommonVariantContent: event.target.checked });
+                      setContentVariantIndex(0);
+                    }}
+                    className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  Bütün modellər üçün ümumi mətn istifadə et
+                </label>
+
+                {!newProduct.useCommonVariantContent && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mətni redaktə edilən model</label>
+                    <select
+                      value={contentVariantIndex}
+                      onChange={(event) => setContentVariantIndex(Number(event.target.value))}
+                      className="admin-product-select w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                    >
+                      <option value={0}>{newProduct.modelLabel || newProduct.power || 'Əsas model'}</option>
+                      {(newProduct.variants || []).map((variant, index) => (
+                        <option key={index} value={index + 1}>{variant.modelLabel || variant.power || `Variant #${index + 1}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="flex p-1 bg-slate-100 rounded-2xl w-fit">
                   {LANGUAGES.map(lang => (
@@ -1360,16 +1760,10 @@ const updateVariant = (
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Haqqında (mətn)</label>
                   <textarea
-                    value={newProduct.description[activeLang]}
-                    onChange={(e) =>
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        description: {
-                          ...prev.description,
-                          [activeLang]: e.target.value,
-                        },
-                      }))
-                    }
+                    value={newProduct.useCommonVariantContent ? newProduct.description[activeLang] : selectedVariantContent.description[activeLang]}
+                    onChange={(e) => newProduct.useCommonVariantContent
+                      ? setNewProduct((prev) => ({ ...prev, description: { ...prev.description, [activeLang]: e.target.value } }))
+                      : updateSelectedVariantContent('description', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all min-h-[80px]"
                     placeholder="Məhsulun qısa təsviri"
                   />
@@ -1378,16 +1772,10 @@ const updateVariant = (
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Xüsusiyyətlər</label>
                   <textarea
-                    value={newProduct.features[activeLang]}
-                    onChange={(e) =>
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        features: {
-                          ...prev.features,
-                          [activeLang]: e.target.value,
-                        },
-                      }))
-                    }
+                    value={newProduct.useCommonVariantContent ? newProduct.features[activeLang] : selectedVariantContent.features[activeLang]}
+                    onChange={(e) => newProduct.useCommonVariantContent
+                      ? setNewProduct((prev) => ({ ...prev, features: { ...prev.features, [activeLang]: e.target.value } }))
+                      : updateSelectedVariantContent('features', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all min-h-[120px]"
                     placeholder="Hər xüsusiyyəti yeni sətirdən daxil edin..."
                   />
@@ -1479,22 +1867,46 @@ const updateVariant = (
                     <div className="relative group">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={datasheetAccept}
                         multiple
                         onChange={handleDatasheetUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       />
-                      <div className={`bg-slate-50 border-2 border-dashed rounded-xl p-3 text-center transition-all ${newProduct.datasheets.length > 0 ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-200 group-hover:border-emerald-500'}`}>
+                      <div
+                        data-ai-required={aiInvalidFields.has('datasheets') ? 'invalid' : undefined}
+                        aria-invalid={aiInvalidFields.has('datasheets')}
+                        className={`bg-slate-50 border-2 border-dashed rounded-xl p-3 text-center transition-all ${
+                          aiInvalidFields.has('datasheets')
+                            ? 'border-rose-500 bg-rose-50/40 ring-2 ring-rose-100'
+                            : newProduct.datasheets.length > 0
+                              ? 'border-emerald-500 bg-emerald-50/30'
+                              : 'border-slate-200 group-hover:border-emerald-500'
+                        }`}
+                      >
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">
-                          {newProduct.datasheets.length > 0 ? `${newProduct.datasheets.length} Datasheet Yükləndi` : 'Datasheet Seç (Şəkil)'}
+                          {newProduct.datasheets.length > 0
+                            ? `${newProduct.datasheets.length} Datasheet Yükləndi`
+                            : 'Datasheet seç (yalnız PDF və ya yalnız şəkil)'}
                         </span>
                       </div>
                     </div>
+                    {datasheetMode === 'pdf' && <p className="px-1 text-[10px] font-semibold text-slate-500">PDF seçilib — şəkil əlavə etmək üçün bütün PDF-ləri silin.</p>}
+                    {datasheetMode === 'images' && <p className="px-1 text-[10px] font-semibold text-slate-500">Şəkillər seçilib — PDF əlavə etmək üçün bütün şəkilləri silin.</p>}
+                    {datasheetMode === 'mixed' && <p className="px-1 text-[10px] font-semibold text-rose-600">Bu köhnə datasheet siyahısı qarışıq formatdadır. Yeni fayl əlavə etməzdən əvvəl tək format saxlayın.</p>}
                     {newProduct.datasheets.length > 0 && (
                       <div className="mt-2 grid grid-cols-3 gap-2">
-                        {newProduct.datasheets.map((ds, idx) => (
-                          <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-slate-200 group">
-                            <img src={ds} alt={`DS ${idx}`} className="w-full h-full object-contain bg-white" />
+                        {newProduct.datasheets.map((ds, idx) => {
+                          const isPdf = ds.split('?')[0].toLowerCase().endsWith('.pdf');
+                          return (
+                          <div key={idx} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-slate-200 group bg-white">
+                            {isPdf ? (
+                              <a href={ds} target="_blank" rel="noopener noreferrer" className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-[9px] font-black uppercase text-red-600">
+                                <span className="text-3xl">PDF</span>
+                                <span className="max-w-full truncate">{decodeURIComponent(ds.split('/').pop() || 'Datasheet')}</span>
+                              </a>
+                            ) : (
+                              <img src={ds} alt={`DS ${idx}`} className="w-full h-full object-contain bg-white" />
+                            )}
                             <button
                               type="button"
                               onClick={() => removeDatasheet(idx)}
@@ -1503,7 +1915,8 @@ const updateVariant = (
                               <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1572,6 +1985,15 @@ const updateVariant = (
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={startAiExtraction}
+                  disabled={isAiStarting}
+                  className="w-full rounded-2xl bg-indigo-600 px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isAiStarting ? 'AI hazırlanır…' : 'AI ilə datasheet-dən doldur'}
+                </button>
+
                 <div className="flex items-center gap-20 p-4 bg-slate-50 rounded-2xl border border-slate-100">
 
                   <div className="flex items-center gap-2">
@@ -1618,6 +2040,149 @@ const updateVariant = (
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {aiJob && (
+        <div
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) void closeAiImport(); }}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl md:p-8"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">AI datasheet importu</h3>
+                <p className="mt-1 text-xs text-slate-500">Nəticə yalnız formaya tətbiq edilir. Bazaya yazmaq üçün ayrıca “Yadda saxla” düyməsini basın.</p>
+              </div>
+              <button type="button" onClick={() => void closeAiImport()} className="rounded-full p-2 text-xl text-slate-400 hover:bg-slate-100">×</button>
+            </div>
+
+            {(aiJob.status === 'queued' || aiJob.status === 'processing') && (
+              <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 text-center">
+                <div className="h-11 w-11 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+                <div>
+                  <div className="font-black text-slate-800">{aiJob.status === 'queued' ? 'Növbədədir…' : 'PDF və şəkillər emal edilir…'}</div>
+                  <div className="mt-1 text-xs text-slate-500">Status avtomatik yenilənir. Emal 3 dəqiqədən çox çəkərsə təhlükəsiz dayandırılıb retry göstəriləcək.</div>
+                </div>
+                <button type="button" onClick={() => void closeAiImport()} className="rounded-xl bg-slate-100 px-5 py-3 text-xs font-black text-slate-600">Ləğv et</button>
+              </div>
+            )}
+
+            {aiJob.status === 'review_ready' && aiDraft && (
+              <div className="space-y-6">
+                <label className="block text-xs font-black text-slate-700">
+                  Məhsul ailəsinin adı
+                  <input
+                    value={aiDraft.productName}
+                    onChange={(event) => setAiDraft({ ...aiDraft, productName: event.target.value })}
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                  />
+                </label>
+                <div className={`rounded-2xl border p-4 text-xs ${aiDraft.productTechnologyCreated ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-indigo-100 bg-indigo-50 text-indigo-800'}`}>
+                  <span className="font-black">Texnologiya:</span> {aiDraft.productTechnologyName}
+                  {aiDraft.productTechnologyCreated && <span className="ml-2 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-black text-white">Yeni yaradıldı</span>}
+                </div>
+                {aiDraft.warnings.length > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                    <div className="mb-2 font-black">Yoxlanmalı qeydlər</div>
+                    <ul className="list-disc space-y-1 pl-5">{aiDraft.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {LANGUAGES.map((language) => (
+                    <button
+                      key={language.code}
+                      type="button"
+                      onClick={() => setActiveLang(language.code)}
+                      className={`rounded-xl px-4 py-2 text-xs font-black ${activeLang === language.code ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}
+                    >
+                      {language.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  {aiDraft.variants.map((variant, index) => {
+                    const languageCode = languageMap[activeLang];
+                    const language = variant.languages.find((item) => item.languageCode === languageCode);
+                    return (
+                      <div key={index} className="rounded-2xl border border-slate-200 p-5">
+                        <div className="mb-4 flex items-center justify-between gap-4">
+                          <div className="text-xs font-black uppercase tracking-widest text-slate-400">Model #{index + 1}</div>
+                          <label className="flex items-center gap-2 text-xs font-black text-emerald-700">
+                            <input
+                              type="checkbox"
+                              checked={variant.commercialValuesConfirmed}
+                              onChange={(event) => updateAiVariant(index, { commercialValuesConfirmed: event.target.checked })}
+                            />
+                            Stok və qiymət yoxlanılıb
+                          </label>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                          <label className="text-[11px] font-black text-slate-600 sm:col-span-2">
+                            Model
+                            <input value={variant.modelLabel} onChange={(event) => updateAiVariant(index, { modelLabel: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900" placeholder="Məsələn, MID 13KTL3-X" />
+                          </label>
+                          <label className="text-[11px] font-black text-slate-600">
+                            Texniki güc
+                            <input value={variant.technicalPower} onChange={(event) => updateAiVariant(index, { technicalPower: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900" placeholder="13kW" />
+                          </label>
+                          <label className="text-[11px] font-black text-slate-600">
+                            Effektivlik (%)
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={variant.effectiveness ?? ''}
+                              onChange={(event) => updateAiVariant(index, { effectiveness: event.target.value === '' ? null : Number(event.target.value) })}
+                              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900"
+                              placeholder="98.75"
+                            />
+                          </label>
+                          <label className="text-[11px] font-black text-slate-600">
+                            Stok sayı
+                            <input type="number" min="0" value={variant.count} onChange={(event) => updateAiVariant(index, { count: Number(event.target.value) })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900" />
+                          </label>
+                          <label className="text-[11px] font-black text-slate-600">
+                            Qiymət (AZN)
+                            <input type="number" min="0" step="0.01" value={variant.amount} onChange={(event) => updateAiVariant(index, { amount: Number(event.target.value) })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900" />
+                          </label>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                          <label className="text-[11px] font-black text-slate-600">
+                            Haqqında ({activeLang.toUpperCase()})
+                            <textarea value={language?.description || ''} onChange={(event) => updateAiVariantLanguage(index, languageCode, 'description', event.target.value)} className="mt-1.5 min-h-32 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium leading-5 text-slate-900" placeholder="Məhsul haqqında qısa və axtarış üçün uyğun mətn" />
+                          </label>
+                          <label className="text-[11px] font-black text-slate-600">
+                            Xüsusiyyətlər ({activeLang.toUpperCase()})
+                            <textarea value={language?.features || ''} onChange={(event) => updateAiVariantLanguage(index, languageCode, 'features', event.target.value)} className="mt-1.5 min-h-32 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium leading-5 text-slate-900" placeholder="Əsas texniki göstəricilər və modellər" />
+                          </label>
+                        </div>
+                        {variant.evidence.length > 0 && <p className="mt-3 text-[10px] text-slate-400">Mənbə sübutu: {variant.evidence.join(' · ')}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap justify-end gap-3">
+                  <button type="button" onClick={() => void closeAiImport()} className="rounded-xl bg-slate-100 px-5 py-3 text-xs font-black text-slate-600">Draftı sil</button>
+                  <button type="button" onClick={() => void applyAiDraft()} className="rounded-xl bg-emerald-600 px-5 py-3 text-xs font-black text-white">Formaya tətbiq et</button>
+                </div>
+              </div>
+            )}
+
+            {(aiJob.status === 'failed' || aiJob.status === 'expired' || aiJob.status === 'cancelled') && (
+              <div className="rounded-2xl bg-rose-50 p-6 text-center">
+                <div className="font-black text-rose-700">AI import tamamlanmadı</div>
+                <p className="mt-2 text-xs text-rose-600">{aiJob.errorMessage || 'Job ləğv edilib və ya draftın müddəti bitib.'}</p>
+                <div className="mt-4 flex justify-center gap-3">
+                  <button type="button" onClick={() => void closeAiImport()} className="rounded-xl bg-white px-5 py-3 text-xs font-black text-slate-600">Bağla</button>
+                  <button type="button" onClick={async () => { await closeAiImport(); await startAiExtraction(); }} className="rounded-xl bg-indigo-600 px-5 py-3 text-xs font-black text-white">Yenidən yoxla</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

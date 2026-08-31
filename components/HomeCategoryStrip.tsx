@@ -6,8 +6,7 @@ type Language = 'az' | 'en' | 'ru' | 'tr';
 interface HomeCategoryStripProps {
   lang: Language;
   onSelectCategory: (categoryId: number) => void;
-  onSelectSolarPanels?: () => void;
-  onSelectInverters?: () => void;
+  selectedCategoryId?: number | null;
 }
 
 const titles: Record<Language, string> = {
@@ -19,26 +18,42 @@ const titles: Record<Language, string> = {
 
 const MOBILE_QUERY = '(max-width: 767px)';
 
-const HomeCategoryStrip: React.FC<HomeCategoryStripProps> = ({ lang, onSelectCategory, onSelectSolarPanels, onSelectInverters }) => {
+const HomeCategoryStrip: React.FC<HomeCategoryStripProps> = ({ lang, onSelectCategory, selectedCategoryId = null }) => {
   const { homePageCategories, getHomePageCategories } = useCategory();
-  const requestedRef = useRef(false);
+  const requestedLanguageRef = useRef<Language | null>(null);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_QUERY);
     const loadForMobile = () => {
-      if (!mediaQuery.matches || requestedRef.current) return;
-      requestedRef.current = true;
-      void getHomePageCategories().catch(() => {
-        requestedRef.current = false;
+      if (!mediaQuery.matches || requestedLanguageRef.current === lang) return;
+      requestedLanguageRef.current = lang;
+      void getHomePageCategories({ language: lang }).catch(() => {
+        requestedLanguageRef.current = null;
       });
     };
 
     loadForMobile();
     mediaQuery.addEventListener('change', loadForMobile);
     return () => mediaQuery.removeEventListener('change', loadForMobile);
-  }, []);
+  }, [lang]);
 
-  if (homePageCategories.length === 0) return null;
+  if (homePageCategories.length === 0) {
+    return (
+      <section className="min-h-[10.5rem] bg-white py-7 md:hidden" aria-busy="true" aria-label={titles[lang]}>
+        <div className="mx-auto max-w-[1440px] px-4">
+          <div className="mb-4 h-7 w-36 animate-pulse rounded-lg bg-slate-100" />
+          <div className="flex gap-4 overflow-hidden pl-1">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex w-[5.25rem] shrink-0 flex-col items-center gap-2.5" aria-hidden="true">
+                <div className="h-[5.25rem] w-[5.25rem] animate-pulse rounded-full bg-slate-100" />
+                <div className="h-3 w-16 animate-pulse rounded bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-white py-7 md:hidden" aria-labelledby="home-categories-title">
@@ -52,18 +67,18 @@ const HomeCategoryStrip: React.FC<HomeCategoryStripProps> = ({ lang, onSelectCat
             <button
               key={category.id}
               type="button"
-              onClick={() => category.seoKey === 'solar-panels' && onSelectSolarPanels
-                ? onSelectSolarPanels()
-                : category.seoKey === 'inverters' && onSelectInverters
-                  ? onSelectInverters()
-                  : onSelectCategory(category.id)}
+              onClick={() => onSelectCategory(category.id)}
+              aria-pressed={selectedCategoryId === category.id}
               className="group flex w-[5.25rem] shrink-0 snap-start flex-col items-center gap-2.5 text-center transition active:scale-[0.97]"
             >
-              <span className="flex h-[5.25rem] w-[5.25rem] items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white p-2 shadow-sm transition-shadow group-active:shadow-none">
+              <span className={`flex h-[5.25rem] w-[5.25rem] items-center justify-center overflow-hidden rounded-full border bg-white p-2 shadow-sm transition-all group-active:shadow-none ${selectedCategoryId === category.id ? 'border-[#9ac21d] ring-4 ring-[#9ac21d]/15' : 'border-slate-200'}`}>
                 <img
                   src={category.imageUrl || '/volt-logo.png'}
                   alt={category.name}
                   loading="lazy"
+                  decoding="async"
+                  width="84"
+                  height="84"
                   draggable={false}
                   onError={(event) => {
                     const image = event.currentTarget;
@@ -72,7 +87,7 @@ const HomeCategoryStrip: React.FC<HomeCategoryStripProps> = ({ lang, onSelectCat
                   className="h-full w-full select-none object-contain transition-transform duration-300 group-active:scale-95"
                 />
               </span>
-              <span className="line-clamp-2 min-h-8 text-[11px] font-extrabold leading-4 text-slate-800">
+              <span className={`line-clamp-2 min-h-8 text-[11px] font-extrabold leading-4 ${selectedCategoryId === category.id ? 'text-[#658300]' : 'text-slate-800'}`}>
                 {category.name}
               </span>
             </button>

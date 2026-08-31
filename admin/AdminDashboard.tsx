@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import { useNotification } from '../contexts/NotificationContext';
 import { API_ENDPOINTS } from '../utils/constants';
@@ -9,6 +10,8 @@ import AdminOrders from './AdminOrders';
 import AdminInquiries from './AdminInquiries';
 import AdminWarehouse from './AdminWarehouse';
 import AdminUsers from './AdminUsers';
+import AdminMessageInbox from './AdminMessageInbox';
+import AdminWhatsAppSetup from './AdminWhatsAppSetup';
 import AdminMasters from './AdminMasters';
 import AdminSolarCalculator from './AdminSolarCalculator';
 import AdminSliders from './AdminSliders';
@@ -41,6 +44,7 @@ import { EmailProvider } from '@/contexts/EmailContext';
 import { PartnershipProvider } from '@/contexts/PartnershipContext';
 import AdminVerification from './AdminVerification';
 import { AdminPage, getAdminSession, type AdminUser } from '../api/adminUsers';
+import { getMetaInboxUnreadCount } from '../api/metaInbox';
 
 interface UserRecord {
   email: string;
@@ -61,11 +65,17 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) => {
   const { showNotification, confirm } = useNotification();
-  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'analytics' | 'orders' | 'requests' | 'warehouse' | 'permissions' | 'verification' | 'solar-calculator' | 'solar-inverter-qa' | 'project-tracker' | 'execution-projects' | 'accounting' | 'human-resources' | 'telegram-profile'>('stats');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isWhatsAppSetupPath = location.pathname.toLowerCase() === '/admin-dashboard/whatsapp-setup';
+  const [activeTab, setActiveTab] = useState<'masters' | 'customers' | 'settings' | 'stats' | 'analytics' | 'orders' | 'requests' | 'message-inbox' | 'warehouse' | 'permissions' | 'verification' | 'solar-calculator' | 'solar-inverter-qa' | 'project-tracker' | 'execution-projects' | 'accounting' | 'human-resources' | 'telegram-profile'>(isWhatsAppSetupPath ? 'settings' : 'stats');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [adminSession, setAdminSession] = useState<AdminUser | null>(null);
+  const [adminSessionLoaded, setAdminSessionLoaded] = useState(false);
   const [activityUserId, setActivityUserId] = useState<number | null>(null);
-  const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership'>('main');
+  const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership' | 'whatsapp'>(isWhatsAppSetupPath ? 'whatsapp' : 'main');
+  const canManageWhatsApp = Boolean(adminSession &&
+    (adminSession.isSuperAdmin || adminSession.allowedPages.includes(AdminPage.WhatsAppOnboarding)));
 
   useEffect(() => {
     // Reset settingsView when tab changes
@@ -73,11 +83,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
       setSettingsView('main');
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!isWhatsAppSetupPath) return;
+    setActiveTab('settings');
+    setSettingsView('whatsapp');
+    if (adminSession && !canManageWhatsApp) navigate('/admin-dashboard', { replace: true });
+  }, [isWhatsAppSetupPath, adminSession, canManageWhatsApp, navigate]);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [counts, setCounts] = useState({ orders: 0, requests: 0, serviceRequests: 0 });
   const [orderUnreadCount, setOrderUnreadCount] = useState(0);
   const [requestsUnreadCount, setRequestsUnreadCount] = useState(0);
+  const [messageInboxUnreadCount, setMessageInboxUnreadCount] = useState(0);
   const [adminOrders, setAdminOrders] = useState<any[]>([]);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
 
@@ -115,9 +133,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
 
   useEffect(() => {
     let cancelled = false;
-    getAdminSession().then((session) => { if (!cancelled) setAdminSession(session); }).catch(() => undefined);
+    getAdminSession()
+      .then((session) => { if (!cancelled) setAdminSession(session); })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setAdminSessionLoaded(true); });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!adminSession || isWhatsAppSetupPath || adminSession.isSuperAdmin || adminSession.allowedPages.includes(AdminPage.Stats)) return;
+    if (activeTab === 'message-inbox' && adminSession.allowedPages.includes(AdminPage.MessageInbox)) return;
+    if (adminSession.allowedPages.includes(AdminPage.WhatsAppOnboarding)) {
+      navigate('/admin-dashboard/whatsapp-setup', { replace: true });
+      return;
+    }
+    if (adminSession.allowedPages.includes(AdminPage.MessageInbox)) setActiveTab('message-inbox');
+  }, [adminSession, isWhatsAppSetupPath, activeTab, navigate]);
+
+  useEffect(() => {
+    if (!adminSession || (!adminSession.isSuperAdmin && !adminSession.allowedPages.includes(AdminPage.MessageInbox))) return;
+    let cancelled = false;
+    const load = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try { const count = await getMetaInboxUnreadCount(); if (!cancelled) setMessageInboxUnreadCount(count); }
+      catch { if (!cancelled) setMessageInboxUnreadCount(0); }
+    };
+    load();
+    const interval = window.setInterval(load, 30000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [adminSession, activeTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -278,8 +322,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
   return (
     <div className="admin-dashboard min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col pt-5 md:pt-7">
-        <div className="px-6 mb-5 md:mb-7">
+      <aside className="w-full shrink-0 bg-slate-900 text-white flex flex-col pt-5 md:sticky md:top-0 md:h-screen md:w-64 md:min-w-[16rem] md:max-w-[16rem] md:pt-7">
+        <div className="min-h-[58px] px-6 mb-5 md:mb-7">
           <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Yüksək Səlahiyyət</div>
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg font-black">Admin Panel</h2>
@@ -293,24 +337,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
           </div>
         </div>
 
-        <nav className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block md:flex-grow space-y-1 px-3`}>
+        <nav className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block md:flex-grow md:overflow-y-auto space-y-1 px-3`}>
+          {!adminSessionLoaded && (
+            <div className="hidden space-y-1 md:block" aria-label="Admin menyusu yüklənir">
+              {Array.from({ length: 12 }).map((_, index) => (
+                <div key={index} className="h-10 w-full rounded-xl bg-white/5" />
+              ))}
+            </div>
+          )}
+          {adminSessionLoaded && (
+            <>
             {[
               { id: 'stats', label: 'Statistika', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
               { id: 'analytics', label: 'CC & Internal Analytics', icon: 'M3 3v18h18M7 16l3-3 3 2 5-7' },
               { id: 'project-tracker', label: 'Projects', icon: 'M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 012-2z' },
               { id: 'execution-projects', label: 'İcra olunan layihələr', icon: 'M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6l7-4zm-3 10 2 2 4-4' },
-              { id: 'accounting', label: 'Mühasibatlıq', icon: 'M4 5h16M4 10h16M4 15h10M4 20h8' },
               { id: 'human-resources', label: 'İnsan Resursları', icon: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m7-8a4 4 0 100-8 4 4 0 000 8m7-1a3 3 0 100-6m4 14v-2a3 3 0 00-2-2.83' },
               { id: 'telegram-profile', label: 'Telegram bildirişləri', icon: 'M22 2L11 13m11-11-7 20-4-9-9-4 20-7z' },
               { id: 'solar-calculator', label: 'Solar Kalkulyator', icon: 'M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m12.728 0l-1.414-1.414M7.05 7.05L5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z' },
               { id: 'orders', label: 'Sifarişlər', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
             { id: 'requests', label: 'Müraciətlər', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+            { id: 'message-inbox', label: lang === 'en' ? 'Meta Messages' : 'Meta Mesajları', icon: 'M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8zM8 9h8M8 13h5' },
             { id: 'warehouse', label: 'Məhsullar', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
             { id: 'verification', label: 'Sənəd doğrulaması', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
             { id: 'permissions', label: 'İstifadəçilər Siyahısı', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
             { id: 'masters', label: 'Ustalar Klubu', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
             { id: 'customers', label: 'İstifadəçilər', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-            { id: 'settings', label: 'Sistem Parametrləri', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
+            { id: 'settings', label: lang === 'en' ? 'System Settings' : 'Sistem Parametrləri', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
           ].filter((tab) => {
             if (!adminSession) return false;
             if (adminSession.isSuperAdmin) return true;
@@ -321,11 +374,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
               return [AdminPage.Requests, AdminPage.ServiceRequests, AdminPage.PartnershipRequests]
                 .some((page) => adminSession.allowedPages.includes(page));
             }
+            if (tab.id === 'settings') {
+              return adminSession.allowedPages.includes(AdminPage.Settings) ||
+                adminSession.allowedPages.includes(AdminPage.WhatsAppOnboarding);
+            }
             const pageByTab: Record<string, AdminPage> = {
               stats: AdminPage.Stats, analytics: AdminPage.Analytics, 'project-tracker': AdminPage.ProjectTracker, 'execution-projects': AdminPage.ExecutionProjects, accounting: AdminPage.Accounting,
               'solar-calculator': AdminPage.SolarCalculator, orders: AdminPage.Orders, requests: AdminPage.Requests,
-              warehouse: AdminPage.Warehouse, settings: AdminPage.Settings, verification: AdminPage.Verification,
-              permissions: AdminPage.Users
+              warehouse: AdminPage.Warehouse, verification: AdminPage.Verification,
+              permissions: AdminPage.Users, 'message-inbox': AdminPage.MessageInbox
             };
             return pageByTab[tab.id] !== undefined && adminSession.allowedPages.includes(pageByTab[tab.id]);
           }).map(tab => (
@@ -333,7 +390,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id as any);
-                if (tab.id === 'settings') setSettingsView('main');
+                if (tab.id === 'settings') {
+                  const hasGeneralSettings = Boolean(adminSession?.isSuperAdmin || adminSession?.allowedPages.includes(AdminPage.Settings));
+                  setSettingsView(hasGeneralSettings ? 'main' : 'whatsapp');
+                  navigate(hasGeneralSettings ? '/admin-dashboard' : '/admin-dashboard/whatsapp-setup', { replace: true });
+                } else if (isWhatsAppSetupPath) {
+                  navigate('/admin-dashboard', { replace: true });
+                }
                 setIsMobileNavOpen(false);
               }}
               className={`w-full flex items-center justify-between px-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
@@ -352,8 +415,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                   {requestsUnreadCount}
                 </span>
               )}
+              {tab.id === 'message-inbox' && messageInboxUnreadCount > 0 && (
+                <span className={`ml-3 rounded-full px-2 py-0.5 text-[8px] font-black ${activeTab === tab.id ? 'bg-white text-emerald-700' : 'bg-emerald-500 text-white'}`}>
+                  {messageInboxUnreadCount}
+                </span>
+              )}
             </button>
           ))}
+            </>
+          )}
         </nav>
 
         <div className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block p-6 border-t border-white/10`}>
@@ -534,6 +604,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
 
         {activeTab === 'requests' && <AdminInquiries adminSession={adminSession} onUnreadCountChange={setRequestsUnreadCount} />}
 
+        {activeTab === 'message-inbox' && <AdminMessageInbox lang={lang} />}
+
         {activeTab === 'warehouse' && <ProductProvider><PromotionProvider><CategoryProvider><AdminWarehouse /></CategoryProvider></PromotionProvider></ProductProvider>}
 
         {activeTab === 'permissions' && adminSession && (adminSession.isSuperAdmin || adminSession.allowedPages.includes(AdminPage.Users)) && <AdminUsers adminSession={adminSession} openActivityUserId={activityUserId} onActivityOpened={() => setActivityUserId(null)} />}
@@ -625,6 +697,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {canManageWhatsApp && <button
+                    onClick={() => { setSettingsView('whatsapp'); navigate('/admin-dashboard/whatsapp-setup'); }}
+                    className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-[#25D366] transition-all duration-500"
+                  >
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#168c43] mb-6 group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 11.5a8.38 8.38 0 01-.9 3.8A8.5 8.5 0 1112.5 3a8.38 8.38 0 013.8.9L21 3l-.9 4.7a8.38 8.38 0 01.9 3.8zM8 12h.01M12 12h.01M16 12h.01" /></svg>
+                    </div>
+                    <h4 className="text-lg font-black text-slate-900 group-hover:text-white mb-2">{lang === 'en' ? 'WhatsApp Connection' : 'WhatsApp Bağlantısı'}</h4>
+                    <p className="text-xs text-slate-500 group-hover:text-emerald-50 leading-relaxed">{lang === 'en' ? 'Connect the WhatsApp Business mobile app to Cloud API and the Volt Meta Inbox.' : 'WhatsApp Business mobil tətbiqini Cloud API və Volt Meta Inbox ilə qoşun.'}</p>
+                  </button>}
                   <button 
                     onClick={() => setSettingsView('sliders')}
                     className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-emerald-600 transition-all duration-500"
@@ -774,6 +856,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                 </button>
                 <AdminSliders />
               </div>
+            ) : settingsView === 'whatsapp' ? (
+              canManageWhatsApp
+                ? <AdminWhatsAppSetup lang={lang} onBack={() => {
+                    const hasGeneralSettings = Boolean(adminSession?.isSuperAdmin || adminSession?.allowedPages.includes(AdminPage.Settings));
+                    if (hasGeneralSettings) {
+                      setSettingsView('main');
+                    } else if (adminSession?.allowedPages.includes(AdminPage.MessageInbox)) {
+                      setActiveTab('message-inbox');
+                    } else {
+                      onBack();
+                    }
+                    navigate('/admin-dashboard');
+                  }} />
+                : <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm font-bold text-slate-400">Bu səhifə üçün WhatsApp bağlantısı icazəsi tələb olunur.</div>
             ) : settingsView === 'contact' ? (
               <div className="space-y-6">
                 <ContactProvider>

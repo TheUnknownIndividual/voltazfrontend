@@ -117,6 +117,24 @@ const checkoutCopy = {
     nextButton: 'Davam et',
     sendShort: 'Göndər',
     requestShort: 'Sorğu göndər',
+    contactUs: 'Bizimlə əlaqə',
+    journey: 'Sifariş prosesi',
+    orderPlaced: 'Sifariş verildi',
+    managerConfirmation: 'Menecer təsdiqi',
+    deliveryArranged: 'Çatdırılma razılaşdırılır',
+    completed: 'Tamamlandı',
+    orderDetails: 'Sifariş detalları',
+    validationName: 'Ad və soyad tələb olunur.',
+    validationPhone: 'Telefon nömrəsi +994 və ya 0 ilə başlayan yerli formatda olmalıdır.',
+    validationEmail: 'Email təsdiq məktubu üçün tələb olunur.',
+    validationDelivery: 'Çatdırılma üsulu seçin.',
+    validationCity: 'Şəhər və ya region tələb olunur.',
+    validationDistrict: 'Rayon tələb olunur.',
+    validationStreet: 'Küçə və bina tələb olunur.',
+    validationPickup: 'Təhvil məntəqəsi seçin.',
+    validationPayment: 'Ödəniş üsulu seçin.',
+    validationTerms: 'Alış şərtləri ilə razılaşın.',
+    orderError: 'Sifarişi yaratmaq mümkün olmadı.',
   },
   en: {
     secure: 'Secure checkout',
@@ -188,6 +206,24 @@ const checkoutCopy = {
     nextButton: 'Continue',
     sendShort: 'Submit',
     requestShort: 'Submit request',
+    contactUs: 'Contact us',
+    journey: 'Order journey',
+    orderPlaced: 'Order placed',
+    managerConfirmation: 'Manager confirmation',
+    deliveryArranged: 'Delivery arranged',
+    completed: 'Completed',
+    orderDetails: 'Order details',
+    validationName: 'Full name is required.',
+    validationPhone: 'Phone must use +994 or local Azerbaijan format.',
+    validationEmail: 'Email is required for order confirmation.',
+    validationDelivery: 'Choose a delivery method.',
+    validationCity: 'City or region is required.',
+    validationDistrict: 'District is required.',
+    validationStreet: 'Street and building are required.',
+    validationPickup: 'Choose a pickup point.',
+    validationPayment: 'Choose a payment method.',
+    validationTerms: 'Please agree to the purchase terms.',
+    orderError: 'Could not create the order.',
   },
   ru: {
     secure: 'Безопасное оформление',
@@ -259,6 +295,24 @@ const checkoutCopy = {
     nextButton: 'Продолжить',
     sendShort: 'Отправить',
     requestShort: 'Запрос',
+    contactUs: 'Связаться с нами',
+    journey: 'Статус заказа',
+    orderPlaced: 'Заказ оформлен',
+    managerConfirmation: 'Подтверждение менеджера',
+    deliveryArranged: 'Согласование доставки',
+    completed: 'Завершено',
+    orderDetails: 'Детали заказа',
+    validationName: 'Укажите имя и фамилию.',
+    validationPhone: 'Телефон должен быть в формате +994 или местном формате Азербайджана.',
+    validationEmail: 'Для подтверждения заказа требуется email.',
+    validationDelivery: 'Выберите способ доставки.',
+    validationCity: 'Укажите город или регион.',
+    validationDistrict: 'Укажите район.',
+    validationStreet: 'Укажите улицу и здание.',
+    validationPickup: 'Выберите пункт выдачи.',
+    validationPayment: 'Выберите способ оплаты.',
+    validationTerms: 'Примите условия покупки.',
+    orderError: 'Не удалось создать заказ.',
   },
   tr: {
     secure: 'Güvenli checkout',
@@ -330,6 +384,24 @@ const checkoutCopy = {
     nextButton: 'Devam et',
     sendShort: 'Gönder',
     requestShort: 'Talep gönder',
+    contactUs: 'Bizimle iletişime geçin',
+    journey: 'Sipariş süreci',
+    orderPlaced: 'Sipariş verildi',
+    managerConfirmation: 'Yönetici onayı',
+    deliveryArranged: 'Teslimat planlanıyor',
+    completed: 'Tamamlandı',
+    orderDetails: 'Sipariş detayları',
+    validationName: 'Ad ve soyad gereklidir.',
+    validationPhone: 'Telefon +994 veya yerel Azerbaycan formatında olmalıdır.',
+    validationEmail: 'Sipariş onayı için email gereklidir.',
+    validationDelivery: 'Teslimat yöntemi seçin.',
+    validationCity: 'Şehir veya bölge gereklidir.',
+    validationDistrict: 'İlçe gereklidir.',
+    validationStreet: 'Sokak ve bina gereklidir.',
+    validationPickup: 'Teslim noktası seçin.',
+    validationPayment: 'Ödeme yöntemi seçin.',
+    validationTerms: 'Satın alma şartlarını kabul edin.',
+    orderError: 'Sipariş oluşturulamadı.',
   },
 };
 
@@ -564,23 +636,23 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const stepErrors = (step: StepKey) => {
     const errors: string[] = [];
     if (step === 'contact') {
-      if (!form.contact.fullName.trim()) errors.push(lang === 'az' ? 'Ad və soyad tələb olunur.' : 'Full name is required.');
-      if (!isAzerbaijanPhone(form.contact.phone)) errors.push(lang === 'az' ? 'Telefon nömrəsi +994 və ya 0 ilə başlayan yerli formatda olmalıdır.' : 'Phone must use +994 or local Azerbaijan format.');
-      if (!isEmail(form.contact.email)) errors.push(lang === 'az' ? 'Email təsdiq məktubu üçün tələb olunur.' : 'Email is required for order confirmation.');
+      if (!form.contact.fullName.trim()) errors.push(copy.validationName);
+      if (!isAzerbaijanPhone(form.contact.phone)) errors.push(copy.validationPhone);
+      if (!isEmail(form.contact.email)) errors.push(copy.validationEmail);
     }
     if (step === 'delivery') {
-      if (!form.delivery.method) errors.push(lang === 'az' ? 'Çatdırılma üsulu seçin.' : 'Choose a delivery method.');
+      if (!form.delivery.method) errors.push(copy.validationDelivery);
       if (form.delivery.method === 1) {
-        if (!form.delivery.cityOrRegion.trim()) errors.push(lang === 'az' ? 'Şəhər və ya region tələb olunur.' : 'City or region is required.');
-        if (!form.delivery.district.trim()) errors.push(lang === 'az' ? 'Rayon tələb olunur.' : 'District is required.');
-        if (!form.delivery.streetAndBuilding.trim()) errors.push(lang === 'az' ? 'Küçə və bina tələb olunur.' : 'Street and building are required.');
+        if (!form.delivery.cityOrRegion.trim()) errors.push(copy.validationCity);
+        if (!form.delivery.district.trim()) errors.push(copy.validationDistrict);
+        if (!form.delivery.streetAndBuilding.trim()) errors.push(copy.validationStreet);
       }
       if (form.delivery.method === 2 && !form.delivery.pickupLocation.trim()) {
-        errors.push(lang === 'az' ? 'Təhvil məntəqəsi seçin.' : 'Choose a pickup point.');
+        errors.push(copy.validationPickup);
       }
     }
-    if (step === 'payment' && !form.paymentMethod) errors.push(lang === 'az' ? 'Ödəniş üsulu seçin.' : 'Choose a payment method.');
-    if (step === 'review' && !form.acceptedReview) errors.push(lang === 'az' ? 'Alış şərtləri ilə razılaşın.' : 'Please agree to the purchase terms.');
+    if (step === 'payment' && !form.paymentMethod) errors.push(copy.validationPayment);
+    if (step === 'review' && !form.acceptedReview) errors.push(copy.validationTerms);
     return errors;
   };
 
@@ -698,7 +770,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const status = error?.response?.status;
       setSubmitError(status === 404
         ? (lang === 'az' ? 'Orders API tapılmadı. Lokal test üçün backend http://localhost:5001 ünvanında açıq olmalıdır və frontend həmin API-yə qoşulmalıdır.' : 'Orders API was not found. For local testing, run the backend on http://localhost:5001 and connect the frontend to it.')
-        : error?.response?.data?.error?.details || error?.message || (lang === 'az' ? 'Sifarişi yaratmaq mümkün olmadı.' : 'Could not create the order.'));
+        : error?.response?.data?.error?.details || error?.message || copy.orderError);
     } finally {
       setSubmitting(false);
     }
@@ -808,7 +880,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <div className="relative z-10 mt-8 grid gap-3 sm:grid-cols-3">
                 <button onClick={onContinueShopping} className="rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98]">{copy.continue}</button>
                 <button onClick={onViewOrders} className="rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">{copy.myOrders}</button>
-                <button onClick={() => onNavigate?.('contact')} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{lang === 'az' ? 'Bizimlə əlaqə' : 'Contact us'}</button>
+                <button onClick={() => onNavigate?.('contact')} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{copy.contactUs}</button>
               </div>
             </div>
           </main>
@@ -843,13 +915,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[360px_1fr]">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-black text-slate-900">{lang === 'az' ? 'Sifariş prosesi' : 'Order journey'}</h2>
+              <h2 className="text-lg font-black text-slate-900">{copy.journey}</h2>
               <div className="mt-7 space-y-7">
                 {[
-                  [lang === 'az' ? 'Sifariş verildi' : 'Order placed', placedAt, true],
-                  [lang === 'az' ? 'Menecer təsdiqi' : 'Manager confirmation', copy.waiting, true],
-                  [lang === 'az' ? 'Çatdırılma razılaşdırılır' : 'Delivery arranged', copy.waiting, false],
-                  [lang === 'az' ? 'Tamamlandı' : 'Completed', copy.waiting, false],
+                  [copy.orderPlaced, placedAt, true],
+                  [copy.managerConfirmation, copy.waiting, true],
+                  [copy.deliveryArranged, copy.waiting, false],
+                  [copy.completed, copy.waiting, false],
                 ].map(([title, detail, active], index) => (
                   <div key={String(title)} className="relative flex gap-4">
                     {index < 3 && <span className={`absolute left-[9px] top-6 h-10 w-0.5 ${active ? 'bg-emerald-500' : 'bg-slate-200'}`} />}
@@ -865,7 +937,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
             <div className="space-y-8">
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-5 text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">{lang === 'az' ? 'Sifariş detalları' : 'Order details'}</div>
+                <div className="mb-5 text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">{copy.orderDetails}</div>
                 <div className="space-y-4">
                   {createdOrder.items?.map((item: any) => (
                     <div key={item.id} className="flex items-center justify-between gap-4">

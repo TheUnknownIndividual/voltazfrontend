@@ -1,7 +1,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useReducedMotion, useSpring } from 'motion/react';
-import { logPublicSolarCalculation, logPublicWhatsappClick } from '../api/solarAnalytics';
+import { logPublicSolarCalculation } from '../api/solarAnalytics';
+import { trackCalculatorComplete } from '../utils/analytics';
 import AbifCreditEstimateCard, {
   calculateAbifCreditEstimate,
   getAbifCreditWhatsappSummary
@@ -628,6 +629,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     const timeout = window.setTimeout(() => {
       lastLoggedCalculationRef.current = payloadKey;
       logPublicSolarCalculation(lang, payload).catch(() => undefined);
+      trackCalculatorComplete(lang, propertyType, systemType, Number(results.power));
     }, 900);
 
     return () => window.clearTimeout(timeout);
@@ -635,7 +637,6 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
 
   const handleWhatsappClick = () => {
     setHasInteracted(true);
-    logPublicWhatsappClick(lang, buildTrackingPayload('whatsapp')).catch(() => undefined);
   };
 
   const openBusinessCredit = () => {
@@ -703,6 +704,10 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                       src={banner.image}
                       alt={activeFinanceBanner === index ? getText(banner.source === 'abif' ? t.creditBannerTitle : t.ebrdBannerTitle, lang) : ''}
                       aria-hidden={activeFinanceBanner !== index}
+                      loading="lazy"
+                      decoding="async"
+                      width="1200"
+                      height="300"
                       className={`absolute inset-0 block h-full w-full object-cover transition-opacity duration-700 ${banner.source === 'ebrd' ? 'object-[center_8%]' : 'object-center'} ${activeFinanceBanner === index ? 'opacity-100' : 'opacity-0'}`}
                     />
                   ))}
@@ -986,6 +991,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   estimate={abifCreditEstimate}
                   estimatedAnnualSavings={Number(results.yearly)}
                   whatsappHref={quoteHref}
+                  whatsappTrackingContext={JSON.stringify(buildTrackingPayload('whatsapp'))}
                   onWhatsappClick={handleWhatsappClick}
                 />
               )}
@@ -1000,6 +1006,10 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleWhatsappClick}
+                  data-analytics-placement="solar_calculator_quote"
+                  data-whatsapp-interaction="calculator_quote"
+                  data-whatsapp-language={lang}
+                  data-whatsapp-context={JSON.stringify(buildTrackingPayload('whatsapp'))}
                   className="inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-6 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest text-[var(--color-dark)] shadow-lg shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:bg-[var(--color-accent)]"
                 >
                   {getText(financeSource === 'ebrd' && propertyType === 'business' ? t.ebrdContactButton : t.quoteButton, lang)}

@@ -1,6 +1,7 @@
 import React, { useState,useEffect } from 'react';
 import { useProduct } from "../contexts/ProductContext";
 import { getProductStock, getStockWarning } from '../utils/productInventory';
+import OutOfStockWhatsappAction from './OutOfStockWhatsappAction';
 
 
 interface CartPageProps {
@@ -60,21 +61,25 @@ const cartProducts = products.map(item => {
 
 const stockIssueLines = cartProducts.filter(item => item.quantity > item.currentStock);
 const hasStockIssue = stockIssueLines.length > 0;
+const cartStockMessage = lang === 'az'
+  ? `Salam, bu məhsulların stok vəziyyətini yoxlamaq istəyirəm:\n${stockIssueLines.map((item) => `- ${item.productName}${item.selectedPower ? ` (${item.selectedPower})` : ''}: ${item.quantity} ədəd`).join('\n')}`
+  : lang === 'ru'
+    ? `Здравствуйте, хочу проверить наличие этих товаров:\n${stockIssueLines.map((item) => `- ${item.productName}${item.selectedPower ? ` (${item.selectedPower})` : ''}: ${item.quantity} шт.`).join('\n')}`
+    : lang === 'tr'
+      ? `Merhaba, bu ürünlerin stok durumunu kontrol etmek istiyorum:\n${stockIssueLines.map((item) => `- ${item.productName}${item.selectedPower ? ` (${item.selectedPower})` : ''}: ${item.quantity} adet`).join('\n')}`
+      : `Hello, I would like to check availability for these products:\n${stockIssueLines.map((item) => `- ${item.productName}${item.selectedPower ? ` (${item.selectedPower})` : ''}: ${item.quantity}`).join('\n')}`;
 
 const totalAmount = cartProducts.reduce(
   (sum, item) => sum + item.currentPrice * item.quantity,
   0
 );
-  const t = {
-    title: lang === 'az' ? 'Səbət' : lang === 'en' ? 'Shopping Cart' : 'Корзина',
-    empty: lang === 'az' ? 'Səbətiniz boşdur' : 'Your cart is empty',
-    total: lang === 'az' ? 'Cəmi məbləğ' : 'Total amount',
-    checkout: lang === 'az' ? 'Sifariş et' : 'Checkout',
-    back: lang === 'az' ? 'Geri qayıt' : 'Go back',
-    remove: lang === 'az' ? 'Sil' : 'Remove',
-    stock: lang === 'az' ? 'Stok' : lang === 'ru' ? 'Остаток' : lang === 'tr' ? 'Stok' : 'Stock',
-    contact: lang === 'az' ? 'Bizimlə əlaqə' : lang === 'ru' ? 'Связаться с нами' : lang === 'tr' ? 'Bizimle iletişime geçin' : 'Contact us'
-  };
+  const t = lang === 'az'
+    ? { title: 'Səbət', empty: 'Səbətiniz boşdur', total: 'Cəmi məbləğ', checkout: 'Sifariş et', back: 'Geri qayıt', remove: 'Sil', stock: 'Stok', contact: 'Bizimlə əlaqə', continueShopping: 'Alış-verişə davam et', productCount: 'Məhsul sayı', final: 'Yekun' }
+    : lang === 'ru'
+      ? { title: 'Корзина', empty: 'Ваша корзина пуста', total: 'Общая сумма', checkout: 'Оформить заказ', back: 'Назад', remove: 'Удалить', stock: 'Остаток', contact: 'Связаться с нами', continueShopping: 'Продолжить покупки', productCount: 'Количество товаров', final: 'Итого' }
+      : lang === 'tr'
+        ? { title: 'Sepet', empty: 'Sepetiniz boş', total: 'Toplam tutar', checkout: 'Sipariş ver', back: 'Geri dön', remove: 'Sil', stock: 'Stok', contact: 'Bizimle iletişime geçin', continueShopping: 'Alışverişe devam et', productCount: 'Ürün sayısı', final: 'Toplam' }
+        : { title: 'Shopping Cart', empty: 'Your cart is empty', total: 'Total amount', checkout: 'Checkout', back: 'Go back', remove: 'Remove', stock: 'Stock', contact: 'Contact us', continueShopping: 'Continue shopping', productCount: 'Product count', final: 'Total' };
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 relative">
@@ -95,7 +100,7 @@ const totalAmount = cartProducts.reduce(
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">{t.empty}</h3>
-            <button onClick={onContinueShopping || onBack} className="text-emerald-600 font-bold text-sm hover:underline">Alış-verişə davam et</button>
+            <button onClick={onContinueShopping || onBack} className="text-emerald-600 font-bold text-sm hover:underline">{t.continueShopping}</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -107,7 +112,22 @@ const totalAmount = cartProducts.reduce(
                       {item.productName}: {getStockWarning(lang, item.currentStock, item.quantity)}
                     </div>
                   ))}
-                  <a href="https://wa.me/994504180001" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block font-black underline underline-offset-2">{t.contact}</a>
+                  <OutOfStockWhatsappAction
+                    href={`https://wa.me/994504180001?text=${encodeURIComponent(cartStockMessage)}`}
+                    lang={lang}
+                    placement="cart_stock_warning"
+                    products={stockIssueLines.map((item) => ({
+                      id: item.id,
+                      name: item.productName,
+                      category: item.category || item.productCategoryId,
+                      subCategory: item.subCategory || item.productSubCategoryId,
+                      brand: item.brand,
+                      variant: item.selectedPower,
+                      requestedQuantity: item.quantity,
+                      availableStock: item.currentStock,
+                    }))}
+                    className="mt-2 inline-block font-black underline underline-offset-2"
+                  >{t.contact}</OutOfStockWhatsappAction>
                 </div>
               )}
               {cartProducts.map((item) => (
@@ -181,7 +201,7 @@ const totalAmount = cartProducts.reduce(
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">{t.total}</h3>
                 <div className="space-y-4 mb-8">
                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-400 uppercase">Məhsul sayı</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase">{t.productCount}</span>
                       <span className="text-sm font-black text-slate-900">{cartProducts.reduce((acc, i) => acc + i.quantity, 0)}</span>
                    </div>
                    <div className="space-y-3 border-y border-slate-50 py-4">
@@ -197,7 +217,7 @@ const totalAmount = cartProducts.reduce(
                       ))}
                    </div>
                    <div className="flex justify-between items-center pt-4 border-t border-slate-50">
-                      <span className="text-xs font-black text-slate-900 uppercase">Yekun</span>
+                      <span className="text-xs font-black text-slate-900 uppercase">{t.final}</span>
                       <span className="text-2xl font-black text-emerald-600">{totalAmount.toFixed(2)} AZN</span>
                    </div>
                 </div>

@@ -89,11 +89,13 @@ const Services: React.FC<ServicesProps> = ({ onNavigate, lang = 'az' }) => {
     setDynamicServices(FIXED_SERVICES);
   }, []);
 
-  const t = {
-    title: lang === 'az' ? 'Xidmətlərimiz' : lang === 'en' ? 'Our Services' : 'Наши услуги',
-    more: lang === 'az' ? 'Bütün xidmətlər' : lang === 'en' ? 'All services' : 'Все услуги',
-    features: lang === 'az' ? 'Üstünlüklər' : lang === 'en' ? 'Features' : 'Преимущества'
-  };
+  const t = lang === 'az'
+    ? { title: 'Xidmətlərimiz', more: 'Bütün xidmətlər', features: 'Üstünlüklər', details: 'Ətraflı bax' }
+    : lang === 'ru'
+      ? { title: 'Наши услуги', more: 'Все услуги', features: 'Преимущества', details: 'Подробнее' }
+      : lang === 'tr'
+        ? { title: 'Hizmetlerimiz', more: 'Tüm hizmetler', features: 'Avantajlar', details: 'İncele' }
+        : { title: 'Our Services', more: 'All services', features: 'Features', details: 'Read more' };
 
   if (dynamicServices.length === 0) return null;
 
@@ -149,7 +151,7 @@ const Services: React.FC<ServicesProps> = ({ onNavigate, lang = 'az' }) => {
                 onClick={() => onNavigate('services')}
                 className="mt-auto w-full py-4 rounded-2xl bg-slate-50 text-slate-900 font-black text-[10px] uppercase tracking-widest hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)] transition-all shadow-sm"
               >
-                {lang === 'az' ? 'Ətraflı Bax' : 'Read More'}
+                {t.details}
               </button>
             </div>
           ))}

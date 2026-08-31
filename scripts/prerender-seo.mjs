@@ -34,7 +34,7 @@ const staticRoutes = [
   '/', '/about', '/services', '/solar-installation', '/solar-panels', '/inverters', '/projects', '/products',
   '/calculator', '/contact', '/videos', '/faq', '/how-to-start',
   '/necessary-documents', '/legislation', '/credits', '/partnership', '/pro-club',
-  '/privacy-policy', '/terms-of-service', '/purchase-terms', '/news', '/blog',
+  '/privacy-policy', '/data-deletion', '/terms-of-service', '/purchase-terms', '/news', '/blog',
 ];
 
 const text = {
@@ -43,7 +43,7 @@ const text = {
     home: 'Solar Enerji və Günəş Panelləri Azərbaycanda',
     description: 'Azərbaycanda ev və biznes üçün günəş panelləri, invertorlar, enerji saxlama, layihələndirmə və quraşdırma həlləri.',
     installation: 'Günəş Paneli Quraşdırılması Azərbaycanda',
-    installationDescription: 'Ev və biznes üçün günəş paneli quraşdırılması: sərfiyyat analizi, texniki baxış, layihələndirmə, avadanlıq seçimi, montaj və sistemin təhvili.',
+    installationDescription: '5, 10 və 15 kW günəş enerjisi paketləri: Growatt inverter, 650 W panellər, montaj konstruksiyası və şəbəkəyə qoşulma 4 250 AZN-dən.',
     panels: 'Günəş Panelləri (Gunes Panel) Satışı və Qiymət',
     panelsH1: 'Azərbaycanda Günəş Panelləri Satışı',
     panelsDescription: 'Günəş panelləri və gunes panel sistemləri: LONGi modelləri, texniki göstəricilər, qiymət təklifi və ev, biznes və iri layihələr üçün quraşdırma.',
@@ -60,7 +60,7 @@ const text = {
     home: 'Solar Panels and Installation in Azerbaijan',
     description: 'Solar panels, inverters, energy storage, system design, and installation for homes and businesses in Azerbaijan.',
     installation: 'Solar Panel Installation in Azerbaijan',
-    installationDescription: 'Solar installation for homes and businesses, including consumption analysis, site survey, design, equipment selection, installation, and handover.',
+    installationDescription: '5, 10, and 15 kW solar installation packages with Growatt inverters, 650 W panels, mounting structures, and grid connection from 4,250 AZN.',
     panels: 'Solar Panels for Sale and Prices in Azerbaijan', panelsH1: 'Solar Panels for Sale in Azerbaijan', panelsDescription: 'Solar panels and LONGi systems in Azerbaijan: specifications, quotations, warranties, stock, and installation for homes, businesses, and large projects.',
     inverters: 'Solar Inverters for Sale and Prices in Azerbaijan', invertersH1: 'Solar Inverters for Sale in Azerbaijan', invertersDescription: 'Growatt solar inverters in Azerbaijan: grid-tied, hybrid, and off-grid models, specifications, stock information, technical selection, and quotations.',
     calculator: 'Solar Energy Calculator',
@@ -73,7 +73,7 @@ const text = {
     home: 'Солнечные панели и монтаж в Азербайджане',
     description: 'Солнечные панели, инверторы, накопители, проектирование и монтаж для домов и бизнеса в Азербайджане.',
     installation: 'Установка солнечных панелей в Азербайджане',
-    installationDescription: 'Установка солнечных панелей для дома и бизнеса: анализ потребления, обследование, проектирование, подбор оборудования, монтаж и сдача.',
+    installationDescription: 'Пакеты солнечной установки 5, 10 и 15 кВт с инверторами Growatt, панелями 650 Вт, монтажной конструкцией и подключением к сети от 4 250 AZN.',
     panels: 'Солнечные панели: продажа и цены в Азербайджане', panelsH1: 'Продажа солнечных панелей в Азербайджане', panelsDescription: 'Солнечные панели LONGi в Азербайджане: характеристики, цены, гарантия, наличие и монтаж для дома, бизнеса и крупных проектов.',
     inverters: 'Солнечные инверторы: продажа и цены в Азербайджане', invertersH1: 'Продажа солнечных инверторов в Азербайджане', invertersDescription: 'Солнечные инверторы Growatt в Азербайджане: сетевые, гибридные и автономные модели, характеристики, наличие, подбор и расчет цены.',
     calculator: 'Калькулятор солнечной энергии',
@@ -86,7 +86,7 @@ const text = {
     home: 'Azerbaycan’da Güneş Panelleri ve Kurulum',
     description: 'Azerbaycan’da evler ve işletmeler için güneş panelleri, inverterler, enerji depolama, sistem tasarımı ve kurulum.',
     installation: 'Azerbaycan’da Güneş Paneli Kurulumu',
-    installationDescription: 'Ev ve işletmeler için tüketim analizi, keşif, tasarım, ekipman seçimi, güneş paneli kurulumu ve teslim hizmeti.',
+    installationDescription: 'Growatt inverter, 650 W paneller, montaj konstrüksiyonu ve şebeke bağlantısı içeren 5, 10 ve 15 kW güneş kurulum paketleri 4.250 AZN’den.',
     panels: 'Güneş Panelleri Satışı ve Fiyatları', panelsH1: 'Azerbaycan’da Güneş Paneli Satışı', panelsDescription: 'Azerbaycan’da LONGi güneş panelleri: teknik özellikler, fiyat teklifi, garanti, stok ve profesyonel kurulum.',
     inverters: 'Güneş İnverteri Satışı ve Fiyatları', invertersH1: 'Azerbaycan’da Güneş İnverteri Satışı', invertersDescription: 'Azerbaycan’da Growatt güneş inverterleri: şebeke bağlantılı, hibrit ve bağımsız modeller, teknik özellikler, stok ve fiyat teklifi.',
     calculator: 'Güneş Enerjisi Hesaplayıcı',
@@ -94,6 +94,19 @@ const text = {
     nav: ['Kurulum', 'Ürünler', 'Hesaplayıcı', 'Projeler', 'İletişim'],
     kind: { product: 'Ürün', project: 'Proje', blog: 'Blog', news: 'Haber' },
   },
+};
+
+const installationPackages = [
+  { capacity: '5 kW', price: '4 250 AZN', panels: '9 × 650 W', inverter: 'Growatt MIN 5000TL-X2' },
+  { capacity: '10 kW', price: '8 500 AZN', panels: '17 × 650 W', inverter: 'Growatt MIN 10000TL-X2 / Growatt MOD10KTL3-X2' },
+  { capacity: '15 kW', price: '12 750 AZN', panels: '26 × 650 W', inverter: 'Growatt MOD15KTL3-X2' },
+];
+
+const installationFaqs = {
+  az: [['Paketin qiymətinə nələr daxildir?', 'Hər paketə göstərilən sayda 650 W günəş panelləri, qeyd olunan Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulma daxildir. Batareya və siyahıda göstərilməyən əlavə işlər paketə daxil deyil.'], ['Mənim üçün hansı paket uyğundur?', 'Uyğun paket aylıq elektrik sərfiyyatı, dam sahəsi, kölgələnmə və obyektin şəbəkə xüsusiyyətlərinə görə seçilir.'], ['Quraşdırma nə qədər vaxt aparır?', 'Əksər yaşayış obyektlərində quraşdırma adətən 1–3 gün çəkir və obyektin texniki şəraitinə görə dəyişə bilər.'], ['Şəbəkə kəsiləndə sistem işləyəcəkmi?', 'Standart on-grid sistem təhlükəsizlik səbəbi ilə şəbəkə kəsildikdə dayanır. Ehtiyat enerji üçün ayrıca uyğun hibrid inverter və batareya tələb olunur.']],
+  en: [['What is included in the package price?', 'Each package includes the listed number of 650 W solar panels, the specified Growatt inverter, mounting structure, and grid connection. Batteries and additional work not listed here are not included.'], ['Which package is right for me?', 'The right package depends on monthly electricity use, roof area, shading, and the grid configuration at the property.'], ['How long does installation take?', 'Installation at most residential properties usually takes 1–3 days and can vary with site conditions.'], ['Will the system work during a power cut?', 'The standard on-grid system shuts down during a grid outage for safety. Backup power requires a separate compatible hybrid inverter and battery.']],
+  ru: [['Что входит в стоимость пакета?', 'Каждый пакет включает указанное количество панелей 650 Вт, соответствующий инвертор Growatt, монтажную конструкцию и подключение к сети. Аккумуляторы и неуказанные дополнительные работы не входят.'], ['Какой пакет подойдет мне?', 'Выбор зависит от ежемесячного потребления, площади крыши, затенения и параметров сети на объекте.'], ['Сколько времени занимает установка?', 'На большинстве жилых объектов установка обычно занимает 1–3 дня и зависит от технических условий.'], ['Будет ли система работать при отключении сети?', 'Стандартная сетевая система отключается при пропадании сети из соображений безопасности. Для резерва нужны отдельные совместимые гибридный инвертор и аккумулятор.']],
+  tr: [['Paket fiyatına neler dahildir?', 'Her pakete belirtilen sayıda 650 W güneş paneli, ilgili Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısı dahildir. Batarya ve belirtilmeyen ek işler dahil değildir.'], ['Hangi paket benim için uygun?', 'Uygun paket aylık elektrik tüketimi, çatı alanı, gölgelenme ve tesisin şebeke yapısına göre seçilir.'], ['Kurulum ne kadar sürer?', 'Çoğu konut tipi tesiste kurulum genellikle 1–3 gün sürer ve teknik koşullara göre değişebilir.'], ['Elektrik kesildiğinde sistem çalışır mı?', 'Standart şebeke bağlantılı sistem güvenlik nedeniyle kesintide kapanır. Yedek enerji için ayrıca uyumlu hibrit inverter ve batarya gerekir.']],
 };
 
 const staticTitles = {
@@ -111,6 +124,7 @@ const staticTitles = {
   partnership: ['Tərəfdaşlıq', 'Partnership', 'Партнерство', 'İş Ortaklığı'],
   'pro-club': ['Ustalar Klubu', 'Masters Club', 'Клуб мастеров', 'Ustalar Kulübü'],
   'privacy-policy': ['Məxfilik siyasəti', 'Privacy Policy', 'Политика конфиденциальности', 'Gizlilik Politikası'],
+  'data-deletion': ['Məlumatların silinməsi', 'Data Deletion Instructions', 'Удаление данных', 'Veri Silme Talimatları'],
   'terms-of-service': ['İstifadə şərtləri', 'Terms of Service', 'Условия использования', 'Kullanım Şartları'],
   'purchase-terms': ['Alış şərtləri', 'Purchase Terms', 'Условия покупки', 'Satın Alma Şartları'],
   news: ['Xəbərlər', 'News', 'Новости', 'Haberler'],
@@ -147,6 +161,12 @@ const staticDescriptions = {
     'Contact Volt.az specialists for solar system and installation advice.',
     'Свяжитесь со специалистами Volt.az для консультации по солнечной системе и монтажу.',
     'Güneş sistemi ve kurulum danışmanlığı için Volt.az uzmanlarıyla iletişime geçin.',
+  ],
+  'data-deletion': [
+    'Facebook, Messenger, Instagram və WhatsApp məlumatlarının silinməsi üçün Volt.az təlimatları.',
+    'Volt.az instructions for requesting deletion of Facebook, Messenger, Instagram, and WhatsApp data.',
+    'Инструкции Volt.az по удалению данных Facebook, Messenger, Instagram и WhatsApp.',
+    'Facebook, Messenger, Instagram ve WhatsApp verilerinin silinmesi için Volt.az talimatları.',
   ],
   videos: [
     'Günəş enerjisi, məhsullar, quraşdırma və Volt.az layihələri haqqında video materiallar.',
@@ -239,6 +259,24 @@ const fallbackMarkup = (route, language, meta) => {
   const links = navRoutes.map((item, index) =>
     `<a href="${localizedPath(item, language)}">${escapeHtml(localized.nav[index])}</a>`
   ).join(' · ');
+  if (route === '/solar-installation') {
+    const labels = {
+      az: { heading: 'Quraşdırılma paketləri', panels: 'Panellər', inverter: 'İnverter', included: 'Bütün paketlərə montaj konstruksiyası və şəbəkəyə qoşulma daxildir.' },
+      en: { heading: 'Installation packages', panels: 'Panels', inverter: 'Inverter', included: 'Every package includes a mounting structure and grid connection.' },
+      ru: { heading: 'Пакеты установки', panels: 'Панели', inverter: 'Инвертор', included: 'Во все пакеты входят монтажная конструкция и подключение к сети.' },
+      tr: { heading: 'Kurulum paketleri', panels: 'Paneller', inverter: 'İnverter', included: 'Tüm paketlere montaj konstrüksiyonu ve şebeke bağlantısı dahildir.' },
+    }[language];
+    return `<main class="seo-prerender" data-seo-prerendered="true">
+      <h1>${escapeHtml(meta.title.replace(/ \| Volt\.az$/, ''))}</h1>
+      <p>${escapeHtml(meta.description)}</p>
+      <section><h2>${escapeHtml(labels.heading)}</h2>
+        ${installationPackages.map((item) => `<article><h3>${escapeHtml(item.capacity)} — ${escapeHtml(item.price)}</h3><p>${escapeHtml(labels.panels)}: ${escapeHtml(item.panels)}. ${escapeHtml(labels.inverter)}: ${escapeHtml(item.inverter)}.</p></article>`).join('')}
+        <p>${escapeHtml(labels.included)}</p>
+      </section>
+      <section><h2>FAQ</h2>${installationFaqs[language].map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join('')}</section>
+      <nav aria-label="Primary">${links}</nav>
+    </main>`;
+  }
   if (route === '/solar-panels') {
     const panelContent = {
       az: {
@@ -250,7 +288,7 @@ const fallbackMarkup = (route, language, meta) => {
       ru: { intro: 'Панели LONGi, технический подбор, гарантия, наличие, расчет цены и монтаж в Азербайджане.', sections: [['Решения для дома и бизнеса', 'Комплексные системы для жилых, коммерческих и крупных объектов.'], ['Выбор, эффективность и гарантия', 'Сравните мощность, КПД, требования к площади, гарантию и совместимость.'], ['Поставка LONGi и цена', 'Оригинальные панели LONGi и индивидуальный расчет проекта.']], faqs: [['Как рассчитывается цена?', 'Учитываются панели, инвертор, крепления, защита, кабели, логистика и монтаж.'], ['Сколько панелей нужно для дома?', 'Количество зависит от потребления, мощности, площади, ориентации и тени.'], ['Сколько энергии производит система?', 'Производство зависит от мощности, места, ориентации, потерь и сезона.']] },
       tr: { intro: 'Ev, işletme ve büyük projeler için LONGi güneş panelleri, teknik seçim, garanti, stok ve kurulum.', sections: [['Konut ve kurumsal çözümler', 'Evler, işletmeler ve büyük projeler için panel ve komple sistemler.'], ['Seçim, verimlilik ve garanti', 'Güç, verimlilik, alan, garanti ve inverter uyumunu karşılaştırın.'], ['LONGi tedariki ve fiyat', 'Orijinal LONGi panelleri ve projeye özel fiyat teklifi.']], faqs: [['Fiyatlar nasıl hesaplanır?', 'Panel, inverter, konstrüksiyon, koruma, kablo, lojistik ve kurulum hesaplanır.'], ['Bir ev için kaç panel gerekir?', 'Sayı tüketim, güç, alan, yön ve gölgeye bağlıdır.'], ['Bir sistem ne kadar elektrik üretir?', 'Üretim kapasite, konum, yön, kayıplar ve mevsime bağlıdır.']] },
     }[language];
-    return `<main hidden data-seo-prerendered="true">
+    return `<main class="seo-prerender" data-seo-prerendered="true">
       <h1>${escapeHtml(localized.panelsH1)}</h1>
       <p>${escapeHtml(localized.panelsDescription)}</p><p>${escapeHtml(panelContent.intro)}</p>
       ${panelContent.sections.map(([heading, body]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></section>`).join('')}
@@ -269,7 +307,7 @@ const fallbackMarkup = (route, language, meta) => {
       ru: { intro: 'Подбор солнечного инвертора по мощности, конфигурации панелей, режиму работы и требованиям к аккумулятору.', sections: [['Решения для дома и бизнеса', 'Сетевые, гибридные и автономные инверторы для жилых, коммерческих и крупных объектов.'], ['Мощность, MPPT и аккумулятор', 'Фазы, стринги, входной диапазон, мониторинг и режим работы оцениваются вместе.'], ['Поставка Growatt и цена', 'Доступные модели Growatt, наличие и индивидуальный расчет проекта.']], faqs: [['Как рассчитывается цена инвертора?', 'Учитываются мощность, фазы, тип системы, аккумулятор, MPPT и защита.'], ['Какая мощность инвертора нужна для дома?', 'Мощность зависит от потребления, массива панелей, нагрузок и планов расширения.'], ['Чем гибридный инвертор отличается от сетевого?', 'Совместимый гибридный инвертор может поддерживать аккумулятор и резервное питание.']] },
       tr: { intro: 'Sistem gücü, panel dizilimi, çalışma şekli ve batarya ihtiyacına uygun güneş inverteri seçimi.', sections: [['Konut ve kurumsal çözümler', 'Evler, işletmeler ve büyük projeler için şebeke bağlantılı, hibrit ve bağımsız inverterler.'], ['Güç, MPPT ve batarya uyumu', 'Faz yapısı, diziler, giriş aralığı, izleme ve çalışma modu birlikte değerlendirilir.'], ['Growatt tedariki ve fiyat', 'Mevcut Growatt modelleri, stok bilgisi ve projeye özel fiyat teklifi.']], faqs: [['Güneş inverteri fiyatı nasıl hesaplanır?', 'Fiyat güç, faz yapısı, sistem türü, batarya, MPPT ve korumaya göre değişir.'], ['Bir ev için hangi güçte inverter gerekir?', 'Güç tüketim, panel dizisi, eş zamanlı yükler ve genişleme planına göre hesaplanır.'], ['Hibrit ve şebeke bağlantılı inverter arasındaki fark nedir?', 'Uyumlu hibrit inverter batarya ve yedek enerji senaryolarını da destekleyebilir.']] },
     }[language];
-    return `<main hidden data-seo-prerendered="true">
+    return `<main class="seo-prerender" data-seo-prerendered="true">
       <h1>${escapeHtml(localized.invertersH1)}</h1>
       <p>${escapeHtml(localized.invertersDescription)}</p><p>${escapeHtml(inverterContent.intro)}</p>
       ${inverterContent.sections.map(([heading, body]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></section>`).join('')}
@@ -277,7 +315,7 @@ const fallbackMarkup = (route, language, meta) => {
       <nav aria-label="Primary">${links}</nav>
     </main>`;
   }
-  return `<main hidden data-seo-prerendered="true">
+  return `<main class="seo-prerender" data-seo-prerendered="true">
       <h1 style="font-size:clamp(2rem,5vw,4rem);line-height:1.05">${escapeHtml(meta.title.replace(/ \| Volt\.az$/, ''))}</h1>
       <p style="max-width:48rem;font-size:1.1rem;line-height:1.7;color:#475569">${escapeHtml(meta.description)}</p>
       <nav aria-label="Primary">${links}</nav>
@@ -287,18 +325,38 @@ const fallbackMarkup = (route, language, meta) => {
 const render = (template, route, language, dynamic) => {
   const meta = pageMeta(route, language, dynamic);
   const canonical = absolute(route, language);
-  const image = dynamic?.image || (route === '/inverters' ? `${SITE}/inverters-hero.webp` : `${SITE}/volt-site-icon.png`);
+  const image = dynamic?.image || (route === '/solar-installation'
+    ? `${SITE}/solar-installation-packages-desktop.webp`
+    : route === '/inverters'
+      ? `${SITE}/inverters-hero.webp`
+      : `${SITE}/volt-site-icon.png`);
   const type = dynamic?.kind === 'product' ? 'product' : dynamic?.kind === 'blog' || dynamic?.kind === 'news' ? 'article' : 'website';
   const schema = route === '/solar-installation'
     ? {
         '@context': 'https://schema.org',
-        '@type': 'Service',
-        name: text[language].installation,
-        description: text[language].installationDescription,
-        url: canonical,
-        provider: { '@id': `${SITE}/#organization` },
-        areaServed: { '@type': 'Country', name: 'Azerbaijan' },
-        inLanguage: language,
+        '@graph': [
+          {
+            '@type': 'Service',
+            '@id': `${canonical}#service`,
+            name: text[language].installation,
+            description: text[language].installationDescription,
+            url: canonical,
+            provider: { '@id': `${SITE}/#organization` },
+            areaServed: { '@type': 'Country', name: 'Azerbaijan' },
+            serviceType: 'Solar panel system installation packages',
+            inLanguage: language,
+          },
+          {
+            '@type': 'BreadcrumbList',
+            '@id': `${canonical}#breadcrumb`,
+            itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Volt.az', item: `${SITE}/` }, { '@type': 'ListItem', position: 2, name: text[language].installation, item: canonical }],
+          },
+          {
+            '@type': 'FAQPage',
+            '@id': `${canonical}#faq`,
+            mainEntity: installationFaqs[language].map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })),
+          },
+        ],
       }
     : route === '/solar-panels'
       ? (() => {
@@ -373,6 +431,17 @@ const render = (template, route, language, dynamic) => {
   const extraSchema = schema
     ? `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
     : '';
+  const imagePreload = route === '/'
+    ? '<link rel="preload" as="image" href="/sliderphotomobile.webp" media="(max-width: 767px)" fetchpriority="high"><link rel="preload" as="image" href="/sliderphoto.webp" media="(min-width: 768px)" fetchpriority="high">'
+    : route === '/solar-installation'
+      ? '<link rel="preload" as="image" href="/solar-installation-packages-mobile.webp" media="(max-width: 767px)" fetchpriority="high"><link rel="preload" as="image" href="/solar-installation-packages-desktop.webp" media="(min-width: 768px)" fetchpriority="high">'
+      : route === '/solar-panels'
+        ? '<link rel="preload" as="image" href="/solar-panels-hero.webp" fetchpriority="high">'
+        : route === '/inverters'
+          ? '<link rel="preload" as="image" href="/inverters-hero.webp" fetchpriority="high">'
+          : dynamic?.kind === 'product' && dynamic.image
+            ? `<link rel="preload" as="image" href="${escapeHtml(dynamic.image)}" fetchpriority="high">`
+            : '';
 
   let html = template
     .replace(/<html\b[^>]*lang="[^"]*"([^>]*)>/i, `<html lang="${language}"$1>`)
@@ -402,6 +471,7 @@ const render = (template, route, language, dynamic) => {
     <meta property="twitter:title" content="${escapeHtml(meta.title)}">
     <meta property="twitter:description" content="${escapeHtml(meta.description)}">
     <meta property="twitter:image" content="${escapeHtml(image)}">
+    ${imagePreload}
     ${extraSchema}`;
 
   html = html.replace('</head>', `${tags}\n</head>`);

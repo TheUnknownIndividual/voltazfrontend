@@ -6,6 +6,7 @@ ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
 REMOTE_DIR="${REMOTE_DIR:-/voltaz}"
 SKIP_PRERENDER="${SKIP_PRERENDER:-0}"
+SKIP_SITEMAP="${SKIP_SITEMAP:-0}"
 
 : "${FTP_USER:?Set FTP_USER before running this script.}"
 : "${FTP_PASS:?Set FTP_PASS before running this script.}"
@@ -15,6 +16,14 @@ case "$SKIP_PRERENDER" in
   0|1) ;;
   *)
     echo "SKIP_PRERENDER must be 0 or 1." >&2
+    exit 1
+    ;;
+esac
+
+case "$SKIP_SITEMAP" in
+  0|1) ;;
+  *)
+    echo "SKIP_SITEMAP must be 0 or 1." >&2
     exit 1
     ;;
 esac
@@ -32,6 +41,7 @@ command -v lftp >/dev/null || {
 echo "Frontend remote directory: $REMOTE_DIR"
 echo "Frontend API base URL: ${VITE_API_BASE_URL:-https://test.api.volt.az/api/}"
 echo "Frontend prerender: $([ "$SKIP_PRERENDER" = "1" ] && echo disabled || echo enabled)"
+echo "Frontend sitemap refresh: $([ "$SKIP_SITEMAP" = "1" ] && echo disabled || echo enabled)"
 
 cd "$ROOT_DIR"
 
@@ -54,8 +64,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Generating sitemap..."
-npm run sitemap
+if [ "$SKIP_SITEMAP" = "1" ]; then
+  echo "Skipping sitemap refresh for this deployment..."
+else
+  echo "Generating sitemap..."
+  npm run sitemap
+fi
 
 echo "Building isolated frontend output..."
 npx vite build --outDir "$BUILD_DIR"
@@ -99,6 +113,7 @@ mirror -R --transfer-all --no-perms --verbose \
   --exclude-glob node_modules/** \
   --exclude-glob src \
   --exclude-glob src/** \
+  --exclude-glob index.html \
   --exclude-glob '*.ts' \
   --exclude-glob '*.tsx' \
   --exclude-glob '*.map' \
@@ -108,6 +123,7 @@ mirror -R --transfer-all --no-perms --verbose \
   --exclude-glob tsconfig.json \
   --exclude-glob README.md \
   . "$REMOTE_DIR"
+put "$BUILD_DIR/index.html" -o "$REMOTE_DIR/index.html"
 bye
 LFTP_COMMANDS
 

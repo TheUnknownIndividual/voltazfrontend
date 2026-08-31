@@ -1,17 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  ArrowLeft,
-  ArrowRight,
-  Building2,
   Check,
   ChevronDown,
-  Factory,
-  Gauge,
-  House,
-  MapPin,
-  Ruler,
-  ShieldCheck,
-  Sun,
+  ChevronRight,
+  MessageCircle,
+  Plug,
   Wrench,
 } from 'lucide-react';
 import type { SiteLanguage } from '../utils/seoRoutes';
@@ -21,426 +14,470 @@ type Props = {
   onNavigate: (page: any, id?: string, extra?: any) => void;
 };
 
+type Package = {
+  capacityKw: number;
+  priceAzn: number;
+  panelCount: number;
+  panelWattage: number;
+  inverterModels: string[];
+  recommended?: boolean;
+};
+
 type Copy = {
-  eyebrow: string;
   title: string;
   lead: string;
-  estimate: string;
-  projects: string;
-  trust: string[];
-  processTitle: string;
-  process: Array<{ title: string; text: string }>;
-  solutionsTitle: string;
-  solutions: Array<{ title: string; text: string }>;
-  sizingTitle: string;
-  sizingText: string;
-  sizes: string[];
-  whyTitle: string;
-  why: string[];
+  viewPackages: string;
+  packagesTitle: string;
+  packagesLead: string;
+  packageLabel: string;
+  recommended: string;
+  included: string;
+  panel: (count: number, wattage: number) => string;
+  inverter: string;
+  mounting: string;
+  gridConnection: string;
+  cta: string;
+  faqEyebrow: string;
   faqTitle: string;
+  faqLead: string;
   faq: Array<{ question: string; answer: string }>;
-  finalTitle: string;
-  finalText: string;
-  contact: string;
+  whatsappClosing: string;
 };
+
+const packages: Package[] = [
+  {
+    capacityKw: 5,
+    priceAzn: 4250,
+    panelCount: 9,
+    panelWattage: 650,
+    inverterModels: ['Growatt MIN 5000TL-X2'],
+  },
+  {
+    capacityKw: 10,
+    priceAzn: 8500,
+    panelCount: 17,
+    panelWattage: 650,
+    inverterModels: ['Growatt MIN 10000TL-X2', 'Growatt MOD10KTL3-X2'],
+    recommended: true,
+  },
+  {
+    capacityKw: 15,
+    priceAzn: 12750,
+    panelCount: 26,
+    panelWattage: 650,
+    inverterModels: ['Growatt MOD15KTL3-X2'],
+  },
+];
 
 const copy: Record<SiteLanguage, Copy> = {
   az: {
-    eyebrow: 'Azərbaycanda günəş enerjisi həlləri',
-    title: 'Günəş panellərinin layihələndirilməsi və quraşdırılması',
-    lead: 'Ev, biznes və sənaye obyektləri üçün istehlaka, dam və ya torpaq sahəsinə uyğun günəş elektrik sistemi hazırlayırıq.',
-    estimate: 'Sistemi hesabla',
-    projects: 'Layihələrə bax',
-    trust: ['İstehlaka əsaslanan ölçüləndirmə', 'Dam və torpaq montajı', 'On-grid, off-grid və hibrid sistemlər'],
-    processTitle: 'Quraşdırma necə aparılır?',
-    process: [
-      { title: '1. Enerji təhlili', text: 'İllik və aylıq istehlak, tarif və gələcək enerji tələbi qiymətləndirilir.' },
-      { title: '2. Texniki baxış', text: 'Damın və ya torpaq sahəsinin ölçüsü, kölgələnmə, istiqamət və elektrik infrastrukturu yoxlanılır.' },
-      { title: '3. Layihə və təklif', text: 'Panel, inverter, konstruksiya və qoruma avadanlıqları üzrə uyğun konfiqurasiya hazırlanır.' },
-      { title: '4. Montaj və yoxlama', text: 'Sistem quraşdırılır, elektrik sınaqları aparılır və monitorinq istifadəyə verilir.' },
-    ],
-    solutionsTitle: 'Obyektinizə uyğun həll',
-    solutions: [
-      { title: 'Ev üçün', text: 'Elektrik xərclərini azaltmağa yönəlmiş damüstü və hibrid sistemlər.' },
-      { title: 'Biznes üçün', text: 'Gündüz istehlakını günəş istehsalı ilə qarşılamaq üçün ölçüləndirilən kommersiya sistemləri.' },
-      { title: 'Sənaye üçün', text: 'Yüksək güclü inverterlər, çoxsaylı MPPT və genişləndirilə bilən layihə arxitekturası.' },
-    ],
-    sizingTitle: 'Sistem gücü necə seçilir?',
-    sizingText: 'Güc yalnız sahəyə görə deyil, istehlak profili, şəbəkə rejimi, kölgələnmə və avadanlığın elektrik limitləri nəzərə alınaraq seçilir. Aşağıdakı ölçülər istiqamətləndiricidir; yekun seçim texniki baxışdan sonra təsdiqlənir.',
-    sizes: ['5 kW ev sistemi', '10 kW geniş ev və kiçik biznes', '20–50 kW kommersiya', '100 kW+ sənaye'],
-    whyTitle: 'Niyə layihələndirmə vacibdir?',
-    why: ['Panel və inverterin DC/AC uyğunluğu', 'String gərginliyi və cərəyan limitləri', 'Kölgələnmə və istiqamət analizi', 'Qoruma, kabelləmə və torpaqlama', 'İstehsal və geri dönüş proqnozu', 'Monitorinq və servis planı'],
+    title: 'Gücünüzü seçin. Quraşdırmanı bizə həvalə edin.',
+    lead: 'Eviniz və ya obyektiniz üçün panel, Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulmanı bir paketdə təqdim edirik.',
+    viewPackages: 'Paketlərə bax',
+    packagesTitle: 'Quraşdırılma paketləri',
+    packagesLead: 'Uyğun gücü seçin və birbaşa WhatsApp vasitəsilə komandamızdan məlumat alın.',
+    packageLabel: 'paketi',
+    recommended: 'Tövsiyə olunan',
+    included: 'Paketə daxildir',
+    panel: (count, wattage) => `${count} × ${wattage} W günəş paneli`,
+    inverter: 'İnverter',
+    mounting: 'Montaj konstruksiyası',
+    gridConnection: 'Şəbəkəyə qoşulma',
+    cta: 'Paketlə maraqlanıram',
+    faqEyebrow: 'FAQ',
     faqTitle: 'Tez-tez verilən suallar',
+    faqLead: 'Paket, quraşdırma və şəbəkəyə qoşulma ilə bağlı əsas sualların cavabları.',
     faq: [
-      { question: 'Qiymət necə hesablanır?', answer: 'Qiymət sistem gücü, montaj növü, seçilən avadanlıq, kabel məsafəsi və obyektin texniki şərtlərinə əsasən hazırlanır.' },
-      { question: 'Dam yoxdursa sistem qurmaq olar?', answer: 'Bəli. Uyğun torpaq sahəsində günəş istiqaməti və konstruksiya hesablanaraq yerüstü sistem layihələndirilə bilər.' },
-      { question: 'Elektrik kəsiləndə sistem işləyir?', answer: 'Standart on-grid sistem təhlükəsizlik səbəbi ilə dayanır. Kəsinti zamanı enerji üçün hibrid inverter və uyğun batareya həlli tələb olunur.' },
-      { question: 'İlkin hesablamanı necə ala bilərəm?', answer: 'Solar kalkulyatorda istehlak məlumatını daxil edin və ya obyekt məlumatlarını bizə göndərin.' },
+      {
+        question: 'Paketin qiymətinə nələr daxildir?',
+        answer: 'Hər paketə göstərilən sayda 650 W günəş panelləri, qeyd olunan Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulma daxildir. Batareya və siyahıda göstərilməyən əlavə işlər paketə daxil deyil.',
+      },
+      {
+        question: 'Mənim üçün hansı paket uyğundur?',
+        answer: 'Uyğun paket aylıq elektrik sərfiyyatınızdan, dam sahəsindən, kölgələnmədən və obyektin şəbəkə xüsusiyyətlərindən asılıdır. Komandamız obyekt məlumatlarını nəzərdən keçirərək 5, 10 və ya 15 kW paketlərdən uyğun olanı dəqiqləşdirə bilər.',
+      },
+      {
+        question: 'Quraşdırma nə qədər vaxt aparır?',
+        answer: 'Əksər yaşayış obyektlərində quraşdırma adətən 1–3 gün çəkir. Müddət damın vəziyyətinə, kabel məsafəsinə və obyektin texniki şəraitinə görə dəyişə bilər.',
+      },
+      {
+        question: 'Şəbəkə kəsiləndə sistem işləyəcəkmi?',
+        answer: 'Bu paketlərdəki standart on-grid sistem təhlükəsizlik səbəbi ilə elektrik şəbəkəsi kəsildikdə dayanır. Kəsinti zamanı ehtiyat enerji üçün ayrıca uyğun hibrid inverter və batareya həlli tələb olunur.',
+      },
     ],
-    finalTitle: 'Obyektiniz üçün ilkin günəş enerjisi hesablaması alın',
-    finalText: 'İstehlakınızı daxil edin və uyğun sistem gücü, istehsal və qənaət göstəricilərini nəzərdən keçirin.',
-    contact: 'Mütəxəssislə əlaqə',
+    whatsappClosing: 'Zəhmət olmasa, paket və növbəti addımlar barədə ətraflı məlumat verin.',
   },
   en: {
-    eyebrow: 'Solar energy solutions in Azerbaijan',
-    title: 'Solar panel design and installation',
-    lead: 'We design solar power systems for homes, businesses, and industrial sites based on consumption and the available roof or ground area.',
-    estimate: 'Calculate your system',
-    projects: 'View projects',
-    trust: ['Consumption-based sizing', 'Roof and ground mounting', 'On-grid, off-grid, and hybrid systems'],
-    processTitle: 'How installation works',
-    process: [
-      { title: '1. Energy assessment', text: 'Annual and monthly consumption, tariffs, and future energy demand are evaluated.' },
-      { title: '2. Technical survey', text: 'Roof or land area, shading, orientation, and electrical infrastructure are checked.' },
-      { title: '3. Design and proposal', text: 'A suitable panel, inverter, mounting, and protection configuration is prepared.' },
-      { title: '4. Installation and testing', text: 'The system is installed, electrically tested, and monitoring is commissioned.' },
-    ],
-    solutionsTitle: 'A solution for your site',
-    solutions: [
-      { title: 'Homes', text: 'Roof-mounted and hybrid systems designed to reduce electricity costs.' },
-      { title: 'Businesses', text: 'Commercial systems sized to match daytime consumption with solar generation.' },
-      { title: 'Industry', text: 'High-power inverters, multiple MPPTs, and scalable project architecture.' },
-    ],
-    sizingTitle: 'How is system capacity selected?',
-    sizingText: 'Capacity is selected using the consumption profile, grid mode, shading, and equipment electrical limits—not area alone. The sizes below are guides; the final design is confirmed after a technical survey.',
-    sizes: ['5 kW home system', '10 kW large home or small business', '20–50 kW commercial', '100 kW+ industrial'],
-    whyTitle: 'Why engineering matters',
-    why: ['Panel and inverter DC/AC compatibility', 'String voltage and current limits', 'Shading and orientation analysis', 'Protection, cabling, and grounding', 'Generation and payback forecast', 'Monitoring and service plan'],
+    title: 'Choose your capacity. Leave the installation to us.',
+    lead: 'Get solar panels, a Growatt inverter, mounting structure, and grid connection together in one package for your home or property.',
+    viewPackages: 'View packages',
+    packagesTitle: 'Installation packages',
+    packagesLead: 'Choose a suitable capacity and contact our team directly through WhatsApp.',
+    packageLabel: 'package',
+    recommended: 'Recommended',
+    included: 'Included in the package',
+    panel: (count, wattage) => `${count} × ${wattage} W solar panels`,
+    inverter: 'Inverter',
+    mounting: 'Mounting structure',
+    gridConnection: 'Grid connection',
+    cta: 'I am interested',
+    faqEyebrow: 'FAQ',
     faqTitle: 'Frequently asked questions',
+    faqLead: 'Clear answers about the packages, installation, and grid connection.',
     faq: [
-      { question: 'How is the price calculated?', answer: 'Pricing depends on system capacity, mounting type, selected equipment, cable distance, and site-specific technical conditions.' },
-      { question: 'Can I install solar without a suitable roof?', answer: 'Yes. A ground-mounted system can be designed on suitable land after assessing solar orientation and structural requirements.' },
-      { question: 'Will the system work during a power cut?', answer: 'A standard on-grid system shuts down for safety. Backup operation requires a hybrid inverter and a compatible battery solution.' },
-      { question: 'How do I get an initial estimate?', answer: 'Enter your consumption in the solar calculator or send us the site details.' },
+      {
+        question: 'What is included in the package price?',
+        answer: 'Each package includes the listed number of 650 W solar panels, the specified Growatt inverter, mounting structure, and grid connection. Batteries and additional work not listed here are not included.',
+      },
+      {
+        question: 'Which package is right for me?',
+        answer: 'The right package depends on your monthly electricity use, roof area, shading, and the grid configuration at your property. Our team can review your site details and confirm whether the 5, 10, or 15 kW package is suitable.',
+      },
+      {
+        question: 'How long does installation take?',
+        answer: 'Installation at most residential properties usually takes 1–3 days. Timing can vary depending on the roof condition, cable distance, and technical conditions at the site.',
+      },
+      {
+        question: 'Will the system work during a power cut?',
+        answer: 'The standard on-grid systems in these packages shut down during a grid outage for safety. Backup power during an outage requires a separate compatible hybrid inverter and battery solution.',
+      },
     ],
-    finalTitle: 'Get an initial solar estimate for your property',
-    finalText: 'Enter your consumption to review suitable capacity, expected generation, and savings.',
-    contact: 'Talk to a specialist',
+    whatsappClosing: 'Please share more information about this package and the next steps.',
   },
   ru: {
-    eyebrow: 'Решения солнечной энергетики в Азербайджане',
-    title: 'Проектирование и монтаж солнечных панелей',
-    lead: 'Проектируем солнечные электростанции для домов, бизнеса и промышленных объектов с учетом потребления и доступной площади крыши или участка.',
-    estimate: 'Рассчитать систему',
-    projects: 'Посмотреть проекты',
-    trust: ['Расчет по потреблению', 'Монтаж на крыше и земле', 'Сетевые, автономные и гибридные системы'],
-    processTitle: 'Как проходит установка',
-    process: [
-      { title: '1. Анализ энергии', text: 'Оцениваются годовое и месячное потребление, тариф и будущая потребность.' },
-      { title: '2. Техническое обследование', text: 'Проверяются площадь, затенение, ориентация и электрическая инфраструктура.' },
-      { title: '3. Проект и предложение', text: 'Подбираются панели, инверторы, конструкция и защитное оборудование.' },
-      { title: '4. Монтаж и проверка', text: 'Система устанавливается, проходит электрические испытания и подключается к мониторингу.' },
-    ],
-    solutionsTitle: 'Решение для вашего объекта',
-    solutions: [
-      { title: 'Для дома', text: 'Крышные и гибридные системы для снижения расходов на электроэнергию.' },
-      { title: 'Для бизнеса', text: 'Коммерческие системы, рассчитанные под дневное потребление.' },
-      { title: 'Для промышленности', text: 'Мощные инверторы, несколько MPPT и масштабируемая архитектура.' },
-    ],
-    sizingTitle: 'Как выбирается мощность?',
-    sizingText: 'Мощность определяется не только площадью, но и профилем потребления, режимом сети, затенением и электрическими ограничениями оборудования. Размеры ниже ориентировочные; проект подтверждается после обследования.',
-    sizes: ['5 кВт для дома', '10 кВт для большого дома или малого бизнеса', '20–50 кВт для коммерции', '100 кВт+ для промышленности'],
-    whyTitle: 'Почему важен инженерный расчет',
-    why: ['Совместимость DC/AC панелей и инвертора', 'Ограничения напряжения и тока строк', 'Анализ затенения и ориентации', 'Защита, кабели и заземление', 'Прогноз выработки и окупаемости', 'Мониторинг и сервисный план'],
-    faqTitle: 'Частые вопросы',
+    title: 'Выберите мощность. Монтаж доверьте нам.',
+    lead: 'Солнечные панели, инвертор Growatt, монтажная конструкция и подключение к сети — в одном пакете для вашего дома или объекта.',
+    viewPackages: 'Смотреть пакеты',
+    packagesTitle: 'Пакеты установки',
+    packagesLead: 'Выберите подходящую мощность и свяжитесь с нашей командой напрямую через WhatsApp.',
+    packageLabel: 'пакет',
+    recommended: 'Рекомендуемый',
+    included: 'В пакет входит',
+    panel: (count, wattage) => `${count} × ${wattage} Вт солнечных панелей`,
+    inverter: 'Инвертор',
+    mounting: 'Монтажная конструкция',
+    gridConnection: 'Подключение к сети',
+    cta: 'Меня интересует пакет',
+    faqEyebrow: 'FAQ',
+    faqTitle: 'Часто задаваемые вопросы',
+    faqLead: 'Ответы на основные вопросы о пакетах, монтаже и подключении к сети.',
     faq: [
-      { question: 'Как рассчитывается цена?', answer: 'Цена зависит от мощности, типа монтажа, оборудования, длины кабелей и технических условий объекта.' },
-      { question: 'Можно установить систему без подходящей крыши?', answer: 'Да. На подходящем участке можно спроектировать наземную систему с учетом ориентации и конструкции.' },
-      { question: 'Работает ли система при отключении сети?', answer: 'Обычная сетевая система отключается из соображений безопасности. Для резерва нужны гибридный инвертор и совместимая батарея.' },
-      { question: 'Как получить предварительный расчет?', answer: 'Укажите потребление в солнечном калькуляторе или отправьте нам данные объекта.' },
+      {
+        question: 'Что входит в стоимость пакета?',
+        answer: 'Каждый пакет включает указанное количество солнечных панелей мощностью 650 Вт, соответствующий инвертор Growatt, монтажную конструкцию и подключение к сети. Аккумуляторы и дополнительные работы, не указанные в списке, не входят.',
+      },
+      {
+        question: 'Какой пакет подойдет мне?',
+        answer: 'Выбор зависит от ежемесячного потребления электроэнергии, площади крыши, затенения и параметров сети на объекте. Наша команда изучит данные объекта и уточнит, какой пакет — 5, 10 или 15 кВт — вам подходит.',
+      },
+      {
+        question: 'Сколько времени занимает установка?',
+        answer: 'На большинстве жилых объектов установка обычно занимает 1–3 дня. Срок зависит от состояния крыши, расстояния кабелей и технических условий объекта.',
+      },
+      {
+        question: 'Будет ли система работать при отключении сети?',
+        answer: 'Стандартная сетевая система в этих пакетах отключается при пропадании сети из соображений безопасности. Для резервного питания нужны отдельные совместимые гибридный инвертор и аккумулятор.',
+      },
     ],
-    finalTitle: 'Получите предварительный расчет для вашего объекта',
-    finalText: 'Укажите потребление, чтобы увидеть подходящую мощность, выработку и экономию.',
-    contact: 'Связаться со специалистом',
+    whatsappClosing: 'Пожалуйста, расскажите подробнее об этом пакете и следующих шагах.',
   },
   tr: {
-    eyebrow: 'Azerbaycan’da güneş enerjisi çözümleri',
-    title: 'Güneş paneli projelendirme ve kurulumu',
-    lead: 'Evler, işletmeler ve sanayi tesisleri için tüketime ve mevcut çatı veya arazi alanına göre güneş enerjisi sistemi tasarlıyoruz.',
-    estimate: 'Sistemi hesapla',
-    projects: 'Projeleri gör',
-    trust: ['Tüketime göre boyutlandırma', 'Çatı ve arazi montajı', 'On-grid, off-grid ve hibrit sistemler'],
-    processTitle: 'Kurulum nasıl ilerler?',
-    process: [
-      { title: '1. Enerji analizi', text: 'Yıllık ve aylık tüketim, tarife ve gelecekteki enerji ihtiyacı değerlendirilir.' },
-      { title: '2. Teknik inceleme', text: 'Çatı veya arazi, gölgelenme, yön ve elektrik altyapısı kontrol edilir.' },
-      { title: '3. Tasarım ve teklif', text: 'Uygun panel, inverter, konstrüksiyon ve koruma yapılandırması hazırlanır.' },
-      { title: '4. Montaj ve test', text: 'Sistem kurulur, elektrik testleri yapılır ve izleme devreye alınır.' },
-    ],
-    solutionsTitle: 'Tesisinize uygun çözüm',
-    solutions: [
-      { title: 'Evler', text: 'Elektrik maliyetlerini azaltmaya yönelik çatı ve hibrit sistemler.' },
-      { title: 'İşletmeler', text: 'Gündüz tüketimini güneş üretimiyle karşılamak üzere boyutlandırılan sistemler.' },
-      { title: 'Sanayi', text: 'Yüksek güçlü inverterler, çoklu MPPT ve ölçeklenebilir proje mimarisi.' },
-    ],
-    sizingTitle: 'Sistem gücü nasıl seçilir?',
-    sizingText: 'Güç yalnızca alana göre değil; tüketim profili, şebeke modu, gölgelenme ve ekipman elektrik limitleriyle seçilir. Aşağıdaki boyutlar yol göstericidir; nihai tasarım teknik inceleme sonrası onaylanır.',
-    sizes: ['5 kW ev sistemi', '10 kW büyük ev veya küçük işletme', '20–50 kW ticari', '100 kW+ sanayi'],
-    whyTitle: 'Mühendislik neden önemlidir?',
-    why: ['Panel ve inverter DC/AC uyumu', 'Dizi gerilim ve akım limitleri', 'Gölgelenme ve yön analizi', 'Koruma, kablolama ve topraklama', 'Üretim ve geri dönüş tahmini', 'İzleme ve servis planı'],
+    title: 'Gücünüzü seçin. Kurulumu bize bırakın.',
+    lead: 'Eviniz veya tesisiniz için güneş panelleri, Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısını tek pakette sunuyoruz.',
+    viewPackages: 'Paketleri incele',
+    packagesTitle: 'Kurulum paketleri',
+    packagesLead: 'Uygun gücü seçin ve WhatsApp üzerinden ekibimizle doğrudan iletişime geçin.',
+    packageLabel: 'paketi',
+    recommended: 'Önerilen',
+    included: 'Pakete dahil',
+    panel: (count, wattage) => `${count} × ${wattage} W güneş paneli`,
+    inverter: 'İnverter',
+    mounting: 'Montaj konstrüksiyonu',
+    gridConnection: 'Şebeke bağlantısı',
+    cta: 'Paketle ilgileniyorum',
+    faqEyebrow: 'FAQ',
     faqTitle: 'Sık sorulan sorular',
+    faqLead: 'Paketler, kurulum ve şebeke bağlantısı hakkında temel soruların yanıtları.',
     faq: [
-      { question: 'Fiyat nasıl hesaplanır?', answer: 'Fiyat; sistem gücü, montaj türü, seçilen ekipman, kablo mesafesi ve tesise özel teknik koşullara bağlıdır.' },
-      { question: 'Uygun çatı olmadan kurulabilir mi?', answer: 'Evet. Uygun bir arazide yön ve konstrüksiyon değerlendirilerek yer tipi sistem tasarlanabilir.' },
-      { question: 'Elektrik kesintisinde çalışır mı?', answer: 'Standart şebeke bağlantılı sistem güvenlik nedeniyle kapanır. Yedekleme için hibrit inverter ve uyumlu batarya gerekir.' },
-      { question: 'Ön hesaplamayı nasıl alırım?', answer: 'Güneş hesaplayıcısına tüketiminizi girin veya tesis bilgilerini bize gönderin.' },
+      {
+        question: 'Paket fiyatına neler dahildir?',
+        answer: 'Her pakete belirtilen sayıda 650 W güneş paneli, ilgili Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısı dahildir. Batarya ve listede belirtilmeyen ek işler pakete dahil değildir.',
+      },
+      {
+        question: 'Hangi paket benim için uygun?',
+        answer: 'Uygun paket aylık elektrik tüketiminize, çatı alanına, gölgelenmeye ve tesisinizdeki şebeke yapısına bağlıdır. Ekibimiz tesis bilgilerinizi inceleyerek 5, 10 veya 15 kW paketlerden hangisinin uygun olduğunu netleştirebilir.',
+      },
+      {
+        question: 'Kurulum ne kadar sürer?',
+        answer: 'Çoğu konut tipi tesiste kurulum genellikle 1–3 gün sürer. Süre çatının durumuna, kablo mesafesine ve tesisin teknik koşullarına göre değişebilir.',
+      },
+      {
+        question: 'Elektrik kesildiğinde sistem çalışır mı?',
+        answer: 'Bu paketlerdeki standart şebeke bağlantılı sistem güvenlik nedeniyle şebeke kesildiğinde kapanır. Kesinti sırasında yedek enerji için ayrıca uyumlu hibrit inverter ve batarya çözümü gerekir.',
+      },
     ],
-    finalTitle: 'Tesisiniz için ön güneş enerjisi hesabı alın',
-    finalText: 'Uygun gücü, beklenen üretimi ve tasarrufu görmek için tüketiminizi girin.',
-    contact: 'Uzmanla görüş',
+    whatsappClosing: 'Lütfen bu paket ve sonraki adımlar hakkında ayrıntılı bilgi paylaşın.',
   },
 };
 
-const SolarInstallationPage: React.FC<Props> = ({ lang, onNavigate }) => {
+const localeByLanguage: Record<SiteLanguage, string> = {
+  az: 'az-AZ',
+  en: 'en-US',
+  ru: 'ru-RU',
+  tr: 'tr-TR',
+};
+
+const SolarInstallationPage: React.FC<Props> = ({ lang }) => {
   const t = copy[lang];
-  const processIcons = [Gauge, MapPin, Ruler, Wrench];
-  const solutionIcons = [House, Building2, Factory];
-  const track = (action: string) => {
-    const gtag = (window as Window & { gtag?: (...args: any[]) => void }).gtag;
-    gtag?.('event', 'solar_installation_cta', {
-      action,
-      language: lang,
-      page_location: window.location.href,
+  const [openFaqs, setOpenFaqs] = useState<Set<number>>(() => new Set());
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqs((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
     });
   };
 
-  const go = (page: string, action: string) => {
-    track(action);
-    onNavigate(page);
+  const buildWhatsappMessage = (item: Package) => {
+    const inverterLabel = item.inverterModels.join(' / ');
+    const localizedIntro = {
+      az: `Salam, Volt.az saytındakı ${item.capacityKw} kW quraşdırılma paketi ilə maraqlanıram.`,
+      en: `Hello, I am interested in the ${item.capacityKw} kW installation package on Volt.az.`,
+      ru: `Здравствуйте, меня интересует пакет установки ${item.capacityKw} кВт на Volt.az.`,
+      tr: `Merhaba, Volt.az sitesindeki ${item.capacityKw} kW kurulum paketiyle ilgileniyorum.`,
+    }[lang];
+    const detailLabels = {
+      az: { package: 'Paket', price: 'Qiymət', panels: 'Panellər', inverter: 'İnverter' },
+      en: { package: 'Package', price: 'Price', panels: 'Panels', inverter: 'Inverter' },
+      ru: { package: 'Пакет', price: 'Цена', panels: 'Панели', inverter: 'Инвертор' },
+      tr: { package: 'Paket', price: 'Fiyat', panels: 'Paneller', inverter: 'İnverter' },
+    }[lang];
+
+    return [
+      localizedIntro,
+      '',
+      `${detailLabels.package}: ${item.capacityKw} kW`,
+      `${detailLabels.price}: ${item.priceAzn.toLocaleString(localeByLanguage[lang])} AZN`,
+      `${detailLabels.panels}: ${item.panelCount} × ${item.panelWattage} W`,
+      `${detailLabels.inverter}: ${inverterLabel}`,
+      '',
+      t.whatsappClosing,
+    ].join('\n');
   };
 
   return (
-    <div className="min-h-screen bg-white text-[var(--color-text)]">
-      <section className="relative overflow-hidden bg-[var(--color-dark)] py-4">
-        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-4 md:px-12">
-          <button
-            onClick={() => onNavigate('home')}
-            className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-[color-mix(in_srgb,var(--color-primary)_70%,white)] transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
-            Volt.az
-          </button>
-          <span className="max-w-[65%] truncate text-right text-[10px] font-black uppercase tracking-[0.18em] text-white md:text-xs">
-            {t.eyebrow}
-          </span>
-        </div>
-      </section>
+    <main className="min-h-screen bg-white text-slate-900">
+      <section className="bg-white px-4 pb-8 pt-6 md:px-12 md:pb-12 md:pt-10">
+        <div className="group relative isolate mx-auto flex min-h-[38rem] max-w-7xl items-end overflow-hidden rounded-[2rem] border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_28px_70px_-42px_rgba(15,23,42,0.45)] sm:min-h-[34rem] md:items-center md:rounded-[2.5rem]">
+          <picture className="absolute inset-0 -z-20">
+            <source media="(max-width: 767px)" srcSet="/solar-installation-packages-mobile.webp" />
+            <img
+              src="/solar-installation-packages-desktop.webp"
+              alt=""
+              width="1942"
+              height="809"
+              fetchPriority="high"
+              decoding="async"
+              aria-hidden="true"
+              className="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+          </picture>
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-950/55 via-transparent to-slate-950/10 md:bg-gradient-to-r md:from-slate-950/35 md:via-transparent md:to-transparent" />
 
-      <section className="bg-slate-50 py-8 md:py-14">
-        <div className="mx-auto max-w-7xl px-4 md:px-12">
-          <div className="grid overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-2xl shadow-slate-900/10 lg:grid-cols-[1.05fr_.95fr]">
-            <div className="flex flex-col justify-center p-6 sm:p-9 md:p-12 lg:p-14">
-              <div className="mb-5 flex items-center gap-3">
-                <span className="h-px w-8 bg-[var(--color-primary)]" />
-                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[var(--color-primary)] md:text-[10px]">
-                  {t.eyebrow}
-                </p>
-              </div>
-              <h1 className="max-w-3xl text-3xl font-black leading-[1.08] tracking-tight text-slate-900 md:text-5xl">
+          <div className="w-full p-4 sm:p-6 md:p-10 lg:p-12">
+            <div className="max-w-xl rounded-[1.5rem] border border-white/70 bg-white/95 p-6 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.12),0_24px_60px_-28px_rgba(15,23,42,0.55)] backdrop-blur-md sm:p-8 md:rounded-[2rem] md:p-10">
+              <h1 className="text-balance text-3xl font-black leading-[1.08] tracking-[-0.035em] sm:text-4xl md:text-5xl">
                 {t.title}
               </h1>
-              <p className="mt-5 max-w-2xl text-sm font-medium leading-7 text-slate-500 md:text-base md:leading-8">
+              <p className="mt-5 max-w-lg text-sm font-medium leading-7 text-slate-600 md:text-base md:leading-8">
                 {t.lead}
               </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <button
-                  onClick={() => go('calculator', 'calculator')}
-                  className="group flex items-center justify-center gap-3 rounded-2xl bg-[var(--color-primary)] px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-dark)] shadow-lg shadow-slate-900/10 transition-all hover:-translate-y-0.5"
-                >
-                  {t.estimate}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-                <button
-                  onClick={() => go('projects', 'projects')}
-                  className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-slate-700 transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-dark)]"
-                >
-                  {t.projects}
-                </button>
-              </div>
-            </div>
-
-            <div className="relative min-h-[330px] overflow-hidden lg:min-h-[520px]">
-              <img
-                src="/solar-installation-roof.webp"
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                decoding="async"
-                fetchPriority="high"
-                aria-hidden="true"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-dark)] via-[color-mix(in_srgb,var(--color-dark)_20%,transparent)] to-transparent" />
-              <div className="absolute inset-x-4 bottom-4 rounded-[1.5rem] border border-white/15 bg-[color-mix(in_srgb,var(--color-dark)_88%,transparent)] p-5 shadow-xl backdrop-blur-md sm:inset-x-6 sm:bottom-6 sm:p-6">
-                <div className="grid gap-3">
-                  {t.trust.map((item) => (
-                    <div key={item} className="flex items-center gap-3 text-xs font-bold leading-5 text-white sm:text-sm">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]">
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      </span>
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <a
+                href="#installation-packages"
+                className="mt-7 inline-flex min-h-12 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[var(--color-dark)] px-5 py-3 text-[10px] font-black uppercase tracking-[0.13em] text-white transition-[background-color,color,transform] duration-150 hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)] active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+              >
+                {t.viewPackages}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-14 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-12">
-          <div className="mb-9 max-w-2xl">
-            <div className="mb-3 flex items-center gap-3">
-              <span className="h-px w-8 bg-[var(--color-primary)]" />
-              <Wrench className="h-4 w-4 text-[var(--color-primary)]" strokeWidth={1.8} />
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 md:text-4xl">{t.processTitle}</h2>
-          </div>
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {t.process.map((item, index) => {
-              const Icon = processIcons[index];
-              return (
-                <article key={item.title} className="group rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-xl">
-                  <div className="mb-6 flex items-center justify-between">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-primary)_9%,white)] text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-dark)]">
-                      <Icon className="h-5 w-5" strokeWidth={1.8} />
-                    </span>
-                    <span className="text-[10px] font-black tracking-[0.18em] text-slate-300">0{index + 1}</span>
-                  </div>
-                  <h3 className="text-base font-black text-slate-900">{item.title.replace(/^\d+\.\s*/, '')}</h3>
-                  <p className="mt-3 text-xs font-medium leading-6 text-slate-500">{item.text}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-100 bg-[var(--color-surface)] py-14 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-12">
-          <div className="mb-9 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <div className="mb-3 flex items-center gap-3">
-                <span className="h-px w-8 bg-[var(--color-primary)]" />
-                <Sun className="h-4 w-4 text-[var(--color-primary)]" />
-              </div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-900 md:text-4xl">{t.solutionsTitle}</h2>
-            </div>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {t.solutions.map((item, index) => {
-              const Icon = solutionIcons[index];
-              return (
-                <article key={item.title} className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-dark)] text-[var(--color-primary)]">
-                    <Icon className="h-5 w-5" strokeWidth={1.8} />
-                  </div>
-                  <h3 className="mt-6 text-lg font-black text-slate-900">{item.title}</h3>
-                  <p className="mt-3 text-sm font-medium leading-7 text-slate-500">{item.text}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14 md:py-20">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 md:px-12 lg:grid-cols-[1.05fr_.95fr]">
-          <article className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-sm md:p-10">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--color-primary)_10%,white)] text-[var(--color-primary)]">
-              <Ruler className="h-5 w-5" strokeWidth={1.8} />
-            </div>
-            <h2 className="mt-6 text-2xl font-black tracking-tight text-slate-900 md:text-3xl">{t.sizingTitle}</h2>
-            <p className="mt-4 text-sm font-medium leading-7 text-slate-500 md:text-base md:leading-8">{t.sizingText}</p>
-            <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              {t.sizes.map((size) => (
-                <span key={size} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-700">
-                  <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />
-                  {size}
-                </span>
-              ))}
-            </div>
-          </article>
-
-          <article className="rounded-[2rem] bg-[var(--color-dark)] p-7 text-white shadow-xl shadow-slate-900/10 md:p-10">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-[var(--color-primary)]">
-              <ShieldCheck className="h-5 w-5" strokeWidth={1.8} />
-            </div>
-            <h2 className="mt-6 text-2xl font-black tracking-tight md:text-3xl">{t.whyTitle}</h2>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {t.why.map((item) => (
-                <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs font-bold leading-5 text-slate-200">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary)]" strokeWidth={2.5} />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-100 bg-slate-50 py-14 md:py-20">
-        <div className="mx-auto max-w-4xl px-4 md:px-12">
-          <div className="mb-9 text-center">
-            <div className="mb-4 flex items-center justify-center gap-3">
-              <span className="h-px w-8 bg-[var(--color-primary)]" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">FAQ</span>
-              <span className="h-px w-8 bg-[var(--color-primary)]" />
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 md:text-4xl">{t.faqTitle}</h2>
-          </div>
-          <div className="space-y-3">
-            {t.faq.map((item) => (
-              <details key={item.question} className="group rounded-2xl border border-slate-100 bg-white px-5 py-1 shadow-sm open:border-[var(--color-primary)] md:px-6">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-sm font-black text-slate-900">
-                  {item.question}
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-[var(--color-primary)]">
-                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" strokeWidth={2.5} />
-                  </span>
-                </summary>
-                <p className="border-t border-slate-100 py-5 text-sm font-medium leading-7 text-slate-500">{item.answer}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-4 py-14 md:px-12 md:py-20">
+      <section id="installation-packages" className="scroll-mt-24 bg-white px-4 pb-16 pt-12 md:px-12 md:pb-24 md:pt-16">
         <div className="mx-auto max-w-7xl">
-          <div className="relative overflow-hidden rounded-[2rem] bg-[var(--color-primary)] p-7 text-[var(--color-dark)] shadow-xl shadow-slate-900/10 md:p-12">
-            <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-            <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
-              <div className="max-w-3xl">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-dark)] text-[var(--color-primary)]">
-                  <Sun className="h-5 w-5" strokeWidth={1.8} />
-                </div>
-                <h2 className="text-2xl font-black leading-tight md:text-4xl">{t.finalTitle}</h2>
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 opacity-80">{t.finalText}</p>
-              </div>
-              <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
-                <button
-                  onClick={() => go('solar-panels', 'panels')}
-                  className="rounded-2xl border border-[color-mix(in_srgb,var(--color-dark)_22%,transparent)] bg-white px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em]"
+          <div className="mx-auto mb-9 max-w-2xl text-center md:mb-12">
+            <h2 className="text-3xl font-black tracking-[-0.025em] md:text-5xl">{t.packagesTitle}</h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm font-medium leading-7 text-slate-500 md:text-base">{t.packagesLead}</p>
+          </div>
+
+          <div className="grid items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
+            {packages.map((item) => {
+              const futurePriceAzn = Math.round(item.priceAzn * 1.12);
+              const whatsappMessage = buildWhatsappMessage(item);
+              const whatsappHref = `https://wa.me/994504180001?text=${encodeURIComponent(whatsappMessage)}`;
+              const analyticsContext = JSON.stringify({
+                source: 'solar_installation_packages',
+                package: {
+                  capacityKw: item.capacityKw,
+                  priceAzn: item.priceAzn,
+                  futurePriceAzn,
+                  panelCount: item.panelCount,
+                  panelWattage: item.panelWattage,
+                  inverterModels: item.inverterModels,
+                },
+              });
+
+              return (
+                <article
+                  key={item.capacityKw}
+                  className={`relative flex min-w-0 flex-col overflow-hidden rounded-[1.75rem] border p-6 transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(15,23,42,0.08),0_28px_64px_-36px_rgba(51,65,85,0.48)] motion-reduce:transform-none motion-reduce:transition-none sm:p-8 ${
+                    item.recommended
+                      ? 'border-[color-mix(in_srgb,var(--color-primary)_48%,#cbd5e1)] bg-[color-mix(in_srgb,var(--color-primary)_4%,white)] shadow-[0_1px_2px_rgba(15,23,42,0.08),0_24px_56px_-38px_rgba(51,65,85,0.42)] hover:border-[var(--color-primary)]'
+                      : 'border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06),0_20px_48px_-38px_rgba(51,65,85,0.34)] hover:border-slate-300'
+                  }`}
                 >
-                  {{ az: 'Panellərə bax', en: 'View panels', ru: 'Смотреть панели', tr: 'Panellere bak' }[lang]}
-                </button>
-                <button
-                  onClick={() => go('calculator', 'final_calculator')}
-                  className="rounded-2xl bg-[var(--color-dark)] px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em] text-white"
-                >
-                  {t.estimate}
-                </button>
-                <button
-                  onClick={() => go('contact', 'contact')}
-                  className="rounded-2xl border border-[color-mix(in_srgb,var(--color-dark)_22%,transparent)] bg-white/20 px-6 py-4 text-[10px] font-black uppercase tracking-[0.14em]"
-                >
-                  {t.contact}
-                </button>
-              </div>
-            </div>
+                  {item.recommended && (
+                    <div className="absolute right-5 top-5 rounded-full border border-[color-mix(in_srgb,var(--color-primary)_35%,#cbd5e1)] bg-white px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-slate-700 sm:right-7 sm:top-7">
+                      {t.recommended}
+                    </div>
+                  )}
+
+                  <div className={item.recommended ? 'pr-28' : ''}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{t.packageLabel}</p>
+                  </div>
+
+                  <div className="mt-7 flex items-end justify-between gap-4 border-b border-slate-200 pb-7">
+                    <h3 className="shrink-0 pb-0.5 text-3xl font-black tracking-[-0.03em] tabular-nums">
+                      {item.capacityKw}<span className="whitespace-nowrap">&nbsp;kW</span>
+                    </h3>
+                    <div className="min-w-0 text-right">
+                      <del className="text-base font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
+                        {futurePriceAzn.toLocaleString(localeByLanguage[lang])}&nbsp;AZN
+                      </del>
+                      <div className="mt-1 flex items-end justify-end gap-1.5">
+                        <span className="text-3xl font-black tracking-[-0.04em] tabular-nums sm:text-4xl">
+                        {item.priceAzn.toLocaleString(localeByLanguage[lang])}
+                        </span>
+                        <span className="whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">AZN</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 flex-col pt-7">
+                    <p className="mb-4 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{t.included}</p>
+                    <ul className="space-y-3.5">
+                      <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]">
+                          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                        </span>
+                        {t.panel(item.panelCount, item.panelWattage)}
+                      </li>
+                      <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]">
+                          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">{t.inverter}</span>
+                          {item.inverterModels.map((model) => (
+                            <span key={model} className="block break-words" translate="no">{model}</span>
+                          ))}
+                        </span>
+                      </li>
+                      <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]">
+                          <Wrench className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                        {t.mounting}
+                      </li>
+                      <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]">
+                          <Plug className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                        {t.gridConnection}
+                      </li>
+                    </ul>
+
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-analytics-placement="solar_installation_package"
+                      data-whatsapp-interaction="installation_package_quote"
+                      data-whatsapp-language={lang}
+                      data-whatsapp-context={analyticsContext}
+                      className={`mt-8 inline-flex min-h-14 touch-manipulation items-center justify-center gap-3 rounded-xl px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.13em] transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+                        item.recommended
+                          ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-accent)] focus-visible:ring-offset-white'
+                          : 'bg-[var(--color-dark)] text-white hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)] focus-visible:ring-offset-white'
+                      }`}
+                    >
+                      <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                      {t.cta}
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
-    </div>
+
+      <section className="border-t border-slate-100 bg-white px-4 py-16 text-slate-900 md:px-12 md:py-24">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-10 text-center md:mb-12">
+            <span className="relative mx-auto block h-14 w-[4.5rem]" aria-hidden="true">
+              <span className="absolute bottom-0 right-0 h-9 w-11 rounded-[0.85rem] border-2 border-slate-900 bg-white after:absolute after:-bottom-1.5 after:right-2 after:h-3 after:w-3 after:rotate-45 after:border-b-2 after:border-r-2 after:border-slate-900 after:bg-white" />
+              <span className="absolute left-0 top-0 z-10 flex h-10 w-[3.4rem] items-center justify-center rounded-[0.9rem] bg-slate-900 text-[0.8rem] font-black tracking-[-0.02em] text-white after:absolute after:-bottom-1.5 after:left-2 after:h-3 after:w-3 after:rotate-45 after:bg-slate-900">
+                FAQ
+              </span>
+            </span>
+            <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.025em] md:text-4xl">{t.faqTitle}</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-7 text-slate-500">{t.faqLead}</p>
+          </div>
+
+          <div className="space-y-3">
+            {t.faq.map((item, index) => {
+              const isOpen = openFaqs.has(index);
+              const buttonId = `installation-faq-button-${index}`;
+              const panelId = `installation-faq-panel-${index}`;
+              return (
+                <article
+                  key={item.question}
+                  className={`overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none ${isOpen ? 'border-[color-mix(in_srgb,var(--color-primary)_55%,#cbd5e1)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.4)]' : 'border-slate-200'}`}
+                >
+                  <button
+                    id={buttonId}
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => toggleFaq(index)}
+                    className="flex min-h-[4.5rem] w-full touch-manipulation items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] md:px-6 md:text-base"
+                  >
+                    {item.question}
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-700 transition-[background-color,color] duration-200 motion-reduce:transition-none ${isOpen ? 'bg-[var(--color-primary)] text-[var(--color-dark)]' : 'bg-slate-100'}`}>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} strokeWidth={2.5} aria-hidden="true" />
+                    </span>
+                  </button>
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={buttonId}
+                    className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="mx-5 border-t-2 border-slate-200 pb-6 pt-5 text-sm font-medium leading-7 text-slate-600 md:mx-6 md:pr-12">{item.answer}</p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    </main>
   );
 };
 

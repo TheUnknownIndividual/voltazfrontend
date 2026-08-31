@@ -113,6 +113,91 @@
   --color-text: #334155;
 }
 
+/* Visible no-JavaScript/prerender shell. React replaces this with the matching
+   interactive page after hydration; crawlers and no-JS visitors keep useful content. */
+.seo-prerender {
+  color: #0f172a;
+  margin: 0 auto;
+  max-width: 80rem;
+  min-height: 100vh;
+  padding: 7rem 1rem 4rem;
+}
+.seo-prerender > h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  max-width: 64rem;
+}
+.seo-prerender > p,
+.seo-prerender section p {
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 54rem;
+}
+.seo-prerender section {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 2rem;
+  padding-top: 2rem;
+}
+.seo-prerender h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: .65rem; }
+.seo-prerender h3 { font-size: 1rem; font-weight: 850; margin-top: 1.25rem; }
+.seo-prerender nav { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-top: 2.5rem; }
+.seo-prerender a { color: #5f7c00; font-weight: 800; text-decoration: underline; text-underline-offset: .2rem; }
+
+/* Keep crawlable prerender content in the document while presenting a stable,
+   branded handoff to visitors until React has mounted. The cover only applies
+   when JavaScript is available, so no-JS visitors still receive the content. */
+.js-enabled #root:empty::before,
+.js-enabled .seo-prerender::before {
+  background: #fff;
+  content: '';
+  inset: 0;
+  position: fixed;
+  z-index: 2147483646;
+}
+
+.js-enabled #root:empty::after,
+.js-enabled .seo-prerender::after {
+  animation: volt-loading-pulse 1.5s ease-in-out .35s infinite;
+  background: url('/volt-logo.png') center / contain no-repeat;
+  content: '';
+  height: 7rem;
+  left: 50%;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 7rem;
+  z-index: 2147483647;
+  opacity: 0;
+}
+
+@keyframes volt-loading-pulse {
+  0%, 100% { opacity: .72; }
+  50% { opacity: 1; }
+}
+
+.hero-slider-fallback-logo,
+.branded-page-loader-logo {
+  animation: volt-loading-reveal .18s ease-out .35s forwards;
+  opacity: 0;
+}
+
+@keyframes volt-loading-reveal {
+  to { opacity: .8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js-enabled #root:empty::after,
+  .js-enabled .seo-prerender::after,
+  .hero-slider-fallback-logo,
+  .branded-page-loader-logo {
+    animation: none;
+    opacity: .8;
+  }
+}
+
 /* The project tracker is intentionally distinct from the rest of the admin UI. */
 .admin-project-tracker,
 .admin-project-tracker input,
@@ -397,9 +482,10 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 }
 .product-description-ellipsis {
   display: inline;
-  margin-left: -1px;
-  padding: 0 1px;
-  border-radius: 999px;
+  margin-left: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-primary);
   font: inherit;
   font-weight: 900;
@@ -409,8 +495,9 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 }
 .product-description-ellipsis:hover,
 .product-description-ellipsis:focus-visible {
-  background: color-mix(in srgb, var(--color-primary) 12%, white);
+  background: transparent;
   color: var(--color-dark);
+  text-decoration: underline;
   outline: none;
 }
 .product-order-button {
@@ -616,15 +703,13 @@ section.bg-emerald-950 button.text-emerald-100\/60 {
 .site-header-theme .text-slate-500,
 .site-header-theme .text-slate-600 { color: var(--color-text); }
 .site-header-theme input:focus { border-color: var(--color-primary); }
-.site-header-theme input[type="text"] {
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
-.site-header-theme input[type="text"]:focus {
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-primary) 28%, transparent);
+.site-header-theme .header-search-input,
+.site-header-theme .header-search-input:focus {
+  box-shadow: none;
 }
 @media (min-width: 1024px) {
   .site-header-theme {
-    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    box-shadow: none;
   }
   .site-desktop-nav {
     max-height: 3.5rem;

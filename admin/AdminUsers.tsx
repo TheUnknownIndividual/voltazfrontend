@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { AdminPage, type AdminActivity, type AdminUser, createAdminUser, deleteAdminUser, getAdminActivity, getAdminUsers, resetAdminPassword, updateAdminAccess } from '../api/adminUsers';
 import { useNotification } from '../contexts/NotificationContext';
-import { createAdminTelegramConnectionLink, type TelegramConnectionLink } from '../api/adminTelegramConnections';
+import { createAdminTelegramConnectionLink, getAdminTelegramConnectionStatus, type TelegramConnectionLink, type TelegramConnectionStatus } from '../api/adminTelegramConnections';
 
 const pageOptions: Array<{ page: AdminPage; label: string }> = [
   { page: AdminPage.Stats, label: 'Statistika' }, { page: AdminPage.Analytics, label: 'Analytics' }, { page: AdminPage.Orders, label: 'Sifarişlər' }, { page: AdminPage.Requests, label: 'Müraciətlər' },
   { page: AdminPage.ServiceRequests, label: 'Xidmət müraciətləri' }, { page: AdminPage.PartnershipRequests, label: 'Tərəfdaşlıq müraciətləri' }, { page: AdminPage.Warehouse, label: 'Məhsullar' }, { page: AdminPage.SolarCalculator, label: 'Solar kalkulyator' },
-  { page: AdminPage.ProjectTracker, label: 'Project tracker' }, { page: AdminPage.ExecutionProjects, label: 'İcra olunan layihələr' }, { page: AdminPage.Accounting, label: 'Mühasibatlıq' }, { page: AdminPage.Projects, label: 'Layihələr' }, { page: AdminPage.Settings, label: 'Sistem parametrləri' }, { page: AdminPage.Verification, label: 'Sənəd doğrulaması' },
+  { page: AdminPage.ProjectTracker, label: 'Project tracker' }, { page: AdminPage.ExecutionProjects, label: 'İcra olunan layihələr' }, { page: AdminPage.Projects, label: 'Layihələr' }, { page: AdminPage.Settings, label: 'Sistem parametrləri' }, { page: AdminPage.Verification, label: 'Sənəd doğrulaması' },
+  { page: AdminPage.MessageInbox, label: 'Meta Mesajları' },
+  { page: AdminPage.WhatsAppOnboarding, label: 'WhatsApp bağlantısı' },
 ];
 type Draft = { username: string; password: string; displayName: string; allowedPages: AdminPage[]; canDeleteProjects: boolean; canEditProjects: boolean; canApproveWarehouseMovements: boolean; isStakeholder: boolean; monthlySalary: string; clearSalary: boolean; telegramChatId: string; isActive: boolean };
 const blank = (): Draft => ({ username: '', password: '', displayName: '', allowedPages: [], canDeleteProjects: false, canEditProjects: false, canApproveWarehouseMovements: false, isStakeholder: false, monthlySalary: '', clearSalary: false, telegramChatId: '', isActive: true });
@@ -20,9 +22,29 @@ const AdminUsers: React.FC<{ adminSession: AdminUser; openActivityUserId?: numbe
   const [activity, setActivity] = useState<AdminActivity[]>([]);
   const [open, setOpen] = useState(false);
   const [connectionLink, setConnectionLink] = useState<TelegramConnectionLink | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<TelegramConnectionStatus | null>(null);
   const canManage = adminSession.isSuperAdmin;
   const load = async () => { try { setUsers(await getAdminUsers()); } catch { showNotification('Admin istifadəçiləri yüklənmədi.', 'error'); } };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!connectionLink) return;
+    if (connectionStatus && connectionStatus.linkState !== 'valid') return;
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const status = await getAdminTelegramConnectionStatus(connectionLink.adminUserId);
+        if (!disposed) {
+          setConnectionStatus(status);
+          if (status.linkState === 'redeemed') void load();
+        }
+      } catch {
+        if (!disposed) setConnectionStatus(null);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 3000);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, [connectionLink?.adminUserId, connectionLink?.url, connectionStatus?.linkState]);
   useEffect(() => { if (openActivityUserId) { const user = users.find((item) => item.id === openActivityUserId); if (user) showUserActivity(user); onActivityOpened?.(); } }, [openActivityUserId, users]);
   const close = () => { setOpen(false); setEditing(null); setDraft(blank()); };
   const beginEdit = (user: AdminUser) => { setEditing(user); setDraft({ username: user.username, password: '', displayName: user.displayName, allowedPages: user.allowedPages || [], canDeleteProjects: user.canDeleteProjects, canEditProjects: user.canEditProjects, canApproveWarehouseMovements: user.canApproveWarehouseMovements, isStakeholder: user.isStakeholder, monthlySalary: '', clearSalary: false, telegramChatId: user.telegramChatId ? String(user.telegramChatId) : '', isActive: user.isActive }); setOpen(true); };
@@ -35,7 +57,7 @@ const AdminUsers: React.FC<{ adminSession: AdminUser; openActivityUserId?: numbe
       else {
         const created = await createAdminUser(payload);
         await load(); close(); showNotification('Sub-admin məlumatı yadda saxlanıldı.');
-        try { setConnectionLink(await createAdminTelegramConnectionLink(created.id)); }
+        try { setConnectionStatus(null); setConnectionLink(await createAdminTelegramConnectionLink(created.id)); }
         catch { showNotification('İstifadəçi yaradıldı. Telegram linki üçün bot parametrlərini tamamlayın.', 'warning'); }
         return;
       }
@@ -43,14 +65,51 @@ const AdminUsers: React.FC<{ adminSession: AdminUser; openActivityUserId?: numbe
     } catch (error: any) { showNotification(error?.response?.data?.error?.details || 'Məlumat yadda saxlanmadı.', 'error'); }
   };
   const remove = async (user: AdminUser) => { if (await confirm(`${user.displayName} silinsin?`)) { try { await deleteAdminUser(user.id); await load(); showNotification('Sub-admin silindi.'); } catch { showNotification('Sub-admin silinmədi.', 'error'); } } };
-  const regenerateTelegramLink = async (user: AdminUser) => { try { setConnectionLink(await createAdminTelegramConnectionLink(user.id)); } catch (error: any) { showNotification(error?.response?.data?.error?.details || 'Telegram linki yaradıla bilmədi.', 'error'); } };
+  const regenerateTelegramLink = async (user: AdminUser) => { try { setConnectionStatus(null); setConnectionLink(await createAdminTelegramConnectionLink(user.id)); } catch (error: any) { showNotification(error?.response?.data?.error?.details || 'Telegram linki yaradıla bilmədi.', 'error'); } };
   const showUserActivity = async (user: AdminUser) => { try { const result = await getAdminActivity(user.id); setActivity(result.items); setActivityUser(user); } catch { showNotification('Fəaliyyət yüklənmədi.', 'error'); } };
 
   return <section className="space-y-6 animate-in fade-in duration-300">
     <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Admin nəzarəti</p><h2 className="mt-1 text-2xl font-black text-slate-900">İstifadəçilər Siyahısı</h2><p className="mt-1 text-sm text-slate-500">Telegram Chat ID bot-da <code>/id</code> yazdıqdan sonra burada bağlanır.</p></div>{canManage && <button onClick={() => { close(); setOpen(true); }} className="rounded-xl bg-emerald-600 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white">Sub-admin yarat</button>}</div>
     <div className="overflow-x-auto rounded-3xl border border-slate-100 bg-white shadow-sm"><table className="w-full text-left"><thead className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-400"><tr><th className="px-6 py-4">Hesab</th><th className="px-6 py-4">İcazələr</th><th className="px-6 py-4">Maaş</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Əməliyyat</th></tr></thead><tbody className="divide-y divide-slate-50">{users.map((user) => <tr key={user.id} className="text-sm"><td className="px-6 py-5"><div className="font-black text-slate-900">{user.displayName}</div><div className="text-xs text-slate-400">{user.username} {user.isSuperAdmin ? '• Tam admin' : '• Sub-admin'}</div></td><td className="px-6 py-5 text-xs text-slate-500">{user.isSuperAdmin ? 'Bütün səhifələr' : `${user.allowedPages?.length || 0} səhifə`}{user.canApproveWarehouseMovements ? ' • anbar təsdiqi' : ''}{user.isStakeholder ? ' • stakeholder' : ''}{user.telegramChatId ? ' • Telegram bağlı' : ''}</td><td className="px-6 py-5 text-xs font-bold text-slate-500">{user.hasSalary ? 'Müəyyən edilib' : 'Təyin edilməyib'}<span className="block text-[10px] font-normal text-slate-400">Məbləğ yalnız Mühasibatlıqda</span></td><td className="px-6 py-5"><span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase ${user.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{user.isActive ? 'Aktiv' : 'Deaktiv'}</span></td><td className="px-6 py-5 text-right">{canManage && !user.isSuperAdmin && <div className="flex justify-end gap-2"><button onClick={() => beginEdit(user)} className="rounded-lg bg-slate-100 px-3 py-2 text-[9px] font-black uppercase text-slate-600">Düzəlt</button><button onClick={() => regenerateTelegramLink(user)} className="rounded-lg bg-sky-50 px-3 py-2 text-[9px] font-black uppercase text-sky-700">Telegram linki</button><button onClick={() => showUserActivity(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-[9px] font-black uppercase text-blue-700">Analytics</button><button onClick={() => remove(user)} className="rounded-lg bg-red-50 px-3 py-2 text-[9px] font-black uppercase text-red-600">Sil</button></div>}</td></tr>)}</tbody></table></div>
     {(open || activityUser) && <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) { close(); setActivityUser(null); } }}><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">{activityUser ? <><div className="mb-5 flex justify-between"><div><h3 className="text-xl font-black">{activityUser.displayName} — fəaliyyət</h3><p className="text-xs text-slate-500">Son admin əməliyyatları</p></div><button onClick={() => setActivityUser(null)}>×</button></div><div className="space-y-2">{activity.map((item) => <div key={item.id} className="rounded-xl bg-slate-50 p-4"><div className="flex justify-between text-xs font-black"><span>{item.action}</span><span className={item.succeeded ? 'text-emerald-600' : 'text-red-600'}>{item.succeeded ? 'Uğurlu' : 'Uğursuz'}</span></div><p className="mt-1 text-xs text-slate-500">{item.summary || item.targetType || 'Sistem'}</p></div>)}</div></> : <><div className="mb-5 flex justify-between"><div><h3 className="text-xl font-black">{editing ? 'Sub-admini düzəlt' : 'Sub-admin yarat'}</h3><p className="text-xs text-slate-500">Stakeholder bildiriş alır; maaş məbləği bu səhifədə göstərilmir.</p></div><button onClick={close}>×</button></div><div className="grid gap-4 md:grid-cols-2"><Label title="Görünən ad"><input value={draft.displayName} onChange={(e) => setDraft({ ...draft, displayName: e.target.value })} className={input}/></Label><Label title="İstifadəçi adı"><input disabled={Boolean(editing)} value={draft.username} onChange={(e) => setDraft({ ...draft, username: e.target.value })} className={input}/></Label><Label title={editing ? 'Yeni şifrə (dəyişmirsə boş)' : 'Şifrə'} wide><input type="password" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} className={input}/></Label><Label title="Aylıq əməkhaqqı (AZN)"><input type="number" min="0" step="0.01" value={draft.monthlySalary} onChange={(e) => setDraft({ ...draft, monthlySalary: e.target.value })} placeholder={editing ? 'Dəyişmək üçün yeni məbləğ' : 'Məs: 1500'} className={input}/></Label><Label title="Telegram Chat ID"><input inputMode="numeric" value={draft.telegramChatId} onChange={(e) => setDraft({ ...draft, telegramChatId: e.target.value.replace(/[^0-9-]/g, '') })} placeholder="Bot-da /id yazın" className={input}/></Label></div><p className="mt-2 text-[11px] text-slate-500">Məbləğ yalnız Mühasibatlıq səhifəsində görünür. Mövcud maaşı dəyişmədən saxlamaq üçün redaktədə sahəni boş saxlayın.</p>{editing && <label className="mt-3 flex items-center gap-2 text-xs font-bold text-rose-700"><input type="checkbox" checked={draft.clearSalary} onChange={(e) => setDraft({ ...draft, clearSalary: e.target.checked })}/> Maaşı sil</label>}<div className="mt-5 grid gap-2 sm:grid-cols-2">{pageOptions.map((option) => <label key={option.page} className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs font-bold text-slate-700"><input type="checkbox" checked={draft.allowedPages.includes(option.page)} onChange={() => togglePage(option.page)}/>{option.label}</label>)}</div><div className="mt-4 space-y-3">{[["canEditProjects", 'Layihələri redaktə edə bilər'], ["canDeleteProjects", 'Layihələri silə bilər'], ["canApproveWarehouseMovements", 'Head of Engineering — anbar hərəkətlərini təsdiqləyə bilər'], ["isStakeholder", 'Stakeholder — layihə təsdiqi bildirişi alır']].map(([key, label]) => <label key={key} className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={Boolean(draft[key as keyof Draft])} onChange={(e) => setDraft({ ...draft, [key]: e.target.checked })}/>{label}</label>)}{editing && <label className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}/>Hesab aktivdir</label>}</div><div className="mt-6 flex justify-end gap-3"><button onClick={close} className="rounded-xl px-5 py-3 text-xs font-black text-slate-500">Ləğv et</button><button onClick={save} className="rounded-xl bg-emerald-600 px-5 py-3 text-xs font-black text-white">Yadda saxla</button></div></>}</div></div>}
-    {connectionLink && <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setConnectionLink(null); }}><div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-slate-900">Telegram bağlantısı hazırdır</h3><p className="mt-2 text-sm text-slate-500">Bu linki yeni istifadəçiyə göndərin. Telegram-da Start etdikdə hesab avtomatik bağlanacaq.</p><a href={connectionLink.url} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-xl bg-sky-50 p-3 text-sm text-sky-700 underline">{connectionLink.url}</a><div className="mt-5 flex justify-end gap-3"><button onClick={() => navigator.clipboard?.writeText(connectionLink.url)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700">Kopyala</button><a href={connectionLink.url} target="_blank" rel="noreferrer" className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white">Telegram-da aç</a><button onClick={() => setConnectionLink(null)} className="rounded-xl px-4 py-2 text-xs font-black text-slate-500">Bağla</button></div></div></div>}
+    {connectionLink && (
+      <div
+        className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/45 p-4"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            setConnectionLink(null);
+            setConnectionStatus(null);
+          }
+        }}
+      >
+        <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+          <h3 className="text-xl font-black text-slate-900">Telegram bağlantısı</h3>
+          <p className="mt-2 text-sm text-slate-500">Bu link həm yeni, həm də mövcud istifadəçinin Telegram hesabını yenidən bağlamaq üçündür.</p>
+          <div className={`mt-4 rounded-xl border px-4 py-3 text-xs font-black ${
+            connectionStatus?.linkState === 'valid'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : connectionStatus?.linkState === 'redeemed'
+                ? 'border-sky-200 bg-sky-50 text-sky-700'
+                : connectionStatus?.linkState === 'expired'
+                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-500'
+          }`}>
+            {!connectionStatus && 'Linkin statusu yoxlanılır…'}
+            {connectionStatus?.linkState === 'valid' && `Link aktivdir · ${new Date(connectionLink.expiresAt).toLocaleTimeString('az-AZ')}-dək`}
+            {connectionStatus?.linkState === 'redeemed' && 'Link istifadə olunub və Telegram hesabı qoşulub.'}
+            {connectionStatus?.linkState === 'expired' && 'Linkin vaxtı bitib. Yeni link yaradın.'}
+            {connectionStatus?.linkState === 'linked' && 'Telegram hesabı artıq qoşulub. Aşağıdakı link yenidən qoşulmaq üçündür.'}
+            {connectionStatus?.linkState === 'none' && 'Aktiv Telegram linki tapılmadı.'}
+          </div>
+          <a href={connectionLink.url} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-xl bg-sky-50 p-3 text-sm text-sky-700 underline">{connectionLink.url}</a>
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <button onClick={() => navigator.clipboard?.writeText(connectionLink.url)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700">Kopyala</button>
+            <a href={connectionLink.url} target="_blank" rel="noreferrer" className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white">Telegram-da aç</a>
+            <button onClick={() => { setConnectionLink(null); setConnectionStatus(null); }} className="rounded-xl px-4 py-2 text-xs font-black text-slate-500">Bağla</button>
+          </div>
+        </div>
+      </div>
+    )}
   </section>;
 };
 const input = 'mt-1 w-full rounded-xl border border-slate-200 p-3';

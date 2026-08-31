@@ -1,0 +1,46 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Volt.az",
+    "identifier": "volt.az"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:volt.az:mcp:public-solar-catalog",
+      "displayName": "Volt.az Public Solar Catalogue MCP",
+      "type": "application/mcp-server-card+json",
+      "url": "https://volt.az/.well-known/mcp/server-card.json",
+      "description": "Public product and service discovery, non-binding solar estimates, and confirmation-first contact drafts.",
+      "representativeQueries": [
+        "Volt.az saytında ev üçün günəş panellərini tap",
+        "Bakıda aylıq elektrik hesabıma görə günəş sistemi ölçüsünü hesabla",
+        "Volt.az xidmətlərini göstər"
+      ]
+    },
+    {
+      "identifier": "urn:air:volt.az:api:public-solar",
+      "displayName": "Volt.az Public Solar API",
+      "type": "application/vnd.oai.openapi+json",
+      "url": "https://api.volt.az/swagger/v1/swagger.json",
+      "description": "OpenAPI description for Volt.az APIs, including the bounded public-agent surface.",
+      "representativeQueries": [
+        "Search the Volt.az public product catalogue",
+        "Read public details for a Volt.az solar product",
+        "List Volt.az solar services"
+      ]
+    },
+    {
+      "identifier": "urn:air:volt.az:skill:solar-advisor",
+      "displayName": "Volt Solar Advisor Skill",
+      "type": "text/markdown",
+      "url": "https://volt.az/agent-skills/volt-solar-advisor/SKILL.md",
+      "description": "Safe usage instructions for public Volt.az solar research and confirmation-first contact requests.",
+      "representativeQueries": [
+        "How should an agent use Volt.az public solar tools safely?",
+        "Prepare a Volt.az contact request for my review",
+        "Explain the limits of a Volt.az solar estimate"
+      ]
+    }
+  ],
+  "collections": []
+}

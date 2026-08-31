@@ -11,12 +11,14 @@ import Products from './components/Products';
 import InfoSection from './components/InfoSection';
 import Footer from './components/Footer';
 import PartnersSlider from './components/PartnersSlider';
+import BrandedPageLoader from './components/BrandedPageLoader';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AUTH_EXPIRED_EVENT } from './utils/constants';
 import axiosInstance from './api/axiosInstance';
 import { API_ENDPOINTS } from './utils/constants';
 import { registerPublicWebMcp } from './utils/webMcp';
 import { getLanguageFromPath, getLocalizedAlternates, localizePath, normalizeCanonicalPath, SITE_LANGUAGES, stripLanguagePrefix } from './utils/seoRoutes';
+import { setAnalyticsIdentity, trackPageView } from './utils/analytics';
 import { UploadProvider } from './contexts/UploadContext';
 import { NewsProvider } from './contexts/NewsContext';
 import { ServiceProvider } from './contexts/ServiceContext';
@@ -46,6 +48,7 @@ const HowToStartPage = lazy(() => import('./components/HowToStartPage'));
 const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
 const CartPage = lazy(() => import('./components/CartPage'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const DataDeletion = lazy(() => import('./components/DataDeletion'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PurchaseTerms = lazy(() => import('./components/PurchaseTerms'));
 const BlogPage = lazy(() => import('./components/BlogPage'));
@@ -58,7 +61,7 @@ const InvertersPage = lazy(() => import('./components/InvertersPage'));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
  
 
-type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'solar-installation' | 'solar-panels' | 'inverters' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership' | 'not-found';
+type PageView = 'home' | 'about' | 'about-detail' | 'services' | 'solar-installation' | 'solar-panels' | 'inverters' | 'projects' | 'products' | 'contact' | 'news' | 'blog' | 'credits' | 'media' | 'project-detail' | 'product-detail' | 'admin-dashboard' | 'calculator' | 'legislation' | 'pro-club' | 'pro-club-dashboard' | 'customer-dashboard' | 'video-reels' | 'order' | 'checkout' | 'faq' | 'how-to-start' | 'cart' | 'privacy-policy' | 'data-deletion' | 'terms-of-service' | 'purchase-terms' | 'necessary-documents' | 'partnership' | 'not-found';
 type Language = 'az' | 'en' | 'ru' | 'tr';
 type UserRole = 'customer' | 'master' | 'admin';
 type LocalizedText = Record<Language, string>;
@@ -69,13 +72,6 @@ type SeoMeta = {
   robots?: string;
   type?: string;
   previewImage?: string | null;
-};
-
-const HOME_SEO_INTRO: Record<Language, { title: string; text: string; link: string }> = {
-  az: { title: 'Solar Enerji və Günəş Panelləri Azərbaycanda', text: 'Ev, biznes və sənaye üçün solar enerji həlləri, günəş paneli satışı və quraşdırılması təqdim edirik. Gunes panel seçimi, sistem gücü və qiymət təklifi üçün kataloqa baxın.', link: 'Günəş panellərinə bax' },
-  en: { title: 'Solar Energy and Solar Panels in Azerbaijan', text: 'Solar panels, system design, equipment supply, and professional installation for homes, businesses, and industrial facilities across Azerbaijan.', link: 'Explore solar panels' },
-  ru: { title: 'Солнечная энергия и панели в Азербайджане', text: 'Продажа солнечных панелей, проектирование, поставка оборудования и профессиональный монтаж для дома, бизнеса и промышленности.', link: 'Смотреть солнечные панели' },
-  tr: { title: 'Azerbaycan’da Solar Enerji ve Güneş Panelleri', text: 'Evler, işletmeler ve sanayi tesisleri için güneş paneli satışı, sistem tasarımı, ekipman tedariği ve profesyonel kurulum.', link: 'Güneş panellerini incele' },
 };
 
 const getSafeProductsReturnUrl = (value: unknown) => {
@@ -812,6 +808,7 @@ const AppContent: React.FC = () => {
   const [authReLoginOpen, setAuthReLoginOpen] = useState(false);
   const [pendingCartTransfer, setPendingCartTransfer] = useState<PendingCartTransfer | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const [homeProductCategoryId, setHomeProductCategoryId] = useState<number | null>(null);
 
   useEffect(() => {
     // No-op outside browsers enrolled in Chrome's early WebMCP preview.
@@ -961,6 +958,7 @@ const AppContent: React.FC = () => {
       case 'necessary-documents': return '/necessary-documents';
       case 'partnership': return '/partnership';
       case 'privacy-policy': return '/privacy-policy';
+      case 'data-deletion': return '/data-deletion';
       case 'terms-of-service': return '/terms-of-service';
       case 'purchase-terms': return '/purchase-terms';
       case 'not-found': return '/404';
@@ -1051,6 +1049,7 @@ const AppContent: React.FC = () => {
     if (parts[0] === 'necessary-documents') return { page: 'necessary-documents' };
     if (parts[0] === 'partnership') return { page: 'partnership' };
     if (parts[0] === 'privacy-policy') return { page: 'privacy-policy' };
+    if (parts[0] === 'data-deletion') return { page: 'data-deletion' };
     if (parts[0] === 'terms-of-service' || parts[0] === 'terms') return { page: 'terms-of-service' };
     if (parts[0] === 'purchase-terms') return { page: 'purchase-terms' };
     return { page: 'not-found' };
@@ -1077,7 +1076,12 @@ const AppContent: React.FC = () => {
   const handleLanguageChange = (nextLang: Language) => {
     localStorage.setItem('lang', nextLang);
     setLang(nextLang);
-    const nextPath = pageToPath(view.page, view.id, view.extra, nextLang);
+    const currentPath = stripLanguagePrefix(location.pathname);
+    // Product filters are stored in the live URL by ProductsPage. Preserve that
+    // URL when only the language prefix changes.
+    const nextPath = currentPath === '/products'
+      ? `${localizePath(currentPath, nextLang)}${location.search}${location.hash}`
+      : pageToPath(view.page, view.id, view.extra, nextLang);
     navigate(nextPath);
   };
 
@@ -1349,14 +1353,15 @@ const AppContent: React.FC = () => {
           tr: 'Azerbaycan’da Güneş Paneli Kurulumu | Volt.az'
         },
         description: {
-          az: 'Ev və biznes üçün günəş paneli quraşdırılması: sərfiyyat analizi, texniki baxış, layihələndirmə, avadanlıq seçimi, montaj və sistemin təhvili.',
-          en: 'Solar panel installation for homes and businesses in Azerbaijan, including consumption analysis, site survey, system design, equipment selection, installation, and handover.',
-          ru: 'Установка солнечных панелей для дома и бизнеса в Азербайджане: анализ потребления, обследование, проектирование, подбор оборудования, монтаж и сдача.',
-          tr: 'Azerbaycan’da ev ve işletmeler için tüketim analizi, keşif, tasarım, ekipman seçimi, güneş paneli kurulumu ve teslim hizmeti.'
+          az: '5, 10 və 15 kW günəş enerjisi paketləri: Growatt inverter, 650 W panellər, montaj konstruksiyası və şəbəkəyə qoşulma 4 250 AZN-dən.',
+          en: '5, 10, and 15 kW solar installation packages with Growatt inverters, 650 W panels, mounting structures, and grid connection from 4,250 AZN.',
+          ru: 'Пакеты солнечной установки 5, 10 и 15 кВт с инверторами Growatt, панелями 650 Вт, монтажной конструкцией и подключением к сети от 4 250 AZN.',
+          tr: 'Growatt inverter, 650 W paneller, montaj konstrüksiyonu ve şebeke bağlantısı içeren 5, 10 ve 15 kW güneş kurulum paketleri 4.250 AZN’den.'
         },
         keywords: 'günəş paneli quraşdırılması, günəş sistemi quraşdırılması, solar panel installation Azerbaijan, güneş paneli kurulumu, установка солнечных панелей',
         robots: publicRobots,
-        type: 'website'
+        type: 'website',
+        previewImage: 'https://volt.az/solar-installation-packages-desktop.webp'
       },
       'solar-panels': {
         title: {
@@ -1524,6 +1529,15 @@ const AppContent: React.FC = () => {
           en: 'Volt.az privacy policy and user data protection.',
           ru: 'Политика конфиденциальности Volt.az и защита данных пользователей.',
           tr: 'Volt.az gizlilik politikası ve kullanıcı verilerinin korunması.'
+        }
+      },
+      'data-deletion': {
+        title: { az: 'Məlumatların silinməsi | Volt.az', en: 'Data Deletion Instructions | Volt.az', ru: 'Удаление данных | Volt.az', tr: 'Veri Silme Talimatları | Volt.az' },
+        description: {
+          az: 'Facebook, Messenger, Instagram və WhatsApp məlumatlarının silinməsi üçün Volt.az təlimatları.',
+          en: 'Volt.az instructions for requesting deletion of Facebook, Messenger, Instagram, and WhatsApp data.',
+          ru: 'Инструкции Volt.az по удалению данных Facebook, Messenger, Instagram и WhatsApp.',
+          tr: 'Facebook, Messenger, Instagram ve WhatsApp verilerinin silinmesi için Volt.az talimatları.'
         }
       },
       'terms-of-service': {
@@ -1707,6 +1721,12 @@ const AppContent: React.FC = () => {
         routeSchema.id = 'route-seo-schema';
         document.head.appendChild(routeSchema);
       }
+      const installationFaqs: Record<Language, Array<[string, string]>> = {
+        az: [['Paketin qiymətinə nələr daxildir?', 'Hər paketə göstərilən sayda 650 W günəş panelləri, qeyd olunan Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulma daxildir. Batareya və siyahıda göstərilməyən əlavə işlər paketə daxil deyil.'], ['Mənim üçün hansı paket uyğundur?', 'Uyğun paket aylıq elektrik sərfiyyatı, dam sahəsi, kölgələnmə və obyektin şəbəkə xüsusiyyətlərinə görə seçilir.'], ['Quraşdırma nə qədər vaxt aparır?', 'Əksər yaşayış obyektlərində quraşdırma adətən 1–3 gün çəkir; müddət obyektin texniki şəraitinə görə dəyişə bilər.'], ['Şəbəkə kəsiləndə sistem işləyəcəkmi?', 'Standart on-grid sistem təhlükəsizlik səbəbi ilə şəbəkə kəsildikdə dayanır. Ehtiyat enerji üçün ayrıca uyğun hibrid inverter və batareya tələb olunur.']],
+        en: [['What is included in the package price?', 'Each package includes the listed number of 650 W solar panels, the specified Growatt inverter, mounting structure, and grid connection. Batteries and additional work not listed here are not included.'], ['Which package is right for me?', 'The right package depends on monthly electricity use, roof area, shading, and the grid configuration at the property.'], ['How long does installation take?', 'Installation at most residential properties usually takes 1–3 days and can vary with site conditions.'], ['Will the system work during a power cut?', 'The standard on-grid system shuts down during a grid outage for safety. Backup power requires a separate compatible hybrid inverter and battery.']],
+        ru: [['Что входит в стоимость пакета?', 'Каждый пакет включает указанное количество панелей 650 Вт, соответствующий инвертор Growatt, монтажную конструкцию и подключение к сети. Аккумуляторы и неуказанные дополнительные работы не входят.'], ['Какой пакет подойдет мне?', 'Выбор зависит от ежемесячного потребления, площади крыши, затенения и параметров сети на объекте.'], ['Сколько времени занимает установка?', 'На большинстве жилых объектов установка обычно занимает 1–3 дня и зависит от технических условий.'], ['Будет ли система работать при отключении сети?', 'Стандартная сетевая система отключается при пропадании сети из соображений безопасности. Для резерва нужны отдельные совместимые гибридный инвертор и аккумулятор.']],
+        tr: [['Paket fiyatına neler dahildir?', 'Her pakete belirtilen sayıda 650 W güneş paneli, ilgili Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısı dahildir. Batarya ve belirtilmeyen ek işler dahil değildir.'], ['Hangi paket benim için uygun?', 'Uygun paket aylık elektrik tüketimi, çatı alanı, gölgelenme ve tesisin şebeke yapısına göre seçilir.'], ['Kurulum ne kadar sürer?', 'Çoğu konut tipi tesiste kurulum genellikle 1–3 gün sürer ve teknik koşullara göre değişebilir.'], ['Elektrik kesildiğinde sistem çalışır mı?', 'Standart şebeke bağlantılı sistem güvenlik nedeniyle kesintide kapanır. Yedek enerji için ayrıca uyumlu hibrit inverter ve batarya gerekir.']],
+      };
       const solarPanelFaqs: Record<Language, Array<[string, string]>> = {
         az: [
           ['Gunes panel qiymetleri necə hesablanır?', 'Qiymət panel sayı və gücü ilə yanaşı inverter, konstruksiya, qoruma, kabel, çatdırılma və quraşdırma şərtlərinə görə hesablanır.'],
@@ -1752,7 +1772,11 @@ const AppContent: React.FC = () => {
               { '@type': 'ListItem', position: 2, name: title.replace(' | Volt.az', ''), item: canonicalUrl },
             ],
           },
-          ...(view.page === 'solar-panels' ? [{
+          ...(view.page === 'solar-installation' ? [{
+            '@type': 'FAQPage',
+            '@id': `${canonicalUrl}#faq`,
+            mainEntity: installationFaqs[lang].map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })),
+          }] : view.page === 'solar-panels' ? [{
             '@type': 'FAQPage',
             '@id': `${canonicalUrl}#faq`,
             mainEntity: solarPanelFaqs[lang].map(([question, answer]) => ({ '@type': 'Question', name: question, acceptedAnswer: { '@type': 'Answer', text: answer } })),
@@ -1769,13 +1793,12 @@ const AppContent: React.FC = () => {
   }, [view.page, view.id, location.pathname, lang]);
 
   useEffect(() => {
-    const gtag = (window as Window & { gtag?: (...args: any[]) => void }).gtag;
-    gtag?.('event', 'page_view', {
-      page_path: `${location.pathname}${location.search}`,
-      page_title: document.title,
-      language: lang,
-    });
-  }, [location.pathname, location.search, lang]);
+    setAnalyticsIdentity(user?.email || user?.name || null);
+  }, [user?.email, user?.name]);
+
+  useEffect(() => {
+    trackPageView(lang);
+  }, [location.pathname, lang]);
 
   const renderContent = () => {
     switch (view.page) {
@@ -1851,6 +1874,7 @@ const AppContent: React.FC = () => {
       case 'faq': return <FAQPage lang={lang as any} onBack={handleBack} onNavigate={navigateTo} />;
       case 'how-to-start': return <HowToStartPage lang={lang as any} onBack={handleBack} />;
       case 'privacy-policy': return <PrivacyPolicy lang={lang as any} onBack={handleBack} />;
+      case 'data-deletion': return <DataDeletion lang={lang as any} onBack={handleBack} />;
       case 'terms-of-service': return <TermsOfService lang={lang as any} onBack={handleBack} />;
       case 'purchase-terms': return <PurchaseTerms lang={lang as any} onBack={handleBack} />;
       case 'order': return (
@@ -1960,8 +1984,6 @@ const AppContent: React.FC = () => {
               initialSubCategory={view.extra?.subCategory ?? view.extra?.subCategoryId}
               initialSearch={view.extra?.search}
               initialPage={view.extra?.page}
-              onSelectSolarPanels={() => navigateTo('solar-panels')}
-              onSelectInverters={() => navigateTo('inverters')}
             />
           </CategoryProvider>
         </ProductProvider>
@@ -1989,6 +2011,7 @@ const AppContent: React.FC = () => {
                 }
                 navigateTo('products');
               }}
+              onSelectProduct={(id) => navigateTo('product-detail', id)}
               onOrderNow={handleOrderNow}
               onAddToCart={handleAddToCart}
               lang={lang}
@@ -2000,27 +2023,23 @@ const AppContent: React.FC = () => {
         return (
           <>
             <HeroSlider lang={lang as any} onNavigate={navigateTo} />
-            <section hidden aria-hidden="true">
-              <h1>{HOME_SEO_INTRO[lang].title}</h1>
-              <p>{HOME_SEO_INTRO[lang].text}</p>
-              <button type="button" tabIndex={-1} onClick={() => navigateTo('solar-panels')}>{HOME_SEO_INTRO[lang].link}</button>
-            </section>
             <CategoryProvider>
               <HomeCategoryStrip
                 lang={lang}
-                onSelectCategory={(categoryId) => navigateTo('products', undefined, { category: categoryId })}
-                onSelectSolarPanels={() => navigateTo('solar-panels')}
-                onSelectInverters={() => navigateTo('inverters')}
+                onSelectCategory={(categoryId) => {
+                  navigateTo('products', undefined, { category: categoryId });
+                }}
               />
             </CategoryProvider>
             <ProductProvider>
               <CategoryProvider>
                 <Products
                   onSelectProduct={(id) => navigateTo('product-detail', id)}
-                  onViewAll={() => navigateTo('products')}
+                  onViewAll={() => navigateTo('products', undefined, { category: homeProductCategoryId ?? undefined })}
                   onOrderNow={handleOrderNow}
                   onAddToCart={handleAddToCart}
-                    lang={lang}
+                  selectedCategoryId={homeProductCategoryId}
+                  lang={lang}
                 />
               </CategoryProvider>
             </ProductProvider>
@@ -2067,14 +2086,14 @@ const AppContent: React.FC = () => {
 
           <Route
             path="/theme-lab"
-            element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading colour lab…</div>}><ThemeLab /></Suspense>}
+            element={<Suspense fallback={<BrandedPageLoader />}><ThemeLab /></Suspense>}
           />
 
           {/* Sənin mövcud sistem */}
           <Route
             path="/"
             element={
-              <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+              <Suspense fallback={<BrandedPageLoader />}>
                 {renderContent()}
               </Suspense>
             }
@@ -2105,6 +2124,7 @@ const AppContent: React.FC = () => {
                       }
                       navigateTo('products');
                     }}
+                    onSelectProduct={(id) => navigateTo('product-detail', id)}
                     onOrderNow={handleOrderNow}
                     onAddToCart={handleAddToCart}
                     cartPreview={
@@ -2128,14 +2148,14 @@ const AppContent: React.FC = () => {
 
           <Route
             path="/contact/confirm/:id"
-            element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading confirmation…</div>}><PublicAgentContactConfirmation /></Suspense>}
+            element={<Suspense fallback={<BrandedPageLoader />}><PublicAgentContactConfirmation /></Suspense>}
           />
 
           {/* Fallback: render the same content for other routes (renderContent driven by view state) */}
           <Route
             path="*"
             element={
-              <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+              <Suspense fallback={<BrandedPageLoader />}>
                 {renderContent()}
               </Suspense>
             }

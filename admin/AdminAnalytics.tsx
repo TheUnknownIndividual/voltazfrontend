@@ -61,6 +61,13 @@ const copy = {
     documentCount: 'Sənəd',
     lastActivity: 'Son aktivlik',
     recentActivity: 'Son fəaliyyət',
+    outOfStockDemand: 'Stok tələbi — WhatsApp “Yoxla”',
+    product: 'Məhsul',
+    variant: 'Variant',
+    initiations: 'Sorğu',
+    requestedUnits: 'İstənilən say',
+    uniqueDevices: 'Unikal cihaz',
+    noDemand: 'Seçilmiş tarix aralığında stok sorğusu yoxdur.',
     noActivity: 'Hələ fəaliyyət yoxdur.',
     loadError: 'Analytics məlumatları yüklənmədi.',
   },
@@ -94,6 +101,13 @@ const copy = {
     documentCount: 'Docs',
     lastActivity: 'Last activity',
     recentActivity: 'Recent activity',
+    outOfStockDemand: 'Stock demand — WhatsApp “Check”',
+    product: 'Product',
+    variant: 'Variant',
+    initiations: 'Requests',
+    requestedUnits: 'Units requested',
+    uniqueDevices: 'Unique devices',
+    noDemand: 'No stock checks in the selected date range.',
     noActivity: 'No activity yet.',
     loadError: 'Analytics data could not be loaded.',
   },
@@ -127,6 +141,13 @@ const copy = {
     documentCount: 'Док.',
     lastActivity: 'Активность',
     recentActivity: 'Последняя активность',
+    outOfStockDemand: 'Спрос — WhatsApp «Проверить»',
+    product: 'Товар',
+    variant: 'Вариант',
+    initiations: 'Запросы',
+    requestedUnits: 'Запрошено единиц',
+    uniqueDevices: 'Уникальные устройства',
+    noDemand: 'За выбранный период запросов наличия нет.',
     noActivity: 'Активности пока нет.',
     loadError: 'Не удалось загрузить аналитику.',
   },
@@ -295,9 +316,35 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
       return null;
     }
 
-    const inputs = payload.inputs || {};
-    const result = payload.result || {};
+    const eventContext = payload.context || payload;
+    const inputs = eventContext.inputs || {};
+    const result = eventContext.result || {};
+    const product = payload.product || {};
+    const requestMetadata = payload.requestMetadata || {};
+    const productList = Array.isArray(payload.products)
+      ? payload.products.map((item: any) => `${item?.name || item?.id || 'Product'}${item?.variant ? ` (${item.variant})` : ''} × ${item?.requestedQuantity || 1}`).join('\n')
+      : '';
     const fields = [
+      ['Interaction', payload.interactionType],
+      ['Placement', payload.placement],
+      ['Page', payload.page?.path],
+      ['Product', product.name],
+      ['Products', productList],
+      ['Product ID', product.id],
+      ['Category', product.category],
+      ['Brand', product.brand],
+      ['Variant', product.variant],
+      ['Requested quantity', product.requestedQuantity],
+      ['Available stock', product.availableStock],
+      ['Prefilled WhatsApp message', payload.prefilledMessage],
+      ['IP address', requestMetadata.ipAddress],
+      ['Device ID', requestMetadata.deviceId],
+      ['Session ID', requestMetadata.sessionId],
+      ['Interaction ID', requestMetadata.interactionId],
+      ['Client time', requestMetadata.clientOccurredAt],
+      ['Server time', requestMetadata.serverReceivedAt],
+      ['Device / browser', requestMetadata.userAgent],
+      ['Referrer', requestMetadata.referrer],
       ['Method', inputs.method],
       ['City', inputs.cityName || result.city],
       ['Address', inputs.address],
@@ -315,7 +362,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
         {fields.map(([label, value]) => (
           <div key={String(label)} className="rounded-xl bg-white px-3 py-2">
             <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</div>
-            <div className="mt-1 text-xs font-black text-slate-700">{String(value)}</div>
+            <div className="mt-1 whitespace-pre-wrap break-words text-xs font-black text-slate-700">{String(value)}</div>
           </div>
         ))}
       </div>
@@ -503,6 +550,42 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ lang = 'az', orders = [
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm xl:col-span-2">
+          <div className="border-b border-slate-50 p-6">
+            <h4 className="text-lg font-black text-slate-900">{t.outOfStockDemand}</h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <tr>
+                  <th className="px-6 py-4">{t.product}</th>
+                  <th className="px-6 py-4">{t.variant}</th>
+                  <th className="px-6 py-4">{t.initiations}</th>
+                  <th className="px-6 py-4">{t.requestedUnits}</th>
+                  <th className="px-6 py-4">{t.uniqueDevices}</th>
+                  <th className="px-6 py-4">{t.lastActivity}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {(dashboard?.outOfStockDemand || []).map((item) => (
+                  <tr key={`${item.productId}-${item.productName}-${item.variant}`}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-black text-slate-900">{item.productName || `#${item.productId}`}</div>
+                      <div className="mt-1 text-[10px] font-bold text-slate-400">{[item.brand, item.category, item.subCategory].filter(Boolean).join(' · ') || '—'}</div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-black text-slate-600">{item.variant || '—'}</td>
+                    <td className="px-6 py-4 text-sm font-black text-amber-600">{item.initiations}</td>
+                    <td className="px-6 py-4 text-sm font-black text-emerald-600">{item.requestedUnits}</td>
+                    <td className="px-6 py-4 text-sm font-black text-blue-600">{item.uniqueDevices}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-400">{formatDateTime(item.lastInteractionAt, uiLang)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {dashboard?.outOfStockDemand.length === 0 && <div className="p-6 text-xs font-bold text-slate-400">{t.noDemand}</div>}
+          </div>
+        </div>
+
         <div className="rounded-[2rem] border border-slate-100 bg-white shadow-sm">
           <div className="border-b border-slate-50 p-6">
             <h4 className="text-lg font-black text-slate-900">{t.topProjects}</h4>

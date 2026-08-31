@@ -1,9 +1,35 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { useNotification } from '../contexts/NotificationContext';
 import { useCategory } from '../contexts/CategoryContext';
 import { DEFAULT_CATEGORY_CONFIG } from '../lib/categoryConfig';
+
+type TranslationLocale = 'az' | 'en' | 'ru' | 'tr';
+
+const translationFields: Array<{ locale: TranslationLocale; code: number; label: string }> = [
+  { locale: 'az', code: 1, label: 'AZ' },
+  { locale: 'en', code: 2, label: 'EN' },
+  { locale: 'ru', code: 3, label: 'RU' },
+  { locale: 'tr', code: 4, label: 'TR' },
+];
+
+const getTranslationValue = (language: any) => String(
+  language?.categoryName || language?.subCategoryName || ''
+).trim();
+
+const getMissingTranslationLabels = (item: any) => {
+  const languages = Array.isArray(item?.languages) ? item.languages : [];
+
+  return translationFields
+    .filter(field => {
+      const language = languages.find(
+        (candidate: any) => Number(candidate?.languageCode) === field.code
+      );
+      return !getTranslationValue(language);
+    })
+    .map(field => field.label);
+};
 
 const AdminCategoryManagement: React.FC = () => {
   const config = DEFAULT_CATEGORY_CONFIG;
@@ -53,17 +79,19 @@ const AdminCategoryManagement: React.FC = () => {
   });
   const [categoryProductOptions, setCategoryProductOptions] = useState<any[]>([]);
   const [productOptionsLoading, setProductOptionsLoading] = useState(false);
+  const [translationSubmitAttempted, setTranslationSubmitAttempted] = useState(false);
+  const lastTranslationWarning = useRef('');
 
   const [brandName, setBrandName] = useState("");
   const [technologyName, setTechnologyName] = useState("");
 
   useEffect(() => {
-    getCategories();
+    void getCategories({ includeAllLanguages: true });
   }, []);
 
   useEffect(() => {
     if (selectedCategory && activeTab === "subCategories") {
-      getSubCategories(selectedCategory);
+      void getSubCategories(selectedCategory, { includeAllLanguages: true });
     }
   }, [selectedCategory, activeTab]);
   useEffect(() => {
@@ -106,12 +134,14 @@ const AdminCategoryManagement: React.FC = () => {
       homePageProductId: null,
     });
     setCategoryProductOptions([]);
+    setTranslationSubmitAttempted(false);
 
   }, [activeTab]);
 
   const getItemName = (item: any) => {
-
-const lang = item?.languages?.[0];
+    const languages = Array.isArray(item?.languages) ? item.languages : [];
+    const lang = languages.find((language: any) => Number(language?.languageCode) === 1)
+      || languages.find((language: any) => getTranslationValue(language));
 
     return (
       lang?.categoryName ||
@@ -160,6 +190,38 @@ useEffect(() => {
 
   const items = getItems();
   const categoryId = selectedCategory;
+  const managesTranslations = activeTab === 'mainCategories' || activeTab === 'subCategories';
+  const missingFormLanguages = translationFields.filter(
+    field => !formData[field.locale].trim()
+  );
+  const itemsMissingTranslations = managesTranslations
+    ? items
+      .map(item => ({ item, missing: getMissingTranslationLabels(item) }))
+      .filter(entry => entry.missing.length > 0)
+    : [];
+  const missingTranslationSignature = itemsMissingTranslations
+    .map(entry => `${entry.item.id}:${entry.missing.join(',')}`)
+    .join('|');
+
+  useEffect(() => {
+    if (!missingTranslationSignature) {
+      lastTranslationWarning.current = '';
+      return;
+    }
+
+    if (lastTranslationWarning.current === missingTranslationSignature) return;
+
+    lastTranslationWarning.current = missingTranslationSignature;
+    const preview = itemsMissingTranslations
+      .slice(0, 2)
+      .map(entry => `${getItemName(entry.item)} (${entry.missing.join('/')})`)
+      .join('; ');
+    const remainingCount = itemsMissingTranslations.length - 2;
+    showNotification(
+      `Tərcümə çatışmır: ${preview}${remainingCount > 0 ? `; +${remainingCount} element` : ''}`,
+      'warning'
+    );
+  }, [missingTranslationSignature, itemsMissingTranslations.length, showNotification]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -192,7 +254,7 @@ useEffect(() => {
 
         await deleteSubCategory(id);
 
-        await getSubCategories(categoryId);
+        await getSubCategories(categoryId, { includeAllLanguages: true });
 
         showNotification("Alt kateqoriya silindi", "warning");
 
@@ -200,7 +262,7 @@ useEffect(() => {
 
         await deleteCategory(id);
 
-        await getCategories();
+        await getCategories({ includeAllLanguages: true });
 
         showNotification("Kateqoriya silindi", "warning");
       }
@@ -213,6 +275,7 @@ useEffect(() => {
 
   const handleEdit = async (id: string) => {
     try {
+      setTranslationSubmitAttempted(false);
       let data;
 
       if (activeTab === "technologies") {
@@ -307,8 +370,14 @@ useEffect(() => {
 
   const handleSubmit = async () => {
     try {
-
-
+      if (managesTranslations && missingFormLanguages.length > 0) {
+        setTranslationSubmitAttempted(true);
+        showNotification(
+          `Tərcümələri tamamlayın: ${missingFormLanguages.map(field => field.label).join(', ')}`,
+          'warning'
+        );
+        return;
+      }
 
       if (activeTab === "technologies") {
            if (categoryId == null) {
@@ -385,7 +454,7 @@ useEffect(() => {
           showNotification("Alt kateqoriya əlavə edildi", "success");
         }
 
-        await getSubCategories(categoryId);
+        await getSubCategories(categoryId, { includeAllLanguages: true });
 
       } else {
 
@@ -409,7 +478,7 @@ useEffect(() => {
           showNotification("Kateqoriya əlavə edildi", "success");
         }
 
-        await getCategories();
+        await getCategories({ includeAllLanguages: true });
       }
 
       setFormData({
@@ -426,6 +495,7 @@ useEffect(() => {
         homePageProductId: null,
       });
       setCategoryProductOptions([]);
+      setTranslationSubmitAttempted(false);
 
     } catch (err: any) {
       const details = err?.response?.data?.error?.details;
@@ -491,6 +561,25 @@ useEffect(() => {
             </div>
           )}
 
+          {managesTranslations && itemsMissingTranslations.length > 0 && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest">
+                    {itemsMissingTranslations.length} elementdə tərcümə çatışmır
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                    Sarı nişanlı elementləri redaktə edin. Hər kateqoriya üçün AZ, EN, RU və TR adları doldurulmalıdır.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
               {activeTab === 'subCategories' ? 'Yeni Alt Kateqoriya' :
@@ -526,35 +615,35 @@ useEffect(() => {
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
                   />
                 ) : (
-                  <>
-                    <input
-                      value={formData.az}
-                      onChange={e => setFormData(prev => ({ ...prev, az: e.target.value }))}
-                      placeholder="AZ"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
-                    />
+                  translationFields.map(field => {
+                    const missing = !formData[field.locale].trim();
+                    const showMissingState = missing && (Boolean(editingItem) || translationSubmitAttempted);
 
-                    <input
-                      value={formData.en}
-                      onChange={e => setFormData(prev => ({ ...prev, en: e.target.value }))}
-                      placeholder="EN"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
-                    />
-
-                    <input
-                      value={formData.ru}
-                      onChange={e => setFormData(prev => ({ ...prev, ru: e.target.value }))}
-                      placeholder="RU"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
-                    />
-
-                    <input
-                      value={formData.tr}
-                      onChange={e => setFormData(prev => ({ ...prev, tr: e.target.value }))}
-                      placeholder="TR"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 transition-all"
-                    />
-                  </>
+                    return (
+                      <label key={field.locale} className="space-y-1">
+                        <span className="sr-only">{field.label} tərcüməsi</span>
+                        <input
+                          value={formData[field.locale]}
+                          onChange={event => setFormData(prev => ({
+                            ...prev,
+                            [field.locale]: event.target.value,
+                          }))}
+                          placeholder={field.label}
+                          aria-invalid={showMissingState}
+                          className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition-all ${
+                            showMissingState
+                              ? 'border-amber-400 ring-2 ring-amber-100 focus:border-amber-500'
+                              : 'border-slate-100 focus:border-emerald-500'
+                          }`}
+                        />
+                        {showMissingState && (
+                          <span className="block pl-1 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                            {field.label} çatışmır
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })
                 )}
 
               </div>
@@ -565,6 +654,12 @@ useEffect(() => {
                 {editingItem ? "Yenilə" : "Əlavə Et"}
               </button>
             </div>
+
+            {managesTranslations && !editingItem && !translationSubmitAttempted && (
+              <p className="text-xs font-medium text-slate-500">
+                Yeni element yaradarkən dörd dilin hamısını doldurun: AZ, EN, RU və TR.
+              </p>
+            )}
 
             {activeTab === 'mainCategories' && (
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -686,16 +781,28 @@ useEffect(() => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group gap-3"
-                >
-                  <>
+              {items.map((item) => {
+                const missingTranslations = getMissingTranslationLabels(item);
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-center justify-between rounded-2xl border p-4 group gap-3 ${
+                      missingTranslations.length > 0
+                        ? 'border-amber-200 bg-amber-50/70'
+                        : 'border-slate-100 bg-slate-50'
+                    }`}
+                  >
                     <div className="min-w-0">
                       <span className="block truncate text-sm font-bold text-slate-700">
                         {getItemName(item)}
                       </span>
+                      {missingTranslations.length > 0 && (
+                        <span className="mt-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          Çatışmır: {missingTranslations.join(', ')}
+                        </span>
+                      )}
                       {activeTab === 'mainCategories' && item.showOnHomePage && (
                         <span className="mt-1 block text-[9px] font-black uppercase tracking-widest text-emerald-600">
                           Mobil ana səhifə · sıra {item.homePageDisplayOrder}
@@ -718,9 +825,9 @@ useEffect(() => {
                         <Trash2 size={16} />
                       </button>
                     </div>
-                  </>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

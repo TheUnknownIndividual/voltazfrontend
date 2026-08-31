@@ -361,6 +361,9 @@ const t = {
   href="https://wa.me/9940504180001?text=Salam%20Volt%20əməkdaşı,%20sənədləşmə%20işləri%20barədə%20məlumat%20almaq%20istəyirəm."
   target="_blank"
   rel="noopener noreferrer"
+  data-analytics-placement="necessary_documents_cta"
+  data-whatsapp-interaction="documents_consultation"
+  data-whatsapp-language={lang}
 >
             <button className="bg-[var(--color-primary)] text-[var(--color-dark)] px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-[var(--color-dark)] transition-all shadow-2xl">
               {t.ctaBtn[lang]}

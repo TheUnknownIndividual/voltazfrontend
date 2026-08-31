@@ -4,6 +4,7 @@ import { useContact } from "../contexts/ContactContext";
 import { useEmail } from "../contexts/EmailContext";
 import PhoneNumberInput, { COUNTRY_CALLING_CODES, DEFAULT_COUNTRY_ISO2 } from './PhoneNumberInput';
 import { useNotification } from '../contexts/NotificationContext';
+import { trackConfirmedLead } from '../utils/analytics';
 
 
 interface ContactPageProps {
@@ -398,10 +399,11 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
     if (isSubmitting) return;
 
     const dialCode = COUNTRY_CALLING_CODES.find((c) => c.iso2 === phoneCountry)?.dialCode || '+994';
+    const analyticsRequestId = crypto.randomUUID();
 
     setIsSubmitting(true);
     try {
-      await createContactRequest({
+      const createdRequest = await createContactRequest({
         name: formData.firstName,
         surname: formData.lastName,
         email: formData.email,
@@ -409,6 +411,13 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
         message,
         applicationTypeId: Number(selectedType),
       });
+
+      trackConfirmedLead(
+        'generate_lead',
+        'contact_request',
+        lang || 'az',
+        createdRequest?.id ?? createdRequest?.requestId ?? analyticsRequestId,
+      );
 
       setShowSuccessPopup(true);
       showNotification(t.successTitle, 'success');

@@ -40,6 +40,8 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const [productCount, setProductCount] = useState<number>(0);
   const productsRequestIdRef = useRef(0);
   const productsCacheRef = useRef(new Map<string, any>());
+  const homeProductsRequestIdRef = useRef(0);
+  const homeProductsCacheRef = useRef(new Map<string, any>());
 
   // GET all products
   const getProducts = async (
@@ -107,23 +109,32 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // GET home products
-  const getHomeProducts = async (
+const getHomeProducts = async (
   initialCategory?: number,
   initialSubCategory?: number,
   page?: number,
   pageSize?: number
 ) => {
-  try {
-    const res = await get(
-      API_ENDPOINTS.PRODUCT.GET_PRODUCT_FOR_HOME(
-        initialCategory,
-        initialSubCategory,
-        page,
-        pageSize
-      )
-    );
+  const requestId = homeProductsRequestIdRef.current + 1;
+  homeProductsRequestIdRef.current = requestId;
+  const url = API_ENDPOINTS.PRODUCT.GET_PRODUCT_FOR_HOME(
+    initialCategory,
+    initialSubCategory,
+    page,
+    pageSize
+  );
+  const cached = homeProductsCacheRef.current.get(url);
 
-    setProductHomeData(res.data);
+  if (cached) {
+    if (requestId === homeProductsRequestIdRef.current) setProductHomeData(cached);
+    return { data: cached };
+  }
+
+  try {
+    const res = await get(url);
+
+    homeProductsCacheRef.current.set(url, res.data);
+    if (requestId === homeProductsRequestIdRef.current) setProductHomeData(res.data);
 
     return res;
   } catch (error) {

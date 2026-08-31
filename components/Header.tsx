@@ -6,6 +6,7 @@ import LoginModal from './LoginModal';
 import { useAuth } from "../contexts/AuthContext";
 import { API_ENDPOINTS } from "../utils/constants";
 import axiosInstance from "../api/axiosInstance";
+import { getLocalizedCategoryName } from "../utils/categoryLocalization";
 
 import { useCategory } from "../contexts/CategoryContext";
 
@@ -39,7 +40,6 @@ const verseQuoteByLang = {
   tr: '“Ve parlak bir kandil yarattık”',
 };
 
-
 const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, onLangChange, logoSrc = '/volt-logo.png', user, onLogout, onLogin }) => {
   const { role, logout, isAuthenticated } = useAuth();
   const {
@@ -69,8 +69,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
   };
 
   useEffect(() => {
-    getCategories();
-  }, []);
+    setActiveCategoryId(null);
+    void getCategories({ language: currentLang });
+  }, [currentLang]);
 
   useEffect(() => {
     if (!isMobileMenuOpen) return;
@@ -87,6 +88,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     let lastScrollY = window.scrollY;
     let accumulatedDistance = 0;
     let scrollDirection: 'up' | 'down' | null = null;
+    let navIsHidden = false;
+    let ignoreScrollUntil = 0;
+
+    const scrollThreshold = 16;
+    const navHideStartY = 160;
+    const navTopRevealY = 8;
+    const navTransitionDuration = 320;
 
     setIsDesktopNavHidden(false);
 
@@ -94,26 +102,56 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
       desktopNavScrollFrame.current = 0;
       const currentScrollY = Math.max(0, window.scrollY);
       const delta = currentScrollY - lastScrollY;
-      const nextDirection = delta > 0 ? 'down' : delta < 0 ? 'up' : scrollDirection;
 
-      if (currentScrollY <= 80) {
-        setIsDesktopNavHidden(false);
+      // Collapsing the sticky nav changes the document height. Ignore the
+      // scroll adjustments produced by that transition so they are not
+      // mistaken for the user reversing direction.
+      if (performance.now() < ignoreScrollUntil) {
+        lastScrollY = currentScrollY;
         accumulatedDistance = 0;
-      } else if (nextDirection && nextDirection !== scrollDirection) {
+        scrollDirection = null;
+        return;
+      }
+
+      if (currentScrollY <= navTopRevealY) {
+        if (navIsHidden) {
+          navIsHidden = false;
+          setIsDesktopNavHidden(false);
+          ignoreScrollUntil = performance.now() + navTransitionDuration;
+        }
+        accumulatedDistance = 0;
+        scrollDirection = null;
+        lastScrollY = currentScrollY;
+        return;
+      }
+
+      if (Math.abs(delta) < 0.5) {
+        lastScrollY = currentScrollY;
+        return;
+      }
+
+      const nextDirection = delta > 0 ? 'down' : 'up';
+
+      if (nextDirection !== scrollDirection) {
         scrollDirection = nextDirection;
         accumulatedDistance = Math.abs(delta);
       } else {
         accumulatedDistance += Math.abs(delta);
       }
 
-      if (currentScrollY > 80 && accumulatedDistance >= 12) {
-        if (scrollDirection === 'down') {
+      if (accumulatedDistance >= scrollThreshold) {
+        if (scrollDirection === 'down' && !navIsHidden && currentScrollY > navHideStartY) {
+          navIsHidden = true;
           setIsDesktopNavHidden(true);
           setActiveDropdown('none');
-        } else if (scrollDirection === 'up') {
+          ignoreScrollUntil = performance.now() + navTransitionDuration;
+        } else if (scrollDirection === 'up' && navIsHidden) {
+          navIsHidden = false;
           setIsDesktopNavHidden(false);
+          ignoreScrollUntil = performance.now() + navTransitionDuration;
         }
         accumulatedDistance = 0;
+        scrollDirection = null;
       }
 
       lastScrollY = currentScrollY;
@@ -132,17 +170,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     };
   }, [activePage]);
 
-  const getItemName = (item: any) => {
-
-
-    const lang = item?.languages?.[0];
-
-    return (
-      lang?.categoryName ||
-      lang?.subCategoryName ||
-      ""
-    );
-  };
+  const getItemName = (item: any, type: 'category' | 'subcategory' = 'category') => (
+    getLocalizedCategoryName(item, currentLang, type)
+  );
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -186,6 +216,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     volt: 'VOLT',
     company: currentLang === 'az' ? 'Şirkət' : currentLang === 'en' ? 'Company' : currentLang === 'ru' ? 'Компания' : 'Şirket',
     about: currentLang === 'az' ? 'Haqqımızda' : currentLang === 'en' ? 'About' : currentLang === 'ru' ? 'О нас' : 'Hakkımızda',
+    installationPage: currentLang === 'az' ? 'Quraşdırılma' : currentLang === 'en' ? 'Installation' : currentLang === 'ru' ? 'Установка' : 'Kurulum',
     aboutCompany: currentLang === 'az' ? 'Şirkət haqqında' : currentLang === 'en' ? 'About Company' : currentLang === 'ru' ? 'О компании' : 'Şirket Hakkında',
     mission: currentLang === 'az' ? 'Missiyamız' : currentLang === 'en' ? 'Our Mission' : currentLang === 'ru' ? 'Наша миссия' : 'Misyonumuz',
     vision: currentLang === 'az' ? 'Vizyonumuz' : currentLang === 'en' ? 'Our Vision' : currentLang === 'ru' ? 'Наше видение' : 'Vizyonumuz',
@@ -348,10 +379,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     return (
       <div
         onMouseDown={(event) => event.preventDefault()}
-        style={{
-          boxShadow: '0 22px 46px color-mix(in srgb, var(--color-primary) 18%, transparent)',
-        }}
-        className="absolute left-0 right-0 top-full mt-2 bg-white border border-[color-mix(in_srgb,var(--color-primary)_18%,white)] rounded-2xl z-[120] overflow-hidden"
+        className="absolute left-0 right-0 top-full mt-2 bg-white border border-[color-mix(in_srgb,var(--color-primary)_18%,white)] rounded-xl z-[120] overflow-hidden"
       >
         <div className="max-h-[70vh] overflow-y-auto overscroll-contain py-2">
           {isSearchLoading && (
@@ -563,13 +591,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
                 onKeyDown={handleSearchKeyDown}
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)',
-                  boxShadow: '0 10px 26px color-mix(in srgb, var(--color-primary) 18%, transparent)',
-                }}
-                className="w-full h-12 px-6 pr-12 rounded-full border-2 focus:border-[var(--color-primary)] outline-none transition-all text-sm font-medium bg-white"
+                style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)' }}
+                className="header-search-input w-full h-10 px-4 pr-11 rounded-xl border focus:border-[var(--color-primary)] outline-none transition-colors text-sm font-medium bg-white"
               />
-              <button onClick={handleSearchSubmit} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-primary)] hover:scale-110 transition-transform">
+              <button
+                onClick={handleSearchSubmit}
+                aria-label={t.search}
+                className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-primary)] transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -603,13 +632,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
-                className="flex items-center justify-center px-4 md:px-6 h-[42px] md:h-[52px] border-2 border-emerald-600 text-emerald-600 rounded-xl md:rounded-2xl group transition-all hover:bg-emerald-600 hover:text-white hover:shadow-xl hover:shadow-emerald-600/20 active:scale-95"
+                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest">
                     {t.calculate}
                   </span>
-                  <div className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center transition-all group-hover:scale-110">
+                  <div className="flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
@@ -620,13 +649,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Contact Button */}
               <button
                 onClick={() => handleItemClick('contact')}
-                className="flex items-center justify-center px-4 md:px-6 h-[42px] md:h-[52px] border-2 border-emerald-600 text-emerald-600 rounded-xl md:rounded-2xl group transition-all hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-600/20 active:scale-95"
+                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest">
                     {t.contact}
                   </span>
-                  <div className="w-3.5 h-3.5 md:w-5 md:h-5 flex items-center justify-center transition-all group-hover:scale-110">
+                  <div className="flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
@@ -636,11 +665,11 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
 
               {/* User / Login & Languages - Desktop Only */}
-              <div className=" flex items-center gap-4 border-l border-slate-200 pl-4">
+              <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
                 {isSignedIn ? (
                   <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
-                    <button className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <button aria-label={t.myProfile} className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
+                      <div className="flex h-5 w-5 items-center justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       </div>
                     </button>
@@ -659,15 +688,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => setModalType('login')} className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-emerald-600 transition-all uppercase tracking-widest">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-                    {t.login}
+                  <button onClick={() => setModalType('login')} aria-label={t.login} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" /></svg>
                   </button>
                 )}
 
                 {/* Custom Language Dropdown */}
                 <div className="relative group" onMouseEnter={() => setActiveDropdown('lang')} onMouseLeave={() => setActiveDropdown('none')}>
-                  <button className="flex items-center gap-1 text-[9px] font-black text-slate-600 uppercase tracking-widest hover:text-emerald-600 transition-colors py-1">
+                  <button className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-xl px-2 text-[9px] font-black text-slate-600 uppercase tracking-widest transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
                     <span>{currentLang}</span>
                     <svg className={`w-2 h-2 transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
@@ -712,14 +740,11 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
                 onKeyDown={handleSearchKeyDown}
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)',
-                  boxShadow: '0 8px 22px color-mix(in srgb, var(--color-primary) 14%, transparent)',
-                }}
-                className="w-full h-10 px-4 pr-10 rounded-full border-2 focus:border-[var(--color-primary)] outline-none text-xs font-medium bg-gray-50"
+                style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)' }}
+                className="header-search-input w-full h-10 px-4 pr-11 rounded-xl border focus:border-[var(--color-primary)] outline-none text-xs font-medium bg-gray-50"
               />
-            <button onClick={handleSearchSubmit} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)]">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={handleSearchSubmit} aria-label={t.search} className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-primary)] transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
@@ -734,6 +759,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           <button onClick={() => handleItemClick('home')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.home}</button>
 
           <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
+
+          <button onClick={() => handleItemClick('solar-installation')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.installationPage}</button>
 
           <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
 
@@ -769,7 +796,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <div className="flex flex-col gap-4 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {categories.map((category: any) => (
                   <div key={category.id} className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="relative flex items-center justify-between gap-2">
                       <button
                         onClick={() => handleItemClick("products", undefined, { category: category.id })}
                         className="flex-1 text-left text-[9px] font-black uppercase tracking-widest text-slate-500"
@@ -779,11 +806,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                       <button
                         type="button"
                         aria-label={`${getItemName(category)} alt kateqoriyaları`}
+                        aria-expanded={activeCategoryId === category.id}
                         onClick={() => {
-                          getSubCategories(category.id);
+                          getSubCategories(category.id, { language: currentLang });
                           setActiveCategoryId(activeCategoryId === category.id ? null : category.id);
                         }}
-                        className="p-1.5 text-slate-400"
+                        className="absolute inset-y-0 right-0 flex w-[45%] items-center justify-end p-1.5 text-slate-400"
                       >
                         <svg className={`h-3 w-3 transition-transform ${activeCategoryId === category.id ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
                       </button>
@@ -802,7 +830,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                             }
                             className="text-left text-[8px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600"
                           >
-                            {getItemName(sub)}
+                            {getItemName(sub, 'subcategory')}
                           </button>
                         ))}
                       </div>
@@ -938,6 +966,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           <button onClick={() => handleItemClick('about')} className={getLinkClass('about')}>{t.about}</button>
 
+          <button onClick={() => handleItemClick('solar-installation')} className={getLinkClass('solar-installation')}>{t.installationPage}</button>
+
           <button onClick={() => handleItemClick('services')} className={getLinkClass('services')}>{t.services}</button>
 
           {/* VOLT Dropdown */}
@@ -972,7 +1002,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     className="relative group/nested"
                     onMouseEnter={() => {
                       setActiveCategoryId(category.id);
-                      getSubCategories(category.id);
+                      getSubCategories(category.id, { language: currentLang });
                     }}
                   >
                     {/* CATEGORY */}
@@ -1016,7 +1046,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                             }
                             className="w-full text-left px-6 py-4 text-[10px] font-black text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all uppercase tracking-widest border-b border-slate-50 last:border-0 flex items-center justify-between group/subitem"
                           >
-                            <span>{getItemName(sub)}</span>
+                            <span>{getItemName(sub, 'subcategory')}</span>
 
                             <svg
                               className="w-3 h-3 opacity-0 -translate-x-2 group-hover/subitem:opacity-100 group-hover/subitem:translate-x-0 transition-all text-[var(--color-primary)]"

@@ -60,10 +60,13 @@ export const API_ENDPOINTS = {
   },
   BLOG: {
     GET_BLOG: `${URL}Blogs`,
+    GET_ADMIN_BLOGS: `${URL}Blogs/admin`,
     CREATE_BLOG: `${URL}Blogs`,
     UPDATE_BLOG: (id: string) => `${URL}Blogs/${id}`,
+    UPDATE_BLOG_STATUS: (id: string) => `${URL}Blogs/admin/${id}/status`,
     DELETE_BLOG: (id: string) => `${URL}Blogs/${id}`,
     GET_ID_BLOG: (id: string) => `${URL}Blogs/${id}`,
+    GET_ADMIN_ID_BLOG: (id: string) => `${URL}Blogs/admin/${id}`,
   },
   PROJECT: {
     GET_PROJECT: `${URL}Projects`,
@@ -233,6 +236,7 @@ export const API_ENDPOINTS = {
     SHOW_PRODUCT: `${URL}Products/ShowHomePage`,
     GET_ID_PRODUCT: (id: string | number) => `${URL}Products/${id}`,
     GET_PRODUCT_COUNT: `${URL}Products/ShowHomePageProductCount`,
+    PREVIEW_DATASHEET: (sourceUrl: string) => `${URL}Products/datasheets/preview?url=${encodeURIComponent(sourceUrl)}`,
   },
   SOLAR_INVERTERS: {
     GET_ALL: (systemType: string, phase: string) =>

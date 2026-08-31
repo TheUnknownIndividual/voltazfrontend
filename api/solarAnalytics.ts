@@ -23,6 +23,18 @@ export interface SolarAnalyticsDashboard {
   documentsByCode: Array<{ key: string; count: number }>;
   sourceBreakdown: Array<{ key: string; count: number }>;
   topProjects: Array<{ projectId: number; projectName: string; calculationCount: number; documentCount: number; lastActivityAt: string }>;
+  outOfStockDemand: Array<{
+    productId: string;
+    productName: string;
+    category: string;
+    subCategory: string;
+    brand: string;
+    variant: string;
+    initiations: number;
+    requestedUnits: number;
+    uniqueDevices: number;
+    lastInteractionAt: string;
+  }>;
   recentActivity: Array<{
     kind: string;
     source: string;
@@ -48,6 +60,22 @@ const getSessionId = () => {
 
   const generated = crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   window.sessionStorage.setItem(key, generated);
+  return generated;
+};
+
+const getDeviceId = () => {
+  if (typeof window === 'undefined') {
+    return 'server';
+  }
+
+  const key = 'volt-analytics-device-id';
+  const existing = window.localStorage.getItem(key);
+  if (existing) {
+    return existing;
+  }
+
+  const generated = crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem(key, generated);
   return generated;
 };
 
@@ -91,12 +119,24 @@ export const logPublicSolarCalculation = async (language: string, payload: unkno
 };
 
 export const logPublicWhatsappClick = async (language: string, payload: unknown) => {
-  const response = await axiosInstance.post(API_ENDPOINTS.SOLAR_ANALYTICS.PUBLIC_WHATSAPP_CLICK, {
+  const requestBody = {
     language,
     sessionId: getSessionId(),
+    deviceId: getDeviceId(),
+    interactionId: crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    clientOccurredAt: new Date().toISOString(),
     payload
+  };
+  const response = await fetch(API_ENDPOINTS.SOLAR_ANALYTICS.PUBLIC_WHATSAPP_CLICK, {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
   });
-  return unwrap<{ calculationLogId: number }>(response);
+  if (!response.ok) throw new Error(`WhatsApp analytics request failed (${response.status}).`);
+  const responseBody = await response.json();
+  return responseBody?.data as { calculationLogId: number };
 };
 
 export const getSolarAnalyticsDashboard = async (from?: string, to?: string) => {

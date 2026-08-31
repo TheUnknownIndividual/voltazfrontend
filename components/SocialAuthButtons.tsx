@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppUser, useAuth } from '../contexts/AuthContext';
 
-type Language = 'az' | 'en';
+type Language = 'az' | 'en' | 'ru' | 'tr';
 type SocialMode = 'login' | 'register';
 type AuthProvider = 'google' | 'apple' | 'passkey';
 
@@ -39,6 +39,22 @@ const copy = {
     working: 'Preparing...',
     unavailable: 'This sign-in method is not available right now.',
     passkeyProfile: 'First name, last name, and email are required for passkey.',
+  },
+  ru: {
+    google: 'Продолжить с Google',
+    apple: 'Продолжить с Apple',
+    passkey: 'Войти с passkey',
+    working: 'Подготовка...',
+    unavailable: 'Этот способ входа сейчас недоступен.',
+    passkeyProfile: 'Для passkey требуются имя, фамилия и email.',
+  },
+  tr: {
+    google: 'Google ile devam et',
+    apple: 'Apple ile devam et',
+    passkey: 'Passkey ile giriş yap',
+    working: 'Hazırlanıyor...',
+    unavailable: 'Bu giriş yöntemi şu anda kullanılamıyor.',
+    passkeyProfile: 'Passkey için ad, soyad ve email gereklidir.',
   },
 };
 

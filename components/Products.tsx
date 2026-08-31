@@ -18,32 +18,29 @@ interface ProductsProps {
   onOrderNow?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
   onAddToCart?: (id: string, quantity: number, power?: string, maxStock?: number) => void;
   lang?: 'az' | 'en' | 'ru' | 'tr';
+  selectedCategoryId?: number | null;
 }
 
 const copy = {
   az: {
     title: 'Məhsullarımız',
-    description: 'Beynəlxalq sertifikatlı brendlərin rəsmi distribütoru olaraq orijinal avadanlıqlar təklif edirik.',
     viewAll: 'Hamısına Bax',
   },
   en: {
     title: 'Our Products',
-    description: 'As the official distributor of internationally certified brands, we offer genuine equipment.',
     viewAll: 'View All',
   },
   ru: {
     title: 'Наши продукты',
-    description: 'Как официальный дистрибьютор брендов с международной сертификацией, мы предлагаем оригинальное оборудование.',
     viewAll: 'Смотреть все',
   },
   tr: {
     title: 'Ürünlerimiz',
-    description: 'Uluslararası sertifikalı markaların resmi distribütörü olarak orijinal ekipmanlar sunuyoruz.',
     viewAll: 'Hepsini Gör',
   },
 } as const;
 
-const Products: React.FC<ProductsProps> = ({ onSelectProduct, onViewAll, onOrderNow, onAddToCart, lang = 'az' }) => {
+const Products: React.FC<ProductsProps> = ({ onSelectProduct, onViewAll, onOrderNow, onAddToCart, lang = 'az', selectedCategoryId = null }) => {
   const t = copy[lang] || copy.az;
   const { getHomeProducts, productHomeData } = useProduct();
   const [startIndex, setStartIndex] = useState(0);
@@ -51,17 +48,15 @@ const Products: React.FC<ProductsProps> = ({ onSelectProduct, onViewAll, onOrder
   const [itemsPerPage, setItemsPerPage] = useState(getResponsiveItemsPerPage);
    
 useEffect(() => {
-  const fetchProducts = async () => {
-    await getHomeProducts(
-  undefined,
-  undefined,
-  1,
-  12
-);
-  };
-
-  fetchProducts();
-}, []);
+  setStartIndex(0);
+  setDirection(0);
+  void getHomeProducts(
+    selectedCategoryId ?? undefined,
+    undefined,
+    1,
+    12
+  ).catch(() => undefined);
+}, [selectedCategoryId]);
 
 useEffect(() => {
   const mediaQuery = window.matchMedia(DESKTOP_PRODUCTS_QUERY);
@@ -76,7 +71,6 @@ useEffect(() => {
   return () => mediaQuery.removeEventListener('change', updateItemsPerPage);
 }, []);
 
-  console.log('productHomeData', productHomeData);
 const hasVisiblePrice = (product: Product) =>
   (product.productParametrs || []).some((param: any) => Number(param?.amount || 0) > 0);
 
@@ -106,9 +100,10 @@ const getWrappedIndex = (nextIndex: number) => {
 };
 
 useEffect(() => {
-  if (items.length <= itemsPerPage) return;
+  if (items.length <= itemsPerPage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const timer = window.setTimeout(() => {
+    if (document.visibilityState !== 'visible') return;
     setDirection(1);
     setStartIndex((prev) => getWrappedIndex(prev + itemsPerPage));
   }, 4000);
@@ -149,11 +144,10 @@ const handleNext = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 md:mb-16 gap-6">
           <div className="text-left">
             <h2 className="text-2xl md:text-5xl font-black text-slate-900 leading-tight mb-1 md:mb-2">{t.title}</h2>
-            <p className="text-slate-500 text-[11px] md:text-base leading-relaxed max-w-lg mt-3 md:mt-4">{t.description}</p>
           </div>
         </div>
 
-        <div className="relative lg:px-16">
+        <div className="relative min-h-0 lg:min-h-[38rem] lg:px-16">
           {items.length > itemsPerPage && (
             <button
               onClick={handlePrev}
@@ -166,7 +160,7 @@ const handleNext = () => {
 
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              key={startIndex}
+              key={`${selectedCategoryId ?? 'all'}-${startIndex}`}
               custom={direction}
               variants={variants}
               initial="enter"
@@ -213,26 +207,30 @@ const handleNext = () => {
           )}
         </div>
 
-        {items.length > itemsPerPage && (
-          <div className="mt-12 flex flex-col items-center gap-8">
+        {(items.length > itemsPerPage || onViewAll) && (
+          <div className="mt-5 flex flex-col items-center gap-4 md:mt-12 md:gap-8">
             {/* Pagination Dots */}
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setDirection(i > currentPage ? 1 : -1);
-                    setStartIndex(i * itemsPerPage);
-                  }}
-                  className={`h-1.5 transition-all rounded-full ${currentPage === i ? 'w-8 bg-emerald-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
-                />
-              ))}
-            </div>
+            {items.length > itemsPerPage && (
+              <div className="flex gap-2">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setDirection(i > currentPage ? 1 : -1);
+                      setStartIndex(i * itemsPerPage);
+                    }}
+                    className={`h-1.5 transition-all rounded-full ${currentPage === i ? 'w-8 bg-emerald-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                  />
+                ))}
+              </div>
+            )}
 
-            <button onClick={onViewAll} className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl active:scale-95 group">
-              {t.viewAll}
-              <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-            </button>
+            {onViewAll && (
+              <button onClick={onViewAll} className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl active:scale-95 group">
+                {t.viewAll}
+                <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </button>
+            )}
           </div>
         )}
       </div>

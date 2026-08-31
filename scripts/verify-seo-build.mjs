@@ -51,8 +51,11 @@ for (const url of requiredUrls) {
 const checkPage = (relativeFile, expectedCanonical) => {
   const html = fs.readFileSync(path.join(dist, relativeFile), 'utf8');
   if (!/<h1\b/i.test(html)) fail(`${relativeFile} has no prerendered H1.`);
-  if (!/<main hidden data-seo-prerendered="true">/i.test(html)) {
-    fail(`${relativeFile} can visibly flash its SEO fallback before React loads.`);
+  if (!/<main class="seo-prerender" data-seo-prerendered="true">/i.test(html)) {
+    fail(`${relativeFile} does not expose its crawlable prerendered content.`);
+  }
+  if (/<main[^>]*(?:\shidden|aria-hidden="true")[^>]*data-seo-prerendered/i.test(html)) {
+    fail(`${relativeFile} hides its prerendered content.`);
   }
   if (!html.includes(`rel="canonical" href="${expectedCanonical}"`)) {
     fail(`${relativeFile} has the wrong canonical URL.`);

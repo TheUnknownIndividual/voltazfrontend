@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { useBlog } from '../contexts/BlogContext';
 import { useUpload } from "../contexts/UploadContext";
+import { Archive, ArchiveRestore, ImagePlus } from 'lucide-react';
+import SliderImageCropper from '../components/SliderImageCropper';
+import RichTextEditor from './RichTextEditor';
 
 interface BlogsItem {
   id: string;
@@ -29,19 +32,34 @@ const LANGUAGES = [
 ] as const;
 
 type LangCode = typeof LANGUAGES[number]['code'];
+type StatusFilter = 'all' | 'published' | 'archived';
+
+type CropRequest = {
+  source: string;
+  sourceType: string;
+  fileName: string;
+};
+
+const plainBlogText = (value: string) => value
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
   const { showNotification, confirm } = useNotification();
-  const { blogs, getBlogs, createBlog, updateBlog, getBlogById, deleteBlog } = useBlog();
-  const { uploadImage, deleteImage } = useUpload();
+  const { blogs, getAdminBlogs, createBlog, updateBlog, getAdminBlogById, setBlogActive } = useBlog();
+  const { uploadImage } = useUpload();
   const [activeLang, setActiveLang] = useState<LangCode>('az');
   const [isEditing, setIsEditing] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [cropRequest, setCropRequest] = useState<CropRequest | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-   useEffect(() => {
-           getBlogs();
-         }, []);
+  useEffect(() => {
+    void getAdminBlogs().catch(() => showNotification('Blog siyahısı yüklənmədi', 'error'));
+  }, []);
 
   // Form State
   const [formData, setFormData] = useState<Omit<BlogsItem, 'id'>>({
@@ -72,12 +90,13 @@ const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
     });
     setEditingId(null);
     setIsEditing(false);
-    setIsCreating(false);
+    setPendingCoverFile(null);
+    setCropRequest(null);
   };
 
 const handleEdit = async (id: string) => {
   try {
-    const res = await getBlogById(id);
+    const res = await getAdminBlogById(id);
 
     const blog = res; // backend response.data qaytarırsa
 
@@ -133,130 +152,111 @@ const handleEdit = async (id: string) => {
 
     setEditingId(id);
     setIsEditing(true);
-    setIsCreating(false);
+    setPendingCoverFile(null);
 
   } catch (err) {
     showNotification("Blog yüklənmədi", "error");
   }
 };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const beginCoverCrop = (file?: File) => {
     if (!file) return;
-
-    try {
-      const res = await uploadImage(file);
-
-      const path = res?.data?.path;
-
-      setFormData(prev => ({
-        ...prev,
-        image: path,      // preview
-        imageFile: file   // actual file
-      }));
-
-    } catch (err) {
-      showNotification("Şəkil yüklənmədi", "error");
+    if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+      showNotification('PNG, JPG, WebP və ya digər raster şəkil seçin', 'error');
+      return;
     }
-  };
-    const handleImageDelete = async () => {
-    if (!formData.image) return;
 
-    try {
-      // backend-dən sil
-      await deleteImage(formData.image);
-
-      // form-u təmizlə
-      setFormData(prev => ({
-        ...prev,
-        image: '',
-        imageFile: null
-      }));
-
-      showNotification("Şəkil silindi", "success");
-    } catch (err) {
-      showNotification("Şəkil silinmədi", "error");
-    }
+    const reader = new FileReader();
+    reader.onload = () => setCropRequest({
+      source: String(reader.result),
+      sourceType: file.type,
+      fileName: file.name,
+    });
+    reader.onerror = () => showNotification('Şəkil oxunmadı', 'error');
+    reader.readAsDataURL(file);
   };
 
- const handleDelete = async (id: string) => {
-  const isConfirmed = await confirm(
-      'Bu blogu silmək istədiyinizə əminsiniz?'
-    );
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    beginCoverCrop(file);
+  };
 
-  if (!isConfirmed) return;
+  const handleImageDelete = () => {
+    setPendingCoverFile(null);
+    setFormData(prev => ({ ...prev, image: '', imageFile: null }));
+  };
 
-  try {
-    await deleteBlog(id);      // API call
-    showNotification("Blog silindi", "success");
-
-    await getBlogs();          // list refresh
-  } catch (error) {
-    console.error(error);
-    showNotification("Silinmə zamanı xəta baş verdi", "error");
-  }
-};
+  const handleStatusChange = async (id: string, isActive: boolean) => {
+    const action = isActive ? 'yayımlamaq' : 'arxivə göndərmək';
+    if (!await confirm(`Bu blogu ${action} istədiyinizə əminsiniz?`)) return;
+    try {
+      await setBlogActive(id, isActive);
+      await getAdminBlogs();
+      showNotification(isActive ? 'Blog yayımlandı' : 'Blog arxivə göndərildi', 'success');
+    } catch (error) {
+      console.error(error);
+      showNotification('Status dəyişdirilmədi', 'error');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const isActive = submitter?.value === 'archive' ? false : submitter?.value === 'publish' ? true : formData.isActive;
+    if (!formData.image) {
+      showNotification('Blog banneri seçilməlidir', 'error');
+      return;
+    }
 
-const payload = {
-  coverImagePath: formData.image,
-  translations: [
-    {
-      languageCode: 1,
-      title: formData.title.az,
-      description: formData.description.az,
-      content: formData.content.az,
-      seoTitle: formData.seoTitle.az,
-      seoDescription: formData.seoDescription.az,
-      seoKeywords: formData.seoKeywords.az,
-    },
-    {
-      languageCode: 2,
-      title: formData.title.en,
-      description: formData.description.en,
-      content: formData.content.en,
-      seoTitle: formData.seoTitle.en,
-      seoDescription: formData.seoDescription.en,
-      seoKeywords: formData.seoKeywords.en,
-    },
-    {
-      languageCode: 3,
-      title: formData.title.ru,
-      description: formData.description.ru,
-      content: formData.content.ru,
-      seoTitle: formData.seoTitle.ru,
-      seoDescription: formData.seoDescription.ru,
-      seoKeywords: formData.seoKeywords.ru,
-    },
-    {
-      languageCode: 4,
-      title: formData.title.tr,
-      description: formData.description.tr,
-      content: formData.content.tr,
-      seoTitle: formData.seoTitle.tr,
-      seoDescription: formData.seoDescription.tr,
-      seoKeywords: formData.seoKeywords.tr,
-    },
-  ],
-};
-
+    setSaving(true);
     try {
-      if (editingId) {
-        await updateBlog(editingId, payload);
-        showNotification("Blog yeniləndi", "success");
-      } else {
-        await createBlog(payload);
-        showNotification("Yeni blog əlavə edildi", "success");
+      let coverImagePath = formData.image;
+      if (pendingCoverFile) {
+        const uploaded = await uploadImage(pendingCoverFile);
+        const path = uploaded?.data?.path || uploaded?.path || uploaded?.data;
+        if (typeof path !== 'string' || !path) throw new Error('Upload path was not returned');
+        coverImagePath = path;
       }
 
-      await getBlogs(); // refresh data
+      const payload = {
+        coverImagePath,
+        isActive,
+        translations: LANGUAGES.map((language, index) => ({
+          languageCode: index + 1,
+          title: formData.title[language.code],
+          description: formData.description[language.code],
+          content: formData.content[language.code],
+          seoTitle: formData.seoTitle[language.code],
+          seoDescription: formData.seoDescription[language.code],
+          seoKeywords: formData.seoKeywords[language.code],
+          isActive: true,
+        })),
+      };
+
+      if (editingId) {
+        await updateBlog(editingId, payload);
+        showNotification(isActive ? 'Blog yeniləndi və yayımlandı' : 'Blog yeniləndi və arxivə saxlanıldı', 'success');
+      } else {
+        await createBlog(payload);
+        showNotification(isActive ? 'Yeni blog yayımlandı' : 'Blog sonrakı redaktə üçün arxivə saxlanıldı', 'success');
+      }
+
+      await getAdminBlogs();
       resetForm();
     } catch (err) {
       showNotification("Xəta baş verdi", "error");
+    } finally {
+      setSaving(false);
     }
   };
+
+  const visibleBlogs = blogs.filter((blog) => (
+    statusFilter === 'all'
+      || (statusFilter === 'published' && blog.isActive)
+      || (statusFilter === 'archived' && !blog.isActive)
+  ));
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -274,9 +274,7 @@ const payload = {
           </button>
           {!isEditing && (
             <button
-              onClick={() => (
-                setIsCreating(true),
-                setIsEditing(true))}
+              onClick={() => setIsEditing(true)}
               className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 text-xs uppercase tracking-widest"
             >
               Yeni Blog
@@ -302,20 +300,9 @@ const payload = {
                 ))}
               </div>
 
-              {!isCreating && (
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="flex items-center gap-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aktiv:</label>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-                      className={`w-12 h-6 rounded-full transition-all relative ${formData.isActive ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${formData.isActive ? 'left-7' : 'left-1'}`}></div>
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className={`rounded-full px-4 py-2 text-[9px] font-black uppercase tracking-widest ${formData.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                {formData.isActive ? 'Yayımlanacaq' : 'Hazırda arxivdədir'}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -346,13 +333,15 @@ const payload = {
 
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Haqqında ({activeLang.toUpperCase()})</label>
-                  <textarea
-                    required
-                    rows={4}
+                  <RichTextEditor
                     value={formData.content[activeLang]}
-                    onChange={e => setFormData({ ...formData, content: { ...formData.content, [activeLang]: e.target.value } })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold focus:border-emerald-500 outline-none transition-all resize-none"
-                    placeholder="Blog haqqında ətraflı məlumat..."
+                    onChange={(html) => setFormData({ ...formData, content: { ...formData.content, [activeLang]: html } })}
+                    onImageUpload={async (file) => {
+                      const response = await uploadImage(file);
+                      const path = response?.data?.path;
+                      if (!path) throw new Error('Image upload did not return a path');
+                      return path;
+                    }}
                   />
                 </div>
               </div>
@@ -360,19 +349,27 @@ const payload = {
 
               <div className="space-y-8">
                 <div className="space-y-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şəkil</label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Banner şəkli</label>
+                  <div
+                    className="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50"
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      beginCoverCrop(event.dataTransfer.files?.[0]);
+                    }}
+                  >
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
-                      id="news-image-upload"
+                      id="blog-image-upload"
                     />
 
-                    <label htmlFor="news-image-upload" className="cursor-pointer flex flex-col items-center">
+                    <label htmlFor="blog-image-upload" className="cursor-pointer flex flex-col items-center gap-2 py-2">
+                      <ImagePlus className="h-6 w-6 text-emerald-600" />
                       <span className="text-xs font-bold text-slate-500">
-                        Şəkil seçin və ya buraya atın
+                        Şəkil seçin və ya buraya atın — sonra 16:9 ölçüdə kəsiləcək
                       </span>
                     </label>
 
@@ -380,7 +377,8 @@ const payload = {
                       <div className="relative mt-4">
                         <img
                           src={formData.image}
-                          className="w-full h-40 rounded-2xl"
+                          alt="Blog banner önizləməsi"
+                          className="aspect-video w-full rounded-2xl object-cover"
                         />
 
                         <button
@@ -388,7 +386,7 @@ const payload = {
                           onClick={handleImageDelete}
                           className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-3 py-1 rounded-lg"
                         >
-                          x
+                          Sil
                         </button>
                       </div>
                     )}
@@ -400,7 +398,7 @@ const payload = {
                   <h4 className="text-xs font-black text-emerald-900/40 uppercase tracking-[0.2em] mb-4">Ön Baxış</h4>
                   <div className="aspect-video rounded-2xl overflow-hidden bg-slate-200 mb-4 border-4 border-white shadow-lg overflow-hidden">
                     {formData.image ? (
-                      <img src={formData.image} alt="Preview" className="w-full h-full " />
+                      <img src={formData.image} alt="Preview" className="h-full w-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-400">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -462,29 +460,59 @@ const payload = {
               <button
                 type="button"
                 onClick={resetForm}
+                disabled={saving}
                 className="px-10 py-4 rounded-2xl bg-slate-100 text-slate-500 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
               >
                 Ləğv Et
               </button>
               <button
                 type="submit"
-                className="px-10 py-4 rounded-2xl bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20"
+                name="publicationIntent"
+                value="archive"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-7 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
               >
-                {editingId ? 'Yadda Saxla' : 'Blogu Əlavə Et'}
+                <Archive className="h-4 w-4" /> Sonra üçün saxla
+              </button>
+              <button
+                type="submit"
+                name="publicationIntent"
+                value="publish"
+                disabled={saving}
+                className="px-10 py-4 rounded-2xl bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+              >
+                {saving ? 'Yadda saxlanır…' : editingId && !formData.isActive ? 'Yayımla' : editingId ? 'Yadda Saxla' : 'Blogu Yayımla'}
               </button>
             </div>
           </form>
         </div>
       )}
 
+      <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-100 bg-white p-2">
+        {([
+          ['all', `Hamısı (${blogs.length})`],
+          ['published', `Yayımlanan (${blogs.filter((blog) => blog.isActive).length})`],
+          ['archived', `Arxiv (${blogs.filter((blog) => !blog.isActive).length})`],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setStatusFilter(value)}
+            className={`rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition ${statusFilter === value ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {blogs.map((blog) => (
+        {visibleBlogs.map((blog) => (
           <div key={blog.id} className={`bg-white rounded-[2.5rem] overflow-hidden border transition-all duration-300 group ${!blog.isActive ? 'border-slate-100 opacity-60' : 'border-slate-100 hover:border-emerald-500 shadow-sm hover:shadow-xl'}`}>
             <div className="relative aspect-video">
-              <img src={blog.image} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
+              <img src={blog.image} alt={blog.title?.[activeLang] || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute top-4 left-4 flex gap-2">
                 <div className={`px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${blog.isActive ? 'bg-emerald-600' : 'bg-slate-400'}`}>
-                  {blog.isActive ? 'Aktiv' : 'Deaktiv'}
+                  {blog.isActive ? 'Yayımda' : 'Arxiv'}
                 </div>
                 <div className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[8px] font-black text-slate-900 uppercase tracking-widest">
                   {new Date(blog.date).toLocaleDateString("az-AZ")}
@@ -499,7 +527,7 @@ const payload = {
 
             <div className="p-8">
               <h3 className="text-lg font-black text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-3 h-12 leading-snug">{blog.title?.[activeLang]}</h3>
-              <p className="text-xs text-slate-500 line-clamp-2 mb-6 h-8 opacity-80 leading-relaxed font-medium">{blog.content?.[activeLang]}</p>
+              <p className="text-xs text-slate-500 line-clamp-2 mb-6 h-8 opacity-80 leading-relaxed font-medium">{plainBlogText(blog.content?.[activeLang] || '')}</p>
 
 
               <div className="flex gap-2">
@@ -511,23 +539,41 @@ const payload = {
                   Redaktə
                 </button>
                 <button
-                  onClick={() => handleDelete(blog.id)}
-                  className="w-12 h-12 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center"
+                  type="button"
+                  onClick={() => void handleStatusChange(blog.id, !blog.isActive)}
+                  aria-label={blog.isActive ? 'Arxivə göndər' : 'Yayımla'}
+                  title={blog.isActive ? 'Arxivə göndər' : 'Yayımla'}
+                  className={`w-12 h-12 rounded-xl transition-all flex items-center justify-center ${blog.isActive ? 'bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-700' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  {blog.isActive ? <Archive className="h-4 w-4" /> : <ArchiveRestore className="h-4 w-4" />}
                 </button>
               </div>
             </div>
           </div>
         ))}
 
-        {blogs.length === 0 && (
+        {visibleBlogs.length === 0 && (
           <div className="col-span-full py-20 bg-white rounded-[3rem] border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
             <svg className="w-12 h-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
             <p className="font-bold text-sm text-slate-400">Heç bir blog tapılmadı.</p>
           </div>
         )}
       </div>
+
+      {cropRequest && (
+        <SliderImageCropper
+          source={cropRequest.source}
+          sourceType={cropRequest.sourceType}
+          fileName={cropRequest.fileName}
+          variant="blog"
+          onCancel={() => setCropRequest(null)}
+          onDone={(file, preview) => {
+            setPendingCoverFile(file);
+            setFormData((current) => ({ ...current, image: preview, imageFile: file }));
+            setCropRequest(null);
+          }}
+        />
+      )}
     </div>
   );
 };

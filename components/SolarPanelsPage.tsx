@@ -118,47 +118,53 @@ const SolarPanelsPage: React.FC<Props> = ({ lang, initialPage, onNavigate, onSel
   }, [items, lang]);
 
   return <main className="bg-white text-slate-900">
-    <section className="relative isolate overflow-hidden bg-slate-950 px-4 py-16 text-white md:py-24">
+    <section className="relative isolate overflow-hidden bg-slate-950 px-4 pb-9 pt-5 text-white md:py-24">
+      <div className="relative mx-auto mb-6 aspect-[16/10] max-w-md overflow-hidden rounded-3xl border border-white/10 md:hidden">
+        <img src="/solar-panels-hero.webp" alt="" aria-hidden="true" width="960" height="600" fetchPriority="high" decoding="async" className="h-full w-full object-cover object-[62%_center]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
+      </div>
       <img
         src="/solar-panels-hero.webp"
         alt=""
         aria-hidden="true"
+        width="1600"
+        height="900"
         fetchPriority="high"
         decoding="async"
-        className="pointer-events-none absolute inset-0 -z-20 h-full w-full select-none object-cover object-[62%_center] md:object-center"
+        className="pointer-events-none absolute inset-0 -z-20 hidden h-full w-full select-none object-cover md:block md:object-center"
       />
-      <div className="absolute inset-0 -z-10 bg-slate-950/35" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/25" />
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_75%_20%,rgba(154,194,29,.18),transparent_38%)]" />
+      <div className="absolute inset-0 -z-10 hidden bg-slate-950/35 md:block" />
+      <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/25 md:block" />
+      <div className="absolute inset-0 -z-10 hidden bg-[radial-gradient(circle_at_75%_20%,rgba(154,194,29,.18),transparent_38%)] md:block" />
       <div className="relative mx-auto max-w-7xl">
-        <p className="text-xs font-black uppercase tracking-[.24em] text-[#b9dc49]">{copy.eyebrow}</p>
-        <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight md:text-6xl">{copy.title}</h1>
-        <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-slate-200 md:text-lg">{copy.lead}</p>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">{copy.alias}</p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <button onClick={() => onNavigate('calculator')} className="inline-flex items-center gap-2 rounded-xl bg-[#9ac21d] px-5 py-3 text-sm font-black text-slate-950"><Calculator className="h-4 w-4" />{copy.calculator}</button>
-          <button onClick={() => onNavigate('contact')} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white">{copy.contact}<ArrowRight className="h-4 w-4" /></button>
+        <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#b9dc49] md:text-xs md:tracking-[.24em]">{copy.eyebrow}</p>
+        <h1 className="mt-3 max-w-4xl text-[2rem] font-black leading-[1.08] md:mt-4 md:text-6xl md:leading-tight">{copy.title}</h1>
+        <p className="mt-4 max-w-3xl text-[15px] font-medium leading-6 text-slate-200 md:mt-6 md:text-lg md:leading-8">{copy.lead}</p>
+        <p className="mt-3 max-w-3xl text-[13px] leading-5 text-slate-400 md:text-sm md:leading-7">{copy.alias}</p>
+        <div className="mt-6 grid gap-2.5 sm:flex sm:flex-wrap md:mt-8 md:gap-3">
+          <button onClick={() => onNavigate('calculator')} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#9ac21d] px-5 py-3 text-sm font-black text-slate-950 sm:w-auto"><Calculator className="h-4 w-4" />{copy.calculator}</button>
+          <button onClick={() => onNavigate('contact')} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-black text-white sm:w-auto">{copy.contact}<ArrowRight className="h-4 w-4" /></button>
         </div>
       </div>
     </section>
 
-    <section className="mx-auto max-w-7xl px-4 py-12 md:py-16">
-      <h2 className="text-2xl font-black md:text-3xl">{copy.solutionsTitle}</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{copy.solutions.map(({ title, text, icon: Icon }) => <article key={title} className="rounded-2xl border border-slate-200 p-5 shadow-sm md:p-6"><Icon className="h-7 w-7 text-[#759700]" /><h3 className="mt-4 text-lg font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600 md:text-[15px]">{text}</p></article>)}</div>
+    <section className="mx-auto max-w-7xl px-4 py-9 md:py-16">
+      <h2 className="text-xl font-black leading-tight md:text-3xl">{copy.solutionsTitle}</h2>
+      <div className="mt-4 grid gap-3 md:mt-6 md:grid-cols-2 md:gap-4">{copy.solutions.map(({ title, text, icon: Icon }) => <article key={title} className="rounded-2xl border border-slate-200 p-4 shadow-sm md:p-6"><Icon className="h-6 w-6 text-[#759700] md:h-7 md:w-7" /><h3 className="mt-3 text-base font-black md:mt-4 md:text-lg">{title}</h3><p className="mt-2 text-[13px] leading-5 text-slate-600 md:text-[15px] md:leading-6">{text}</p></article>)}</div>
     </section>
 
-    <section className="bg-slate-50"><div className="mx-auto grid max-w-7xl gap-7 px-4 py-12 md:grid-cols-2 md:py-16">
+    <section className="bg-slate-50"><div className="mx-auto grid max-w-7xl gap-5 px-4 py-9 md:grid-cols-2 md:gap-7 md:py-16">
       <div><Sun className="h-8 w-8 text-[#759700]" /><h2 className="mt-4 text-2xl font-black md:text-3xl">{copy.selectTitle}</h2><p className="mt-3 text-sm leading-7 text-slate-600 md:text-[15px]">{copy.selectText}</p><ul className="mt-5 space-y-2.5">{copy.benefits.map(item => <li key={item} className="flex gap-2.5 text-sm font-semibold leading-6 text-slate-700 md:text-[15px]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#759700]" />{item}</li>)}</ul></div>
       <div className="space-y-4"><article className="rounded-2xl bg-white p-5 shadow-sm md:p-6"><h2 className="text-xl font-black">{copy.priceTitle}</h2><p className="mt-3 text-sm leading-7 text-slate-600 md:text-[15px]">{copy.priceText}</p></article><article className="rounded-2xl bg-slate-950 p-5 text-white md:p-6"><ShieldCheck className="h-7 w-7 text-[#b9dc49]" /><h2 className="mt-3 text-xl font-black">{copy.warrantyTitle}</h2><p className="mt-3 text-sm leading-7 text-slate-300 md:text-[15px]">{copy.warrantyText}</p></article></div>
     </div></section>
 
-    <section className="mx-auto max-w-7xl px-4 pt-14 md:pt-20">
-      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><h2 className="text-3xl font-black md:text-4xl">{copy.catalogue}</h2><p className="mt-3 max-w-3xl leading-7 text-slate-600">{copy.catalogueText}</p></div><button onClick={() => onNavigate('solar-installation')} className="inline-flex w-fit items-center gap-2 font-black text-[#658300]">{copy.installation}<ArrowRight className="h-4 w-4" /></button></div>
+    <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-20">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end md:gap-5"><div><h2 className="text-2xl font-black md:text-4xl">{copy.catalogue}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 md:mt-3 md:text-base md:leading-7">{copy.catalogueText}</p></div><button onClick={() => onNavigate('solar-installation')} className="inline-flex w-fit items-center gap-2 text-sm font-black text-[#658300] md:text-base">{copy.installation}<ArrowRight className="h-4 w-4" /></button></div>
     </section>
     {categoryId ? <ProductsPage lang={lang} initialCategory={categoryId} initialPage={initialPage} lockedCategory catalogueLabel={copy.catalogue} onSelectProduct={onSelectProduct} onOrderNow={onOrderNow} onAddToCart={onAddToCart} /> : <div className="mx-auto max-w-7xl px-4 py-12 text-slate-500">{loadFailed ? copy.catalogueText : '…'}</div>}
 
-    <section className="bg-slate-50"><div className="mx-auto max-w-4xl px-4 py-14 md:py-20"><h2 className="text-3xl font-black">{copy.faqTitle}</h2><div className="mt-8 space-y-4">{copy.faqs.map(([question, answer]) => <details key={question} className="group rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer list-none pr-8 font-black">{question}</summary><p className="mt-4 leading-7 text-slate-600">{answer}</p></details>)}</div></div></section>
-    <section className="px-4 py-14 md:py-20"><div className="mx-auto max-w-5xl rounded-[2.5rem] bg-[#9ac21d] p-8 md:p-12"><h2 className="text-3xl font-black text-slate-950">{copy.finalTitle}</h2><p className="mt-4 max-w-3xl font-semibold leading-7 text-slate-800">{copy.finalText}</p><div className="mt-7 flex flex-wrap gap-3"><button onClick={() => onNavigate('calculator')} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{copy.calculator}</button><button onClick={() => onNavigate('contact')} className="rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950">{copy.contact}</button></div></div></section>
+    <section className="bg-slate-50"><div className="mx-auto max-w-4xl px-4 py-10 md:py-20"><h2 className="text-2xl font-black md:text-3xl">{copy.faqTitle}</h2><div className="mt-5 space-y-3 md:mt-8 md:space-y-4">{copy.faqs.map(([question, answer]) => <details key={question} className="group rounded-xl border border-slate-200 bg-white p-4 md:rounded-2xl md:p-5"><summary className="cursor-pointer list-none pr-6 text-sm font-black md:pr-8 md:text-base">{question}</summary><p className="mt-3 text-sm leading-6 text-slate-600 md:mt-4 md:leading-7">{answer}</p></details>)}</div></div></section>
+    <section className="px-4 py-10 md:py-20"><div className="mx-auto max-w-5xl rounded-3xl bg-[#9ac21d] p-6 md:rounded-[2.5rem] md:p-12"><h2 className="text-2xl font-black leading-tight text-slate-950 md:text-3xl">{copy.finalTitle}</h2><p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-800 md:mt-4 md:text-base md:leading-7">{copy.finalText}</p><div className="mt-5 grid gap-2.5 sm:flex sm:flex-wrap md:mt-7 md:gap-3"><button onClick={() => onNavigate('calculator')} className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white sm:w-auto">{copy.calculator}</button><button onClick={() => onNavigate('contact')} className="w-full rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 sm:w-auto">{copy.contact}</button></div></div></section>
   </main>;
 };
 

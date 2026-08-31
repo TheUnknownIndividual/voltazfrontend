@@ -23,6 +23,8 @@ export interface BlogsSection {
 }
 
 export interface ProductVariant {
+  id?: number;
+  modelLabel?: string;
   power?: string;
   efficiency?: string;
   technicalPower?: string;
@@ -30,6 +32,13 @@ export interface ProductVariant {
   count: number;
   price?: number;
   amount?: number;
+  languages?: ProductVariantLanguage[];
+}
+
+export interface ProductVariantLanguage {
+  languageCode: number;
+  description: string;
+  features: string;
 }
 
 export interface Product {
@@ -46,11 +55,15 @@ export interface Product {
   power: string;
   efficiency: string;
   productParametrs?: {
+    id?: number;
+    modelLabel?: string;
     technicalPower?: string;
     effectiveness?: string | number;
     count?: number;
     amount?: number;
+    languages?: ProductVariantLanguage[];
   }[];
+  useCommonVariantContent?: boolean;
   productBrandId?: string | number;
   technology?: string;
   model?: string;

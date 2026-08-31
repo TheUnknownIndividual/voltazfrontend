@@ -14,6 +14,7 @@ interface Translation {
 
 interface CreateBlogPayload {
   coverImagePath: string;
+  isActive?: boolean;
   source?: string;
   postLink?: string;
   translations: Translation[];
@@ -30,9 +31,12 @@ interface UpdateBlogPayload {
 interface BlogContextType {
   loading: boolean;
   getBlogs: () => Promise<any>;
+  getAdminBlogs: () => Promise<any>;
   getBlogById: (id: string) => Promise<any>;
+  getAdminBlogById: (id: string) => Promise<any>;
   createBlog: (data: CreateBlogPayload) => Promise<any>;
   updateBlog: (id: string, data: UpdateBlogPayload) => Promise<any>;
+  setBlogActive: (id: string, isActive: boolean) => Promise<any>;
   deleteBlog: (id: string) => Promise<any>;
   blogs: any[];
 }
@@ -48,7 +52,7 @@ export const useBlog = () => {
 };
 
 export const BlogProvider = ({ children }: { children: React.ReactNode }) => {
-  const { get, post, put, del, loading } = useApi();
+  const { get, post, put, patch, del, loading } = useApi();
 
   const [blogs, setBlogs] = useState<any[]>([]);
 
@@ -115,12 +119,20 @@ const transformBlog = (item: any) => {
     }
   };
 
+  const getAdminBlogs = async () => {
+    const res = await get(API_ENDPOINTS.BLOG.GET_ADMIN_BLOGS);
+    const data = res?.data || res;
+    setBlogs((Array.isArray(data) ? data : []).map(transformBlog));
+    return data;
+  };
+
   const createBlog = async (data: CreateBlogPayload) => {
     try {
       const res = await post(API_ENDPOINTS.BLOG.CREATE_BLOG, data);
        return res;
     } catch (error) {
       console.error("Create blog error:", error);
+      throw error;
     }
   };
 
@@ -133,6 +145,11 @@ const transformBlog = (item: any) => {
         throw error;
       }
     };
+
+    const getAdminBlogById = async (id: string) => {
+      const response = await get(API_ENDPOINTS.BLOG.GET_ADMIN_ID_BLOG(id));
+      return response.data;
+    };
   
     const updateBlog = async (id: string, data: UpdateBlogPayload) => {
       try {
@@ -142,6 +159,11 @@ const transformBlog = (item: any) => {
         console.error("Update blog error:", error);
         throw error;
       }
+    };
+
+    const setBlogActive = async (id: string, isActive: boolean) => {
+      const response = await patch(API_ENDPOINTS.BLOG.UPDATE_BLOG_STATUS(id), { isActive });
+      return response;
     };
   
     const deleteBlog = async (id: string) => {
@@ -163,9 +185,12 @@ const transformBlog = (item: any) => {
         loading,
         blogs,
         getBlogs,
+        getAdminBlogs,
         createBlog,
         getBlogById,
+        getAdminBlogById,
         updateBlog,
+        setBlogActive,
         deleteBlog
       }}
     >

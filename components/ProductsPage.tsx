@@ -4,6 +4,8 @@ import ProductCard, { type ProductReturnContext } from './ProductCard';
 import { useProduct } from '../contexts/ProductContext';
 import { useCategory } from '@/contexts/CategoryContext';
 import { ChevronLeft, ChevronRight, PackageSearch } from "lucide-react";
+import { AnimatePresence, motion } from 'motion/react';
+import { getLocalizedCategoryName } from '../utils/categoryLocalization';
 
 interface ProductsPageProps {
   onSelectProduct: (id: string, returnContext?: ProductReturnContext) => void;
@@ -17,8 +19,6 @@ interface ProductsPageProps {
   initialPage?: string | number;
   lockedCategory?: boolean;
   catalogueLabel?: string;
-  onSelectSolarPanels?: () => void;
-  onSelectInverters?: () => void;
 }
 
 const normalizeFilterId = (value?: string | number) => {
@@ -33,7 +33,7 @@ const normalizePage = (value?: string | number) => {
   return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
 };
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang = 'az', onBack, initialCategory = 'all', initialSubCategory = 'all', initialSearch = '', initialPage = 1, lockedCategory = false, catalogueLabel, onSelectSolarPanels, onSelectInverters }) => {
+const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow, onAddToCart, lang = 'az', onBack, initialCategory = 'all', initialSubCategory = 'all', initialSearch = '', initialPage = 1, lockedCategory = false, catalogueLabel }) => {
   const { getHomeProducts, productHomeData, getProducts, productData} = useProduct();
   const {
     categories,
@@ -49,12 +49,20 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onSelectProduct, onOrderNow
   const [subFilter, setSubFilter] = useState<number | null>(initialSubCategoryId);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(initialCategoryId);
   const [page, setPage] = useState(initialPageNumber);
-const [pageSize, setPageSize] = useState(12);
+const pageSize = 12;
 const [search, setSearch] = useState(initialSearch);
 const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 const [hasProductLoadError, setHasProductLoadError] = useState(false);
 const [reloadToken, setReloadToken] = useState(0);
+const [pageDirection, setPageDirection] = useState(0);
 const totalPages = productData?.totalPages || 0;
+
+const goToPage = (nextPage: number) => {
+  const boundedPage = Math.min(Math.max(nextPage, 1), Math.max(totalPages, 1));
+  if (boundedPage === page) return;
+  setPageDirection(boundedPage > page ? 1 : -1);
+  setPage(boundedPage);
+};
 
 const clearProductSearch = () => {
   if (!search.trim()) return;
@@ -66,21 +74,6 @@ const clearProductSearch = () => {
   window.history.replaceState(window.history.state, '', nextUrl);
 };
 
-useEffect(() => {
-  const handleResize = () => {
-    if (window.innerWidth < 640) {
-      setPageSize(6); // mobil
-    } else {
-      setPageSize(12); // tablet və desktop
-    }
-  };
-
-  handleResize(); // ilk renderdə işləsin
-  window.addEventListener("resize", handleResize);
-
-  return () => window.removeEventListener("resize", handleResize);
-}, []);
-
   useEffect(() => {
     const catId = normalizeFilterId(initialCategory);
     const subCatId = normalizeFilterId(initialSubCategory);
@@ -89,12 +82,14 @@ useEffect(() => {
     setActiveCategoryId(catId);
     setSubFilter(subCatId);
 
-    if (catId !== null) {
-      getSubCategories(catId);
-    }
-
     setPage(initialPageNumber);
   }, [initialCategory, initialSubCategory, initialPage]);
+
+  useEffect(() => {
+    if (activeCategoryId !== null) {
+      void getSubCategories(activeCategoryId, { language: lang });
+    }
+  }, [activeCategoryId, lang]);
 
   useEffect(() => {
     setSearch(initialSearch || '');
@@ -103,8 +98,8 @@ useEffect(() => {
 
 
   useEffect(() => {
-    getCategories();
-  }, []);
+    void getCategories({ language: lang });
+  }, [lang]);
 
 useEffect(() => {
   let isCurrentRequest = true;
@@ -128,7 +123,7 @@ useEffect(() => {
   return () => {
     isCurrentRequest = false;
   };
-}, [filter, subFilter, page, pageSize, search, reloadToken]);
+}, [filter, subFilter, page, pageSize, search, reloadToken, lang]);
 
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
@@ -164,18 +159,9 @@ useEffect(() => {
   };
 
 
-  const getItemName = (item: any) => {
-
-
-    const lang = item?.languages?.[0];
-
-    return (
-      lang?.categoryName ||
-      lang?.subCategoryName ||
-      lang?.brandName ||
-      ""
-    );
-  };
+  const getItemName = (item: any, type: 'category' | 'subcategory' = 'category') => (
+    getLocalizedCategoryName(item, lang, type)
+  );
 
 
   const t = {
@@ -280,9 +266,9 @@ useEffect(() => {
               {t.back[lang]}
             </button>
 
-            <div className="flex flex-col items-end gap-1">
-              <h1 className="text-sm font-black text-white uppercase tracking-widest">{t.title[lang]}</h1>
-              <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">
+            <div className="flex min-w-0 flex-col items-end gap-0.5">
+              <h1 className="truncate text-sm font-black text-white uppercase tracking-widest">{t.title[lang]}</h1>
+              <span className="whitespace-nowrap text-[9px] font-bold text-white/85 uppercase tracking-wide sm:text-[10px] sm:tracking-widest">
                 {isLoadingProducts ? '…' : productData?.totalCount ?? 0} {t.results[lang]}
               </span>
             </div>
@@ -299,7 +285,7 @@ useEffect(() => {
                   setSubFilter(null);
                   setPage(1);
                 }}
-                className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
+                className={`product-filter-bar__chip ${activeCategoryId === null ? 'product-filter-bar__chip--active' : ''} shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
           ${activeCategoryId === null
                     ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-[#4c6207]'
                     : 'border border-white/10 bg-white/5 text-emerald-50/75 hover:border-white/20 hover:bg-white/10 hover:text-white'
@@ -312,22 +298,13 @@ useEffect(() => {
                 <button
                   key={category.id}
                   onClick={() => {
-                    if (category.seoKey === 'solar-panels' && onSelectSolarPanels) {
-                      onSelectSolarPanels();
-                      return;
-                    }
-                    if (category.seoKey === 'inverters' && onSelectInverters) {
-                      onSelectInverters();
-                      return;
-                    }
                     clearProductSearch();
                     setActiveCategoryId(category.id);
                     setFilter(category.id);
                     setSubFilter(null);
                     setPage(1);
-                    getSubCategories(category.id);
                   }}
-                  className={`shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
+                  className={`product-filter-bar__chip ${activeCategoryId === category.id ? 'product-filter-bar__chip--active' : ''} shrink-0 snap-start px-4 py-2.5 md:py-2 rounded-full text-[11px] md:text-xs font-black uppercase tracking-wide transition-all
           ${activeCategoryId === category.id
                       ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-950/30 ring-1 ring-[#4c6207]'
                       : 'border border-white/10 bg-white/5 text-emerald-50/75 hover:border-white/20 hover:bg-white/10 hover:text-white'
@@ -349,7 +326,7 @@ useEffect(() => {
                     setSubFilter(null);
                     setPage(1);
                   }}
-                  className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
+                  className={`product-filter-bar__chip ${subFilter === null ? 'product-filter-bar__chip--active' : ''} shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
           ${subFilter === null
                     ? 'border border-[#4c6207] bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
                     : 'border border-white/10 bg-white/5 text-emerald-50/70 hover:border-white/20 hover:bg-white/10 hover:text-white'
@@ -366,13 +343,13 @@ useEffect(() => {
                       setSubFilter(sub.id);
                       setPage(1);
                     }}
-                    className={`shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
+                    className={`product-filter-bar__chip ${subFilter == sub.id ? 'product-filter-bar__chip--active' : ''} shrink-0 snap-start px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all
             ${subFilter == sub.id
                         ? 'border border-[#4c6207] bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-950/25'
                         : 'border border-white/10 bg-white/5 text-emerald-50/70 hover:border-white/20 hover:bg-white/10 hover:text-white'
                       }`}
                   >
-                    {getItemName(sub)}
+                    {getItemName(sub, 'subcategory')}
                   </button>
                 ))}
               </div>
@@ -395,7 +372,7 @@ useEffect(() => {
                 onSelectProduct={onSelectProduct}
                 onAddToCart={onAddToCart}
                 onOrderNow={onOrderNow}
-                lang={lang === 'ru' ? 'az' : lang}
+                lang={lang}
               />
             ))}
           </div>
@@ -443,20 +420,30 @@ useEffect(() => {
         </button>
       </div>
     ) : (
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        {productData?.items?.map((product) => (
-        <ProductCard
-          key={product.id}
-          product={product}
-          onSelectProduct={selectProductWithReturnState}
-          onAddToCart={onAddToCart}
-          onOrderNow={onOrderNow}
-          lang={lang === 'ru' ? 'az' : lang}
-          search={search}
-          enableImageGallery
-        />
-        ))}
-      </div>
+      <AnimatePresence mode="wait" custom={pageDirection}>
+        <motion.div
+          key={`${filter ?? 'all'}-${subFilter ?? 'all'}-${search}-${page}-${pageSize}`}
+          custom={pageDirection}
+          initial={{ x: pageDirection > 0 ? 70 : pageDirection < 0 ? -70 : 0, opacity: pageDirection === 0 ? 1 : 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: pageDirection < 0 ? 70 : -70, opacity: 0 }}
+          transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.18 } }}
+          className="grid touch-pan-y grid-cols-2 gap-3 sm:grid-cols-2 md:gap-6 lg:grid-cols-4"
+        >
+          {productData?.items?.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onSelectProduct={selectProductWithReturnState}
+              onAddToCart={onAddToCart}
+              onOrderNow={onOrderNow}
+              lang={lang}
+              search={search}
+              enableImageGallery
+            />
+          ))}
+        </motion.div>
+      </AnimatePresence>
     )}
   </div>
 </section>
@@ -464,7 +451,7 @@ useEffect(() => {
 {totalPages > 1 && (
   <div className="flex justify-center items-center gap-1.5 md:gap-2 mt-1 pb-10 px-4">
     <button
-      onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+      onClick={() => goToPage(page - 1)}
       disabled={page === 1}
       className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-primary)_24%,white)] text-[var(--color-dark)] hover:bg-[color-mix(in_srgb,var(--color-primary)_10%,white)] disabled:opacity-40 transition"
     >
@@ -482,7 +469,7 @@ useEffect(() => {
       return (
         <button
           key={item}
-          onClick={() => setPage(item)}
+          onClick={() => goToPage(item)}
           className={`
             w-9 h-9 md:w-10 md:h-10 rounded-full text-sm font-bold transition
             ${page === item
@@ -496,7 +483,7 @@ useEffect(() => {
       );
     })}
     <button
-      onClick={() => setPage(prev => totalPages > 0 ? Math.min(prev + 1, totalPages) : prev)}
+      onClick={() => goToPage(page + 1)}
       disabled={totalPages === 0 || page >= totalPages}
       className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-primary)_24%,white)] text-[var(--color-dark)] hover:bg-[color-mix(in_srgb,var(--color-primary)_10%,white)] disabled:opacity-40 transition"
     >

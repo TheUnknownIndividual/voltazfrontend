@@ -1,19 +1,25 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { PackageCheck, ShoppingCart } from 'lucide-react';
 import { ProductVariant } from '../types';
 import { useProduct } from "../contexts/ProductContext";
 import { useCategory } from '@/contexts/CategoryContext';
 import { useParams } from "react-router-dom";
 import Share from "../components/Share";
+import ProductCard from './ProductCard';
+import OutOfStockWhatsappAction from './OutOfStockWhatsappAction';
 import { absoluteSiteUrl, localizePath } from '../utils/seoRoutes';
 import { getStockWarning } from '../utils/productInventory';
+import { API_ENDPOINTS } from '../utils/constants';
 
 interface ProductDetailProps {
   productId: string;
   onBack: (productCategory?: { category?: string | number; subCategory?: string | number }) => void;
   onOrderNow: (id: string, quantity: number, power: string, maxStock: number) => void;
   onAddToCart: (id: string, quantity: number, power: string, maxStock: number) => void;
+  onSelectProduct: (id: string) => void;
   cartPreview?: React.ReactNode;
   lang?: 'az' | 'en' | 'ru' | 'tr';
 }
@@ -67,7 +73,7 @@ const ExpandableDescription: React.FC<ExpandableDescriptionProps> = ({ text, exp
         <button
           type="button"
           onClick={onExpand}
-          className="product-description-ellipsis absolute bottom-0 right-0 bg-gradient-to-l from-white via-white to-white/80 pl-4"
+          className="product-description-ellipsis absolute bottom-0 right-0 bg-gradient-to-l from-white via-white to-transparent pl-3"
           aria-label={readMoreLabel}
           aria-expanded={false}
         >
@@ -84,75 +90,36 @@ interface ExpandableFeaturesProps {
   showLessLabel: string;
 }
 
-const FEATURES_CLAMP_LINES = 3;
+const FEATURES_PREVIEW_CHARACTERS = 320;
 
 const ExpandableFeatures: React.FC<ExpandableFeaturesProps> = ({ text, readMoreLabel, showLessLabel }) => {
-  const measureRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [visibleLength, setVisibleLength] = useState<number | null>(null);
 
   useEffect(() => {
-    const element = measureRef.current;
-    if (!element) return;
-
-    let animationFrame = 0;
-    const measure = () => {
-      const lineHeight = parseFloat(getComputedStyle(element).lineHeight) || 0;
-      const maxHeight = lineHeight * FEATURES_CLAMP_LINES + 1;
-
-      if (!lineHeight || element.scrollHeight <= maxHeight) {
-        setVisibleLength(null);
-        return;
-      }
-
-      let low = 0;
-      let high = text.length;
-      while (low < high) {
-        const mid = Math.ceil((low + high) / 2);
-        element.textContent = text.slice(0, mid).trimEnd() + '…';
-        if (element.scrollHeight <= maxHeight) {
-          low = mid;
-        } else {
-          high = mid - 1;
-        }
-      }
-      setVisibleLength(low);
-    };
-    const scheduleMeasure = () => {
-      if (animationFrame) return;
-      animationFrame = window.requestAnimationFrame(() => {
-        animationFrame = 0;
-        measure();
-      });
-    };
-    const resizeObserver = new ResizeObserver(scheduleMeasure);
-
-    resizeObserver.observe(element);
-    scheduleMeasure();
-    return () => {
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-    };
+    setExpanded(false);
   }, [text]);
 
-  const hasOverflow = visibleLength !== null;
-  const displayText = expanded || !hasOverflow ? text : text.slice(0, visibleLength).trimEnd();
+  const normalizedText = text.trim();
+  const hasOverflow = normalizedText.length > FEATURES_PREVIEW_CHARACTERS;
+  const boundary = hasOverflow
+    ? normalizedText.lastIndexOf(' ', FEATURES_PREVIEW_CHARACTERS)
+    : normalizedText.length;
+  const previewLength = boundary >= FEATURES_PREVIEW_CHARACTERS * 0.7
+    ? boundary
+    : FEATURES_PREVIEW_CHARACTERS;
+  const displayText = expanded || !hasOverflow
+    ? normalizedText
+    : normalizedText.slice(0, previewLength).trimEnd();
 
   return (
-    <>
-      <p
-        ref={measureRef}
-        aria-hidden="true"
-        className="whitespace-pre-line text-sm leading-relaxed text-slate-600"
-        style={{ position: 'absolute', visibility: 'hidden', height: 0, overflow: 'hidden', pointerEvents: 'none' }}
-      />
+    <div>
       <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
         {displayText}
         {!expanded && hasOverflow && (
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="product-description-ellipsis text-[var(--color-primary)]"
+            className="product-description-ellipsis ml-1"
             aria-label={readMoreLabel}
             aria-expanded={false}
           >
@@ -173,12 +140,183 @@ const ExpandableFeatures: React.FC<ExpandableFeaturesProps> = ({ text, readMoreL
           </>
         )}
       </p>
-    </>
+    </div>
   );
 };
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, cartPreview, lang }) => {
-  const { getProductById } = useProduct();
+interface PdfBookPreviewProps {
+  sourceUrl: string;
+  title: string;
+  lang?: ProductDetailProps['lang'];
+}
+
+// The filename is content-hashed by Vite. This additional version prevents a
+// browser which cached the old IIS 404 for that same hash from reusing it after
+// the server-side MIME fix was deployed.
+const PDF_WORKER_VERSION = '20260826.2';
+
+const PdfBookPreview: React.FC<PdfBookPreviewProps> = ({ sourceUrl, title, lang }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+  const [renderedPages, setRenderedPages] = useState<number[]>([]);
+  const [failed, setFailed] = useState(false);
+  const [isDesktopSpread, setIsDesktopSpread] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  );
+
+  const labels = {
+    loading: lang === 'az' ? 'PDF hazırlanır…' : lang === 'ru' ? 'PDF загружается…' : lang === 'tr' ? 'PDF hazırlanıyor…' : 'Preparing PDF…',
+    page: lang === 'az' ? 'Səhifə' : lang === 'ru' ? 'Страница' : lang === 'tr' ? 'Sayfa' : 'Page',
+    fallback: lang === 'az' ? 'Daxili PDF görüntüləyicisi' : lang === 'ru' ? 'Встроенный просмотрщик PDF' : lang === 'tr' ? 'Yerleşik PDF görüntüleyici' : 'Built-in PDF viewer',
+  };
+
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element || shouldLoad) return;
+    if (!('IntersectionObserver' in window)) {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: '500px 0px' },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const updateLayout = () => setIsDesktopSpread(mediaQuery.matches);
+    updateLayout();
+    mediaQuery.addEventListener('change', updateLayout);
+    return () => mediaQuery.removeEventListener('change', updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
+    let cancelled = false;
+    let loadingTask: PDFDocumentLoadingTask | undefined;
+    let pdfDocument: PDFDocumentProxy | undefined;
+    const renderTasks: RenderTask[] = [];
+    const abortController = new AbortController();
+
+    const render = async () => {
+      try {
+        setFailed(false);
+        setRenderedPages([]);
+        const [pdfjs, response] = await Promise.all([
+          import('pdfjs-dist'),
+          fetch(API_ENDPOINTS.PRODUCT.PREVIEW_DATASHEET(sourceUrl), {
+            signal: abortController.signal,
+            credentials: 'omit',
+          }),
+        ]);
+        if (cancelled) return;
+        if (!response.ok) {
+          throw new Error(`Datasheet request failed with HTTP ${response.status}.`);
+        }
+
+        // Passing the fetched bytes to PDF.js avoids a second, browser-specific
+        // range/stream request. That is especially important on mobile WebViews,
+        // where the native PDF viewer used to take over after the first page.
+        const data = new Uint8Array(await response.arrayBuffer());
+        if (cancelled) return;
+        pdfjs.GlobalWorkerOptions.workerSrc = `${pdfWorkerUrl}?v=${PDF_WORKER_VERSION}`;
+        loadingTask = pdfjs.getDocument({
+          data,
+        });
+        pdfDocument = await loadingTask.promise;
+        if (cancelled) return;
+
+        // Two pages are always loaded: desktop lays them out as a spread while
+        // mobile presents them vertically, so page two is reached by scrolling.
+        const visiblePages = Math.min(2, pdfDocument.numPages);
+        setPageCount(pdfDocument.numPages);
+        const availableWidth = rootRef.current?.clientWidth || 900;
+        const targetWidth = isDesktopSpread && visiblePages > 1
+          ? (availableWidth - 24) / 2
+          : availableWidth;
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+
+        for (let pageNumber = 1; pageNumber <= visiblePages; pageNumber += 1) {
+          if (cancelled) return;
+          const page = await pdfDocument.getPage(pageNumber);
+          const baseViewport = page.getViewport({ scale: 1 });
+          const cssScale = Math.min(1.5, targetWidth / baseViewport.width);
+          const viewport = page.getViewport({ scale: cssScale * pixelRatio });
+          const canvas = canvasRefs.current[pageNumber - 1];
+          if (!canvas) continue;
+          canvas.width = Math.max(1, Math.floor(viewport.width));
+          canvas.height = Math.max(1, Math.floor(viewport.height));
+          canvas.style.aspectRatio = `${viewport.width} / ${viewport.height}`;
+          const renderTask = page.render({ canvas, viewport });
+          renderTasks.push(renderTask);
+          await renderTask.promise;
+          if (!cancelled) setRenderedPages((current) => [...new Set([...current, pageNumber])]);
+        }
+      } catch (error) {
+        const errorName = (error as { name?: string })?.name;
+        if (!cancelled && errorName !== 'RenderingCancelledException' && errorName !== 'AbortError') setFailed(true);
+      }
+    };
+
+    void render();
+    return () => {
+      cancelled = true;
+      abortController.abort();
+      renderTasks.forEach((task) => task.cancel());
+      if (loadingTask) void loadingTask.destroy();
+    };
+  }, [shouldLoad, sourceUrl, isDesktopSpread]);
+
+  const visiblePageSlots = pageCount === 1 ? [1] : [1, 2];
+
+  return (
+    <div ref={rootRef} className="rounded-[1.5rem] border border-slate-200 bg-slate-200/60 p-3 shadow-sm md:p-5">
+      {failed ? (
+        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+          <iframe
+            src={`${sourceUrl}#page=1&view=FitH&navpanes=0`}
+            title={`${title} — ${labels.fallback}`}
+            loading="lazy"
+            className="h-[72vh] min-h-[520px] w-full bg-white"
+          />
+          <div className="border-t border-slate-100 px-4 py-3">
+            <span className="min-w-0 truncate text-[10px] font-bold text-slate-500">{title}</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className={`grid gap-3 md:gap-5 ${visiblePageSlots.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'mx-auto max-w-xl grid-cols-1'}`}>
+            {visiblePageSlots.map((pageNumber) => (
+              <div key={pageNumber} className="relative overflow-hidden rounded-xl bg-white shadow-[0_8px_30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200">
+                {!renderedPages.includes(pageNumber) && (
+                  <div className="absolute inset-0 z-10 flex aspect-[210/297] items-center justify-center bg-white text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {shouldLoad ? labels.loading : 'PDF'}
+                  </div>
+                )}
+                <canvas ref={(element) => { canvasRefs.current[pageNumber - 1] = element; }} className="block h-auto w-full bg-white" aria-label={`${title} — ${labels.page} ${pageNumber}`} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <span className="min-w-0 truncate text-[10px] font-bold text-slate-500">{title}{pageCount ? ` · ${pageCount} ${labels.page.toLowerCase()}` : ''}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrderNow, onAddToCart, onSelectProduct, cartPreview, lang }) => {
+  const { getProductById, prefetchProducts } = useProduct();
   const { getBrandById, getTechnologyById } = useCategory();
   const { id } = useParams<{ id: string }>();
   const [brand, setBrand] = useState<any>(null);
@@ -191,7 +329,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const [stockLimitAttempted, setStockLimitAttempted] = useState(false);
   const [activeImage, setActiveImage] = useState('');
   const [hoverPreviewImage, setHoverPreviewImage] = useState('');
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState('');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [showMobileFloatingActions, setShowMobileFloatingActions] = useState(false);
   const [tabsCanScrollMore, setTabsCanScrollMore] = useState(false);
@@ -205,6 +343,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
 
   const [product, setProduct] = useState<any>(null);
+  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+  const [isLoadingSimilarProducts, setIsLoadingSimilarProducts] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -234,8 +374,64 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   }, [id]);
 
   useEffect(() => {
+    const categoryId = Number(product?.productCategoryId);
+    if (!product?.id || !Number.isFinite(categoryId)) {
+      setSimilarProducts([]);
+      setIsLoadingSimilarProducts(false);
+      return;
+    }
+
+    let isCurrentRequest = true;
+    setIsLoadingSimilarProducts(true);
+    setSimilarProducts([]);
+
+    void prefetchProducts(categoryId, undefined, 1, 8)
+      .then((data) => {
+        if (!isCurrentRequest) return;
+
+        const items = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.data?.items)
+            ? data.data.items
+            : Array.isArray(data)
+              ? data
+              : [];
+        const currentProductId = String(product.id);
+        const currentSubCategoryId = String(product.productSubCategoryId ?? '');
+        const currentBrandId = String(product.productBrandId ?? '');
+        const currentTechnologyId = String(product.productTechnologyId ?? '');
+
+        const rankedProducts = items
+          .filter((item: any) => String(item?.id) !== currentProductId)
+          .map((item: any, index: number) => ({
+            item,
+            index,
+            score:
+              (currentSubCategoryId && String(item?.productSubCategoryId ?? '') === currentSubCategoryId ? 4 : 0)
+              + (currentBrandId && String(item?.productBrandId ?? '') === currentBrandId ? 2 : 0)
+              + (currentTechnologyId && String(item?.productTechnologyId ?? '') === currentTechnologyId ? 1 : 0),
+          }))
+          .sort((left, right) => right.score - left.score || left.index - right.index)
+          .slice(0, 4)
+          .map(({ item }: { item: any }) => item);
+
+        setSimilarProducts(rankedProducts);
+      })
+      .catch(() => {
+        if (isCurrentRequest) setSimilarProducts([]);
+      })
+      .finally(() => {
+        if (isCurrentRequest) setIsLoadingSimilarProducts(false);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [product?.id, product?.productCategoryId, product?.productSubCategoryId, product?.productBrandId, product?.productTechnologyId]);
+
+  useEffect(() => {
     setIsDescriptionExpanded(false);
-    setSelectedVariantIndex(0);
+    setSelectedVariantId('');
     setQuantity(1);
     setStockLimitAttempted(false);
     setActiveImage('');
@@ -477,19 +673,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
       l => l.languageCode === currentLanguageCode
     );
 
-  const productDescription = currentTranslation?.description || "";
-  const productFeatures = currentTranslation?.features || "";
+  const commonProductDescription = currentTranslation?.description || "";
+  const commonProductFeatures = currentTranslation?.features || "";
 
   const toProductNumber = (value: unknown) => Number(value || 0);
-  const toVariantStatus = (item: any): ProductVariant & { hasVariantPrice: boolean; hasVariantStock: boolean; isPurchasable: boolean } => {
+  const toVariantStatus = (item: any, index: number): ProductVariant & { variantKey: string; hasVariantPrice: boolean; hasVariantStock: boolean; isPurchasable: boolean } => {
     const count = toProductNumber(item?.count);
     const amount = toProductNumber(item?.amount);
 
     return {
+      id: item?.id,
+      variantKey: String(item?.id ?? `legacy-${index}`),
+      modelLabel: item?.modelLabel || '',
       technicalPower: item?.technicalPower || '',
       effectiveness: item?.effectiveness || '',
       count,
       amount,
+      languages: Array.isArray(item?.languages) ? item.languages : [],
       hasVariantPrice: amount > 0,
       hasVariantStock: Boolean(product.inStock && count > 0),
       isPurchasable: Boolean(product.inStock && count > 0 && amount > 0),
@@ -514,12 +714,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const unavailableVariants = variantsByStatus.filter((variant) => !variant.isPurchasable);
   const allVariants = [...availableVariants, ...unavailableVariants];
 
-  const currentVariant = allVariants[selectedVariantIndex] || allVariants[0] || {
+  const currentVariant = allVariants.find((variant) => variant.variantKey === selectedVariantId) || allVariants[0] || {
+    variantKey: '',
+    modelLabel: '',
     technicalPower: '',
     effectiveness: '',
     count: 0,
     amount: 0,
+    languages: [],
   };
+  const currentVariantTranslation = !product.useCommonVariantContent
+    ? currentVariant.languages?.find((translation) => Number(translation.languageCode) === currentLanguageCode)
+    : undefined;
+  const productDescription = currentVariantTranslation?.description || commonProductDescription;
+  const productFeatures = currentVariantTranslation?.features || commonProductFeatures;
 
   const currentPrice = currentVariant?.amount;
   const currentCount= currentVariant?.count
@@ -541,7 +749,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
   const hasTechnicalPower = Boolean(currentPower && currentPower !== '0');
   const hasAnyTechnicalPower = allVariants.some((variant) => {
     const power = (variant.technicalPower || '').trim();
-    return power && power !== '0';
+    return (power && power !== '0') || Boolean(variant.modelLabel?.trim());
   });
   const hasEfficiency = Boolean(currentEfficiency && currentEfficiency !== '0');
   const datasheetItems = Array.isArray(product.productDatasheet)
@@ -609,6 +817,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         lang === 'ru' ? 'Скрыть' :
           lang === 'tr' ? 'Daha az göster' :
             'Show less',
+
+    similarProducts:
+      lang === 'az' ? 'Oxşar məhsullar' :
+        lang === 'ru' ? 'Похожие товары' :
+          lang === 'tr' ? 'Benzer ürünler' :
+            'Similar products',
 
     orderNow:
       lang === 'az' ? 'Sifariş et' :
@@ -819,15 +1033,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
           {primaryActionLabel}
         </button>
       ) : (
-        <a
+        <OutOfStockWhatsappAction
           href={stockCheckHref}
-          target="_blank"
-          rel="noopener noreferrer"
+          lang={lang || 'az'}
+          placement="product_detail_stock_check"
+          product={{
+            id: product.id,
+            name: product.productName || product.name,
+            category: product.productCategoryId || product.category,
+            subCategory: product.productSubCategoryId || product.subCategory,
+            brand: brand || product.brand,
+            variant: currentPower,
+            requestedQuantity: quantity,
+            availableStock,
+          }}
           className="product-order-button"
         >
           <PackageCheck className="w-5 h-5" strokeWidth={2.2} aria-hidden="true" />
           {primaryActionLabel}
-        </a>
+        </OutOfStockWhatsappAction>
       )}
       <button
         type="button"
@@ -911,7 +1135,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
         <div ref={productShellRef} className="grid grid-cols-1 lg:grid-cols-[45%_1fr] gap-12 lg:gap-20">
           <div className="space-y-6">
             <div className="relative aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-gray-50 border border-gray-100 p-6 shadow-inner group">
-              <img src={displayImage} alt={product.productName} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
+              <img src={displayImage} alt={product.productName} width="960" height="720" fetchPriority="high" decoding="async" className="w-full h-full object-contain transition-transform group-hover:scale-105" />
               <div className="absolute right-4 top-4 z-20">
                 <Share lang={lang} variant="image-mobile" />
               </div>
@@ -930,7 +1154,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
                     }}
                     className={`aspect-[4/3] bg-gray-50 rounded-xl border overflow-hidden cursor-pointer transition-all ${(hoverPreviewImage || activeImage || primaryImage) === img ? 'border-emerald-500 ring-2 ring-emerald-500/20 opacity-100' : 'border-gray-100 opacity-50 hover:opacity-100'}`}
                   >
-                    <img src={img} className="w-full h-full object-cover" alt={`view ${i + 1}`} />
+                    <img src={img} width="320" height="240" loading="lazy" decoding="async" className="w-full h-full object-cover" alt={`view ${i + 1}`} />
                   </div>
                 ))}
               </div>
@@ -974,10 +1198,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
 
                   <div className="relative">
                     <select
-                      value={selectedVariantIndex}
+                      value={currentVariant.variantKey}
                       onChange={(e) => {
-                        setSelectedVariantIndex(Number(e.target.value));
+                        setSelectedVariantId(e.target.value);
                         setStockLimitAttempted(false);
+                        setIsDescriptionExpanded(false);
                       }}
                       className="
         w-full
@@ -997,23 +1222,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
                       {availableVariants.length > 0 && unavailableVariants.length > 0 && (
                         <option disabled>{t.availableVariants}</option>
                       )}
-                      {availableVariants.map((variant, index) => {
+                      {availableVariants.map((variant) => {
                         const optionPower = (variant.technicalPower || '').trim();
-                        return optionPower ? (
-                          <option key={`available-${index}`} value={index}>
-                            {optionPower}
+                        const optionLabel = variant.modelLabel?.trim();
+                        const label = optionPower || optionLabel;
+                        return label ? (
+                          <option key={`available-${variant.variantKey}`} value={variant.variantKey}>
+                            {label}
                           </option>
                         ) : null;
                       })}
                       {unavailableVariants.length > 0 && (
                         <option disabled>{t.unavailableVariants}</option>
                       )}
-                      {unavailableVariants.map((variant, index) => {
+                      {unavailableVariants.map((variant) => {
                         const optionPower = (variant.technicalPower || '').trim();
-                        const variantIndex = availableVariants.length + index;
-                        return optionPower ? (
-                          <option key={`unavailable-${index}`} value={variantIndex}>
-                            {optionPower}
+                        const optionLabel = variant.modelLabel?.trim();
+                        const label = optionPower || optionLabel;
+                        return label ? (
+                          <option key={`unavailable-${variant.variantKey}`} value={variant.variantKey}>
+                            {label}
                           </option>
                         ) : null;
                       })}
@@ -1111,9 +1339,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
             {showStockLimitWarning && (
               <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-relaxed text-amber-800" role="alert">
                 {getStockWarning(lang || 'az', availableStock, quantity)}{' '}
-                <a href={stockCheckHref} target="_blank" rel="noopener noreferrer" className="font-black underline underline-offset-2">
+                <OutOfStockWhatsappAction
+                  href={stockCheckHref}
+                  lang={lang || 'az'}
+                  placement="product_detail_stock_limit"
+                  product={{
+                    id: product.id,
+                    name: product.productName || product.name,
+                    category: product.productCategoryId || product.category,
+                    subCategory: product.productSubCategoryId || product.subCategory,
+                    brand: brand || product.brand,
+                    variant: currentPower,
+                    requestedQuantity: quantity,
+                    availableStock,
+                  }}
+                  className="font-black underline underline-offset-2"
+                >
                   {lang === 'az' ? 'Bizimlə əlaqə saxlayın' : lang === 'ru' ? 'Связаться с нами' : lang === 'tr' ? 'Bizimle iletişime geçin' : 'Contact us'}
-                </a>
+                </OutOfStockWhatsappAction>
               </div>
             )}
 
@@ -1232,29 +1475,72 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {datasheetItems.length > 0 && (
-                datasheetItems.map((ds, idx) => (
-                  <div key={idx} className="group/ds relative w-full">
-                    <div className="h-[460px] md:h-[614px] w-full bg-white border border-slate-200 rounded-[1.5rem] overflow-hidden shadow-sm relative z-0">
-                      <img
-                        src={ds}
-                        alt={`Datasheet Preview ${idx + 1}`}
-                        className="w-full h-full object-contain"
+                datasheetItems.map((ds, idx) => {
+                  const isPdf = ds.split('?')[0].toLowerCase().endsWith('.pdf');
+                  return (
+                  <div key={idx} className={`group/ds relative w-full ${isPdf ? 'md:col-span-2' : ''}`}>
+                    {isPdf ? (
+                      <PdfBookPreview
+                        sourceUrl={ds}
+                        title={decodeURIComponent(ds.split('/').pop() || `Datasheet ${idx + 1}`)}
+                        lang={lang}
                       />
-                    </div>
-                    <a
-                      href={ds}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 z-10"
-                    >
-                      <span className="sr-only">View Datasheet {idx + 1}</span>
-                    </a>
+                    ) : (
+                      <div className="relative z-0 h-[460px] w-full overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm md:h-[614px]">
+                        <img
+                          src={ds}
+                          alt={`Datasheet Preview ${idx + 1}`}
+                          loading="lazy"
+                          decoding="async"
+                          width="900"
+                          height="1200"
+                          className="w-full h-full object-contain"
+                        />
+                        <a href={ds} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-10"><span className="sr-only">View Datasheet {idx + 1}</span></a>
+                      </div>
+                    )}
                   </div>
-                ))
+                  );
+                })
               )}
 
             </div>
           </div>
+        )}
+
+        {(isLoadingSimilarProducts || similarProducts.length > 0) && (
+          <section className="mt-12 border-t border-slate-100 pt-10 md:mt-16 md:pt-14" aria-labelledby="similar-products-title">
+            <div className="mb-6 flex items-end justify-between gap-4 md:mb-8">
+              <h2 id="similar-products-title" className="text-2xl font-black text-slate-900 md:text-3xl">
+                {t.similarProducts}
+              </h2>
+              <span className="h-1 w-12 shrink-0 rounded-full bg-[#9ac21d] md:w-16" aria-hidden="true" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">
+              {isLoadingSimilarProducts
+                ? Array.from({ length: 4 }, (_, index) => (
+                    <div key={index} className="animate-pulse rounded-[1.75rem] border border-slate-100 bg-white p-1.5" aria-hidden="true">
+                      <div className="aspect-[4/4.5] rounded-[1.25rem] bg-slate-100" />
+                      <div className="space-y-3 px-1 py-5">
+                        <div className="h-2 w-1/3 rounded bg-slate-100" />
+                        <div className="h-3 w-4/5 rounded bg-slate-100" />
+                        <div className="h-9 rounded-xl bg-slate-100" />
+                      </div>
+                    </div>
+                  ))
+                : similarProducts.map((similarProduct) => (
+                    <ProductCard
+                      key={similarProduct.id}
+                      product={similarProduct}
+                      onSelectProduct={onSelectProduct}
+                      onAddToCart={onAddToCart}
+                      onOrderNow={onOrderNow}
+                      lang={lang || 'az'}
+                    />
+                  ))}
+            </div>
+          </section>
         )}
 
       </div>

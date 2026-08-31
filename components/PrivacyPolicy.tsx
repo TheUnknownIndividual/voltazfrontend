@@ -80,6 +80,8 @@ Veb-saytdan istifadə zamanı avtomatik olaraq aşağıdakı texniki məlumatlar
 •	baxılan səhifələr;
 •	veb-saytda keçirdiyiniz müddət;
 •	istifadəçi davranışı ilə bağlı ümumi analitik məlumatlar;
+•	WhatsApp əlaqə düyməsinə klik zamanı açılan səhifə, düymənin yerləşməsi, əvvəlcədən hazırlanmış mesaj mətni, məhsul və stok sorğusu məlumatları, təsadüfi yaradılmış brauzer identifikatoru və hadisənin vaxtı;
+•	stokda olmayan məhsul üçün WhatsApp-a keçməzdən əvvəl telefon nömrənizi təqdim etdikdə, sorğunuza cavab vermək üçün həmin nömrə səlahiyyətli Volt əməkdaşlarına yönləndirilə bilər;
 •	cookies və oxşar texnologiyalar vasitəsilə toplanan texniki məlumatlar.
 1.4. Monitorinq və sistem məlumatları
 Solarix tərəfindən quraşdırılmış günəş enerji sistemlərində monitorinq tətbiqi və ya inverter platforması istifadə olunduqda aşağıdakı məlumatlar emal oluna bilər:
@@ -110,6 +112,8 @@ Bu məlumatlar əsasən sistemin işləməsini izləmək, nasazlıqları vaxtın
 •	date and time of website access;
 •	pages visited on our website;
 •	general website usage behavior;
+• when a WhatsApp contact button is selected: the originating page and placement, Volt-prepared message text, relevant product and stock-check details, a randomly generated browser identifier, and event time;
+• if you provide a phone number before continuing to WhatsApp for an out-of-stock item, we may route it to authorized Volt staff to respond to your request;
 •	technical information collected through cookies or similar technologies.
 During the design and installation of a solar energy system, we may also collect information about the property location, roof dimensions, shading conditions, electrical connection, meter information, technical conditions, subscriber code, and other project-related technical details.
 If the installed system includes a monitoring application, technical data such as energy production, energy consumption, energy imported from the grid, energy exported to the grid, inverter status, alerts, and general system performance may also be processed.
@@ -131,6 +135,8 @@ If the installed system includes a monitoring application, technical data such a
 •	дата и время посещения веб-сайта;
 •	просмотренные страницы;
 •	общая информация о поведении пользователя на сайте;
+• при выборе кнопки WhatsApp: исходная страница и расположение кнопки, подготовленный Volt текст сообщения, сведения о товаре и проверке наличия, случайно созданный идентификатор браузера и время события;
+• если перед переходом в WhatsApp по отсутствующему товару вы укажете номер телефона, он может быть передан уполномоченным сотрудникам Volt для ответа на ваш запрос;
 •	технические данные, собираемые через cookies или аналогичные технологии.
 В процессе проектирования и установки солнечной энергетической системы мы также можем собирать сведения о местоположении объекта, размерах крыши, условиях затенения, электрическом подключении, данных счетчика, технических условиях, абонентском коде и других технических данных, связанных с проектом.
 Если установленная система включает приложение мониторинга, могут обрабатываться технические данные о выработке энергии, потреблении, энергии, полученной из сети, энергии, переданной в сеть, состоянии инвертора, предупреждениях и общей производительности системы.
@@ -152,6 +158,8 @@ If the installed system includes a monitoring application, technical data such a
 •	web sitesine erişim tarihi ve saati;
 •	ziyaret edilen sayfalar;
 •	web sitesindeki genel kullanıcı davranışı;
+• WhatsApp iletişim düğmesi seçildiğinde: kaynak sayfa ve düğme konumu, Volt tarafından hazırlanmış mesaj metni, ilgili ürün ve stok kontrolü bilgileri, rastgele oluşturulan tarayıcı tanımlayıcısı ve olay zamanı;
+• stokta olmayan bir ürün için WhatsApp’a geçmeden önce telefon numarası verirseniz, talebinize yanıt vermek amacıyla yetkili Volt çalışanlarına yönlendirilebilir;
 •	cookies veya benzer teknolojiler aracılığıyla toplanan teknik bilgiler.
 Güneş enerji sisteminin tasarımı ve kurulumu sırasında mülk konumu, çatı ölçüleri, gölgelenme durumu, elektrik bağlantısı, sayaç bilgileri, teknik şartlar, abone kodu ve projeye ilişkin diğer teknik bilgileri de toplayabiliriz.
 Kurulan sistem bir izleme uygulaması içeriyorsa, enerji üretimi, enerji tüketimi, şebekeden alınan enerji, şebekeye verilen enerji, inverter durumu, uyarılar ve genel sistem performansı gibi teknik veriler de işlenebilir.
@@ -535,6 +543,56 @@ We do not knowingly collect personal information from minors. If information rel
 `,
           tr: `Solarix hizmetleri çocuklara yönelik değildir.
 Bilerek reşit olmayan kişilerden kişisel bilgi toplamıyoruz. Bir çocuğa ait bilgi ebeveyn veya yasal temsilci tarafından sağlanırsa, bu bilgi yalnızca yasal ve hizmetle ilgili gerekli amaçlar için kullanılır.
+`
+        }
+      },
+      {
+        title: {
+          az: 'Meta mesajlaşma inteqrasiyaları',
+          en: 'Meta Messaging Integrations',
+          ru: 'Интеграции обмена сообщениями Meta',
+          tr: 'Meta Mesajlaşma Entegrasyonları'
+        },
+        content: {
+          az: `Solarix / Volt.az müştəri dəstəyi üçün Facebook, Messenger, Instagram və WhatsApp Business Platform inteqrasiyalarından istifadə edə bilər.
+Bu kanallar vasitəsilə bizimlə əlaqə saxladıqda aşağıdakı məlumatlar emal edilə bilər:
+• Facebook Səhifəsi, Instagram hesabı və ya WhatsApp Business hesabı identifikatorları;
+• kanal tərəfindən təqdim edilən profil adı və istifadəçi və ya telefon identifikatoru;
+• mesaj məzmunu və əlavə faylların metadatası;
+• mesajın göndərilmə, çatdırılma və oxunma vəziyyəti;
+• söhbətin məsul əməkdaşa təyin edilməsi, statusu və müştəri dəstəyi üçün daxili qeydlər.
+Bu məlumatlardan yalnız mesajların düzgün biznes hesabına yönləndirilməsi, müştəri sorğularının cavablandırılması, komanda daxilində iş bölgüsü və dəstək xidmətinin təhlükəsiz aparılması üçün istifadə olunur. Meta məlumatlarını reklam profili yaratmaq üçün istifadə etmir, satmır və icazəsiz üçüncü tərəflərlə paylaşmırıq.
+Meta ilə bağlı məlumatların silinməsi üçün /data-deletion səhifəsindəki təlimatlardan istifadə edə və ya support@volt.az ünvanına müraciət edə bilərsiniz.
+`,
+          en: `Solarix / Volt.az may use Facebook, Messenger, Instagram, and the WhatsApp Business Platform to provide customer support.
+When you contact us through these channels, we may process:
+• Facebook Page, Instagram account, or WhatsApp Business account identifiers;
+• the profile name and user or phone identifier supplied by the channel;
+• message content and attachment metadata;
+• sent, delivered, and read status information;
+• conversation assignment, support status, and internal notes used to coordinate customer service.
+We use this information only to route messages to the correct business account, respond to customer requests, assign work between authorized team members, and operate customer support securely. We do not use Meta messaging data to build advertising profiles, sell it, or disclose it to unauthorized third parties.
+To request deletion of Meta-related data, follow the instructions at /data-deletion or contact support@volt.az.
+`,
+          ru: `Solarix / Volt.az может использовать Facebook, Messenger, Instagram и WhatsApp Business Platform для поддержки клиентов.
+При обращении через эти каналы могут обрабатываться:
+• идентификаторы Страницы Facebook, аккаунта Instagram или аккаунта WhatsApp Business;
+• имя профиля и идентификатор пользователя или телефона, предоставленные каналом;
+• содержимое сообщений и метаданные вложений;
+• статусы отправки, доставки и прочтения;
+• назначение диалога сотруднику, статус поддержки и внутренние заметки для координации обслуживания.
+Эти данные используются только для направления сообщений в правильный бизнес-аккаунт, ответа на запросы, распределения работы между уполномоченными сотрудниками и безопасной работы поддержки. Мы не используем данные сообщений Meta для создания рекламных профилей, не продаём их и не раскрываем неуполномоченным третьим лицам.
+Для удаления связанных с Meta данных следуйте инструкциям на странице /data-deletion или напишите на support@volt.az.
+`,
+          tr: `Solarix / Volt.az müşteri desteği sağlamak için Facebook, Messenger, Instagram ve WhatsApp Business Platform entegrasyonlarını kullanabilir.
+Bu kanallardan iletişim kurduğunuzda şunlar işlenebilir:
+• Facebook Sayfası, Instagram hesabı veya WhatsApp Business hesabı tanımlayıcıları;
+• kanalın sağladığı profil adı ve kullanıcı ya da telefon tanımlayıcısı;
+• mesaj içeriği ve ek meta verileri;
+• gönderilme, teslim ve okunma durumları;
+• müşteri hizmetlerini koordine etmek için konuşma ataması, destek durumu ve dahili notlar.
+Bu verileri yalnızca mesajları doğru işletme hesabına yönlendirmek, müşteri taleplerini yanıtlamak, yetkili ekip üyeleri arasında iş dağıtmak ve desteği güvenli şekilde yürütmek için kullanırız. Meta mesajlaşma verilerini reklam profili oluşturmak için kullanmaz, satmaz veya yetkisiz üçüncü taraflarla paylaşmayız.
+Meta ile ilgili verilerin silinmesini istemek için /data-deletion sayfasındaki talimatları izleyebilir veya support@volt.az adresine yazabilirsiniz.
 `
         }
       },

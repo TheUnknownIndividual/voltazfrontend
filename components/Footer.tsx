@@ -200,6 +200,15 @@ const t = {
       ? "Kullanım Şartları"
       : "Terms of Use",
 
+  dataDeletion:
+    lang === "az"
+      ? "Məlumatların Silinməsi"
+      : lang === "ru"
+      ? "Удаление данных"
+      : lang === "tr"
+      ? "Veri Silme"
+      : "Data Deletion",
+
     smartMeterMonitoring:
   lang === "az"
     ? "Smart Sayğac və Monitorinq"
@@ -335,9 +344,10 @@ designROI:
           <p className="text-slate-500 text-xs font-bold">
             © {new Date().getFullYear()} Volt.az - SOLARIX MMC. {t.rights}
           </p>
-          <div className="flex gap-8 text-[11px] font-black uppercase tracking-widest text-slate-400">
-            <a href="#" onClick={(e) => handleNav(e, 'privacy-policy')} className="hover:text-emerald-600 transition-colors">{t.privacy}</a>
-            <a href="#" onClick={(e) => handleNav(e, 'terms-of-service')} className="hover:text-emerald-600 transition-colors">{t.terms}</a>
+          <div className="grid w-full max-w-3xl grid-cols-3 text-center text-[9px] font-black uppercase tracking-[0.11em] text-slate-400 sm:text-[11px] sm:tracking-widest">
+            <a href="#" onClick={(e) => handleNav(e, 'privacy-policy')} className="px-2 leading-tight hover:text-emerald-600 transition-colors">{t.privacy}</a>
+            <a href="#" onClick={(e) => handleNav(e, 'data-deletion')} className="px-2 leading-tight hover:text-emerald-600 transition-colors">{t.dataDeletion}</a>
+            <a href="#" onClick={(e) => handleNav(e, 'terms-of-service')} className="px-2 leading-tight hover:text-emerald-600 transition-colors">{t.terms}</a>
           </div>
         </div>
       </div>

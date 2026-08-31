@@ -80,6 +80,7 @@ const staticRoutes = [
   '/partnership',
   '/pro-club',
   '/privacy-policy',
+  '/data-deletion',
   '/terms-of-service',
   '/purchase-terms',
   '/news',
@@ -480,7 +481,7 @@ function writeSeoCache(contents) {
 writeAtomically('sitemap.xml', data.toString());
 writeSeoCache(JSON.stringify(seoRoutes));
 
-const llmsHeader = `# Volt.az\n\n> Volt.az (SOLARIX MMC) provides solar panels, inverters, energy storage, solar calculators, and professional installation for homes and businesses in Azerbaijan.\n\n## Official sources\n\n- Website: ${SITE_HOSTNAME}/\n- Solar products: ${SITE_HOSTNAME}/products\n- Solar calculator: ${SITE_HOSTNAME}/calculator\n- Solar panel installation: ${SITE_HOSTNAME}${INSTALLATION_PATHS.az}\n- Projects: ${SITE_HOSTNAME}/projects\n- Public sitemap: ${SITE_HOSTNAME}/sitemap.xml\n\n## Languages\n\n- Azərbaycan dili: ${SITE_HOSTNAME}/\n- English: ${SITE_HOSTNAME}/en\n- Русский: ${SITE_HOSTNAME}/ru\n- Türkçe: ${SITE_HOSTNAME}/tr\n\n## Product catalogue\n\n`;
+const llmsHeader = `# Volt.az\n\n> Volt.az (SOLARIX MMC) supplies, designs, installs, and supports solar panels, inverters, energy storage, and solar power systems for homes and businesses across Azerbaijan.\n\nUpdated: ${new Date().toISOString().slice(0, 10)}\n\n## Authoritative Azerbaijani pages\n\n- Main website: ${SITE_HOSTNAME}/\n- Solar panels: ${SITE_HOSTNAME}${SOLAR_PANEL_PATHS.az}\n- Solar inverters: ${SITE_HOSTNAME}${INVERTER_PATHS.az}\n- Solar panel installation: ${SITE_HOSTNAME}${INSTALLATION_PATHS.az}\n- Solar calculator: ${SITE_HOSTNAME}/calculator\n- Completed projects: ${SITE_HOSTNAME}/projects\n- Contact information: ${SITE_HOSTNAME}/contact\n\n## Russian commercial pages\n\n- Солнечные панели: ${SITE_HOSTNAME}${SOLAR_PANEL_PATHS.ru}\n- Солнечные инверторы: ${SITE_HOSTNAME}${INVERTER_PATHS.ru}\n- Установка солнечных панелей: ${SITE_HOSTNAME}${INSTALLATION_PATHS.ru}\n- Калькулятор: ${SITE_HOSTNAME}/ru/calculator\n- Проекты: ${SITE_HOSTNAME}/ru/projects\n- Контакты: ${SITE_HOSTNAME}/ru/contact\n\n## Source and coverage notes\n\n- Official operator: SOLARIX MMC / Volt.az.\n- Service coverage: homes, businesses, and industrial sites across Azerbaijan, subject to a technical site assessment.\n- System sizing, production, savings, price, warranty, and installation timing depend on the selected equipment and verified site conditions.\n- The public sitemap is ${SITE_HOSTNAME}/sitemap.xml and crawler guidance is ${SITE_HOSTNAME}/robots.txt.\n\n## Languages\n\n- Azərbaycan dili: ${SITE_HOSTNAME}/\n- English: ${SITE_HOSTNAME}/en\n- Русский: ${SITE_HOSTNAME}/ru\n- Türkçe: ${SITE_HOSTNAME}/tr\n\n## Product catalogue\n\n`;
 const llmsProducts = seoLinks.map(({ url, title, description }) => `- [${String(title).replaceAll(']', '')}](${url})${description ? ` — ${String(description).replaceAll('\n', ' ').slice(0, 240)}` : ''}`).join('\n');
 writeAtomically('llms.txt', `${llmsHeader}${llmsProducts}\n`);
 

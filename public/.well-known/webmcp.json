@@ -1,0 +1,26 @@
+{
+  "name": "Volt.az Public Solar Tools",
+  "description": "Browser tools for public product research, solar planning estimates, and visitor-confirmed contact drafts.",
+  "runtime": "navigator.modelContext",
+  "availability": "Registered only in browsers that support the WebMCP preview API.",
+  "tools": [
+    {
+      "name": "search_public_products",
+      "access": "anonymous-read"
+    },
+    {
+      "name": "get_public_product_details",
+      "access": "anonymous-read"
+    },
+    {
+      "name": "estimate_public_solar_system",
+      "access": "local-calculation"
+    },
+    {
+      "name": "prepare_contact_request",
+      "access": "anonymous-draft",
+      "requiresHumanConfirmation": true
+    }
+  ],
+  "documentation": "https://volt.az/auth.md"
+}

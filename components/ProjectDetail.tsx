@@ -8,19 +8,10 @@ interface ProjectDetailProps {
   // Added lang to props
   lang?: 'az' | 'en' | 'ru' | 'tr';
 }
-const LANGUAGES = [
-  { code: 'az', name: 'Azərbaycan' },
-  { code: 'en', name: 'English' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'tr', name: 'Türkçe' }
-] as const;
-
-type LangCode = typeof LANGUAGES[number]['code'];
-
 const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, lang }) => {
     const {  getProjectById} = useProject();
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [activeLang, setActiveLang] = useState<LangCode>('az')
+    const activeLang = lang || 'az';
   const [project, setProject] = React.useState<any>(null);
     const systemTypes = [
     { id: 1, label: "On-Grid" },
@@ -61,9 +52,11 @@ const prevImage = () => {
   );
 };
 
-const getUnitLabel = (units: { id: number; label: string }[], id: number) => {
-  return units.find(u => u.id === id)?.label || "";
+  const getUnitLabel = (units: { id: number; label: string }[], id: number) => {
+    return units.find(u => u.id === id)?.label || "";
 };
+  const localizedValue = (values: Record<string, string> | undefined) =>
+    values?.[activeLang] || values?.az || values?.en || values?.ru || values?.tr || '';
  const transformProject = (item: any) => {
     const title = { az: "", en: "", ru: "", tr: "" };
     const about = { az: "", en: "", ru: "", tr: "" };
@@ -108,7 +101,15 @@ setProject(transformed);
   load();
 }, [projectId]);
 
-  if (!project) return <div className="pt-32 text-center font-bold font-black text-slate-400 uppercase tracking-widest">{lang === 'az' ? 'Layihə tapılmadı' : lang === 'ru' ? 'Проект не найден' : 'Project not found'}</div>;
+  const copy = activeLang === 'az'
+    ? { notFound: 'Layihə tapılmadı', back: 'Geri qayıt', parameters: 'Texniki parametrlər', location: 'Məkan', power: 'Ümumi güc', annual: 'İllik istehsal', system: 'Sistem tipi', consultation: 'Məsləhət lazımdır?', consultationText: 'Mühəndislərimiz sizə ən uyğun günəş enerjisi həllini seçməkdə kömək edəcəklər.' }
+    : activeLang === 'ru'
+      ? { notFound: 'Проект не найден', back: 'Назад', parameters: 'Технические параметры', location: 'Местоположение', power: 'Общая мощность', annual: 'Годовая выработка', system: 'Тип системы', consultation: 'Нужна консультация?', consultationText: 'Наши инженеры помогут подобрать наиболее подходящее решение в области солнечной энергетики.' }
+      : activeLang === 'tr'
+        ? { notFound: 'Proje bulunamadı', back: 'Geri dön', parameters: 'Teknik özellikler', location: 'Konum', power: 'Toplam güç', annual: 'Yıllık üretim', system: 'Sistem tipi', consultation: 'Danışmanlığa mı ihtiyacınız var?', consultationText: 'Mühendislerimiz en uygun güneş enerjisi çözümünü seçmenize yardımcı olacaktır.' }
+        : { notFound: 'Project not found', back: 'Go back', parameters: 'Technical specifications', location: 'Location', power: 'Total power', annual: 'Annual generation', system: 'System type', consultation: 'Need a consultation?', consultationText: 'Our engineers will help you select the solar-energy solution that fits you best.' };
+
+  if (!project) return <div className="pt-32 text-center font-bold font-black text-slate-400 uppercase tracking-widest">{copy.notFound}</div>;
 
   
 
@@ -119,9 +120,9 @@ setProject(transformed);
         <div className="max-w-7xl mx-auto px-4 md:px-12 flex items-center justify-between relative z-10">
           <button onClick={onBack} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            {lang === 'az' ? 'Geri qayıt' : lang === 'ru' ? 'Назад' : 'Go back'}
+            {copy.back}
           </button>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest truncate max-w-[200px] md:max-w-none">{project.title?.[activeLang]}</h1>
+          <h1 className="text-sm font-black text-white uppercase tracking-widest truncate max-w-[200px] md:max-w-none">{localizedValue(project.title)}</h1>
         </div>
       </section>
 
@@ -135,7 +136,7 @@ setProject(transformed);
   {/* Image */}
   <img
     src={project.image[currentIndex]}
-    alt={project.title?.[activeLang]}
+    alt={localizedValue(project.title)}
     className="w-full h-full"
   />
 
@@ -176,9 +177,9 @@ setProject(transformed);
     />
   ))}
 </div>
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-6 mt-6">{project.title?.[activeLang]}</h1>
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-6 mt-6">{localizedValue(project.title)}</h1>
             <div className="prose prose-lg text-slate-600 leading-relaxed max-w-none">
-              <p className="whitespace-pre-line">{project.about?.[activeLang]}</p>
+              <p className="whitespace-pre-line">{localizedValue(project.about)}</p>
             </div>
           </div>
 
@@ -186,23 +187,23 @@ setProject(transformed);
             <div className="sticky top-12 space-y-6">
               <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8">
                 <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-200 pb-4">
-                  {lang === 'az' ? 'Texniki Parametrlər' : lang === 'ru' ? 'Технические параметры' : 'Technical Parameters'}
+                  {copy.parameters}
                 </h3>
                 <div className="space-y-6">
                   <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{lang === 'az' ? 'Məkan' : lang === 'ru' ? 'Место' : 'Location'}</span>
-                    <span className="text-slate-900 font-bold text-sm">{project.location?.[activeLang]}</span>
+                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{copy.location}</span>
+                    <span className="text-slate-900 font-bold text-sm">{localizedValue(project.location)}</span>
                   </div>
                   <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{lang === 'az' ? 'Ümumi Güc' : lang === 'ru' ? 'Общая мощность' : 'Total Power'}</span>
+                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{copy.power}</span>
                     <span className="text-emerald-600 font-black text-base">{project.totalPower} {getUnitLabel(powerUnits, project.powerType)}</span>
                   </div>
                   <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{lang === 'az' ? 'İllik İstehsal' : lang === 'ru' ? 'Годовое производство' : 'Annual Generation'}</span>
+                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{copy.annual}</span>
                     <span className="text-slate-900 font-bold text-sm">{project.annualProduction} {getUnitLabel(productionUnits, project.annualProductionType)}</span>
                   </div>
                   <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{lang === 'az' ? 'Sistem Tipi' : lang === 'ru' ? 'Тип системы' : 'System Type'}</span>
+                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{copy.system}</span>
                     <span className="text-slate-900 font-bold text-sm">{getUnitLabel(systemTypes, project.systemType)}</span>
                   </div>
                 </div>
@@ -210,8 +211,8 @@ setProject(transformed);
 
               <div className="bg-emerald-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700"></div>
-                <h4 className="text-lg font-black mb-4 relative z-10">{lang === 'az' ? 'Məsləhət lazımdır?' : lang === 'ru' ? 'Нужна консультация?' : 'Need a consultation?'}</h4>
-                <p className="text-emerald-100/60 text-xs mb-6 relative z-10 leading-relaxed">{lang === 'az' ? 'Mühəndislərimiz sizə ən uyğun solar həllini seçməkdə kömək edəcəklər.' : lang === 'ru' ? 'Наши инженеры помогут вам выбрать наиболее подходящее солнечное решение.' : 'Our engineers will help you choose the most suitable solar solution.'}</p>
+                <h4 className="text-lg font-black mb-4 relative z-10">{copy.consultation}</h4>
+                <p className="text-emerald-100/60 text-xs mb-6 relative z-10 leading-relaxed">{copy.consultationText}</p>
                 <div className="flex items-center gap-3 text-emerald-400 font-black text-sm relative z-10">
                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>

@@ -8,6 +8,13 @@ interface LanguagePayload {
   subCategoryName?: string;
 }
 
+export type CategoryLanguage = 'az' | 'en' | 'ru' | 'tr';
+
+export interface CategoryFetchOptions {
+  language?: CategoryLanguage;
+  includeAllLanguages?: boolean;
+}
+
 interface CategoryPayload {
   languages: LanguagePayload[];
   showOnHomePage?: boolean;
@@ -47,8 +54,8 @@ interface CategoryContextType {
   categories: any[];
   homePageCategories: HomePageCategory[];
 
-  getCategories: () => Promise<void>;
-  getHomePageCategories: () => Promise<HomePageCategory[]>;
+  getCategories: (options?: CategoryFetchOptions) => Promise<any[]>;
+  getHomePageCategories: (options?: Pick<CategoryFetchOptions, 'language'>) => Promise<HomePageCategory[]>;
   getCategoryById: (id: string) => Promise<any>;
   getCategoryBySeoKey: (seoKey: string) => Promise<any>;
   getCategoryProductOptions: (id: string | number) => Promise<CategoryProductOption[]>;
@@ -60,7 +67,7 @@ interface CategoryContextType {
 
   subcategories: any[];
 
-  getSubCategories: (categoryId: number) => Promise<void>;
+  getSubCategories: (categoryId: number, options?: CategoryFetchOptions) => Promise<any[]>;
   getSubCategoryById: (id: string) => Promise<any>;
 
   createSubCategory: (data: SubCategoryPayload) => Promise<any>;
@@ -108,11 +115,16 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
   const [brands, setBrands] = useState<any[]>([]);
   const [technologies, setTechnologies] = useState<any[]>([]);
   // GET ALL + STATE UPDATE
-  const getCategories = async () => {
+  const getCategories = async (options: CategoryFetchOptions = {}) => {
     try {
-      const res = await get(API_ENDPOINTS.CATEGORY.GET_CATEGORY);
+      const endpoint = options.includeAllLanguages
+        ? `${API_ENDPOINTS.CATEGORY.GET_CATEGORY}?includeAllLanguages=true`
+        : API_ENDPOINTS.CATEGORY.GET_CATEGORY;
+      const res = await get(endpoint, options.language ? {
+        headers: { 'Accept-Language': options.language },
+      } : undefined);
 
-      const data = res?.data || res;
+      const data = res?.data || res || [];
       setCategories(data);
 
       return data;
@@ -122,9 +134,12 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  const getHomePageCategories = async () => {
+  const getHomePageCategories = async (options: Pick<CategoryFetchOptions, 'language'> = {}) => {
     try {
-      const res = await get(API_ENDPOINTS.CATEGORY.GET_HOME_PAGE_CATEGORIES, { skipAuth: true });
+      const res = await get(API_ENDPOINTS.CATEGORY.GET_HOME_PAGE_CATEGORIES, {
+        skipAuth: true,
+        ...(options.language ? { headers: { 'Accept-Language': options.language } } : {}),
+      });
       const data = (res?.data || res || []) as HomePageCategory[];
       const visibleCategories = Array.isArray(data) ? data.slice(0, 5) : [];
       setHomePageCategories(visibleCategories);
@@ -173,7 +188,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       const res = await post(API_ENDPOINTS.CATEGORY.CREATE_CATEGORY, data);
 
-      await getCategories(); // auto refresh
+      await getCategories({ includeAllLanguages: true }); // auto refresh for admin forms
 
       return res?.data || res;
     } catch (error) {
@@ -187,7 +202,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       const res = await put(API_ENDPOINTS.CATEGORY.UPDATE_CATEGORY(id), data);
 
-      await getCategories(); // auto refresh
+      await getCategories({ includeAllLanguages: true }); // auto refresh for admin forms
 
       return res?.data || res;
     } catch (error) {
@@ -201,7 +216,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       const res = await del(API_ENDPOINTS.CATEGORY.DELETE_CATEGORY(id));
 
-      await getCategories(); // auto refresh
+      await getCategories({ includeAllLanguages: true }); // auto refresh for admin forms
 
       return res?.data || res;
     } catch (error) {
@@ -211,14 +226,17 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   // GET ALL + STATE UPDATE
-  const getSubCategories = async (categoryId: number) => {
+  const getSubCategories = async (categoryId: number, options: CategoryFetchOptions = {}) => {
 
     try {
-      const res = await get(
-        API_ENDPOINTS.SUBCATEGORY.GET_SUBCATEGORY(categoryId)
-      );
+      const endpoint = options.includeAllLanguages
+        ? `${API_ENDPOINTS.SUBCATEGORY.GET_SUBCATEGORY(categoryId)}&includeAllLanguages=true`
+        : API_ENDPOINTS.SUBCATEGORY.GET_SUBCATEGORY(categoryId);
+      const res = await get(endpoint, options.language ? {
+        headers: { 'Accept-Language': options.language },
+      } : undefined);
 
-      const data = res?.data || res;
+      const data = res?.data || res || [];
 
       setSubCategories(data);
 

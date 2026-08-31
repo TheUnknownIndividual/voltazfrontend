@@ -6,7 +6,7 @@ type Props = {
   source: string;
   sourceType: string;
   fileName: string;
-  variant: 'desktop' | 'mobile';
+  variant: 'desktop' | 'mobile' | 'blog';
   onCancel: () => void;
   onDone: (file: File, preview: string) => void;
 };
@@ -16,6 +16,7 @@ const createCroppedFile = async (
   crop: Area,
   sourceType: string,
   fileName: string,
+  variant: Props['variant'],
 ) => {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const element = new Image();
@@ -25,8 +26,9 @@ const createCroppedFile = async (
   });
 
   const canvas = document.createElement('canvas');
-  canvas.width = crop.width;
-  canvas.height = crop.height;
+  const blogScale = variant === 'blog' ? Math.min(1, 1920 / crop.width, 1080 / crop.height) : 1;
+  canvas.width = Math.max(1, Math.round(crop.width * blogScale));
+  canvas.height = Math.max(1, Math.round(crop.height * blogScale));
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas context was not available');
 
@@ -40,8 +42,8 @@ const createCroppedFile = async (
     crop.height,
     0,
     0,
-    crop.width,
-    crop.height,
+    canvas.width,
+    canvas.height,
   );
 
   const outputType = sourceType === 'image/png' ? 'image/png' : 'image/jpeg';
@@ -53,7 +55,7 @@ const createCroppedFile = async (
     );
   });
   const extension = outputType === 'image/png' ? 'png' : 'jpg';
-  const baseName = fileName.replace(/\.[^.]+$/, '') || 'slider';
+  const baseName = fileName.replace(/\.[^.]+$/, '') || 'image';
   return new File([blob], `${baseName}-cropped.${extension}`, { type: outputType });
 };
 
@@ -74,7 +76,7 @@ const SliderImageCropper: React.FC<Props> = ({
     if (!pixels || saving) return;
     setSaving(true);
     try {
-      const file = await createCroppedFile(source, pixels, sourceType, fileName);
+      const file = await createCroppedFile(source, pixels, sourceType, fileName, variant);
       const preview = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result));
@@ -85,7 +87,14 @@ const SliderImageCropper: React.FC<Props> = ({
     } finally {
       setSaving(false);
     }
-  }, [fileName, onDone, pixels, saving, source, sourceType]);
+  }, [fileName, onDone, pixels, saving, source, sourceType, variant]);
+
+  const aspect = variant === 'desktop' ? 16 / 7 : variant === 'blog' ? 16 / 9 : 1;
+  const frameClass = variant === 'desktop'
+    ? 'aspect-[16/7]'
+    : variant === 'blog'
+      ? 'aspect-video'
+      : 'aspect-square max-h-[65vh] max-w-[65vh]';
 
   return (
     <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4">
@@ -94,19 +103,19 @@ const SliderImageCropper: React.FC<Props> = ({
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-white">
           <div>
             <h3 className="text-sm font-black uppercase tracking-widest">Şəkli uyğunlaşdır</h3>
-            <p className="mt-1 text-[10px] font-bold text-white/50">{variant === 'desktop' ? 'Desktop görünüşü · 16:7' : 'Mobil görünüş · 1:1'}</p>
+            <p className="mt-1 text-[10px] font-bold text-white/50">{variant === 'desktop' ? 'Desktop görünüşü · 16:7' : variant === 'blog' ? 'Blog banneri · 16:9' : 'Mobil görünüş · 1:1'}</p>
           </div>
           <button type="button" onClick={onCancel} className="rounded-full p-2 transition hover:bg-white/10" aria-label="Bağla"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className={`relative mx-auto w-full bg-black ${variant === 'desktop' ? 'aspect-[16/7]' : 'aspect-square max-h-[65vh] max-w-[65vh]'}`}>
+        <div className={`relative mx-auto w-full bg-black ${frameClass}`}>
           <Cropper
             image={source}
             crop={crop}
             zoom={zoom}
             minZoom={1}
             maxZoom={4}
-            aspect={variant === 'desktop' ? 16 / 7 : 1}
+            aspect={aspect}
             showGrid
             objectFit="cover"
             onCropChange={setCrop}

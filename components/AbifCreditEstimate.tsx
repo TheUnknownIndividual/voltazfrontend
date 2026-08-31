@@ -248,6 +248,7 @@ interface AbifCreditEstimateCardProps {
   estimate: AbifCreditEstimate;
   estimatedAnnualSavings: number;
   whatsappHref: string;
+  whatsappTrackingContext: string;
   onWhatsappClick: () => void;
 }
 
@@ -256,6 +257,7 @@ const AbifCreditEstimateCard: React.FC<AbifCreditEstimateCardProps> = ({
   estimate,
   estimatedAnnualSavings,
   whatsappHref,
+  whatsappTrackingContext,
   onWhatsappClick
 }) => {
   const copy = COPY[lang];
@@ -312,6 +314,10 @@ const AbifCreditEstimateCard: React.FC<AbifCreditEstimateCardProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           onClick={onWhatsappClick}
+          data-analytics-placement="solar_calculator_credit_quote"
+          data-whatsapp-interaction="calculator_quote"
+          data-whatsapp-language={lang}
+          data-whatsapp-context={whatsappTrackingContext}
           className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] px-3 py-2 text-[8px] font-black uppercase tracking-[0.1em] text-[var(--color-dark)] transition-colors hover:bg-[var(--color-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           {copy.cta}
