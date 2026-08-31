@@ -495,7 +495,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
   };
 
   return (
-    <header className="site-header-theme w-full border-b border-gray-200 sticky top-0 z-50">
+    <header className="site-header-theme w-full bg-[#f8f9fa] border-b border-gray-200 sticky top-0 z-50">
       <div className="w-full px-2 md:px-4 lg:grid lg:grid-cols-[120px_1fr] items-stretch">
         {/* Logo Column - Spans full height of top + main bars on desktop */}
         <div className="hidden lg:flex items-center justify-center overflow-visible border-r border-gray-100">
@@ -508,7 +508,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         {/* Content Column */}
         <div className="flex flex-col">
           {/* Top Utility Bar */}
-          <div className="header-mobile-bar py-2 flex justify-between lg:justify-end items-center border-b border-gray-100 lg:hidden">
+          <div className="py-2 flex justify-between lg:justify-end items-center border-b border-gray-100 lg:hidden">
             {/* Mobile Logo */}
             <div onClick={() => onNavigate('home')} className="lg:hidden cursor-pointer">
               {/* <Logo className="scale-100 origin-left" /> */}
@@ -580,7 +580,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           </div>
 
           {/* Main Bar */}
-          <div className="header-main-bar hidden md:flex py-3 md:py-5 lg:h-24 lg:py-0 flex items-center justify-between gap-4">
+          <div className="hidden md:flex py-3 md:py-5 flex items-center justify-between gap-4">
             {/* Search Bar - Desktop */}
             <div className="flex-1 max-w-lg relative hidden lg:block lg:ml-8">
               <input
@@ -632,7 +632,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
-                className="flex h-10 items-center justify-center rounded-xl border-2 border-white px-3.5 text-white transition-colors hover:bg-white hover:text-[#081510] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#081510]"
+                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest">
@@ -649,7 +649,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Contact Button */}
               <button
                 onClick={() => handleItemClick('contact')}
-                className="flex h-10 items-center justify-center rounded-xl border-2 border-white px-3.5 text-white transition-colors hover:bg-white hover:text-[#081510] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#081510]"
+                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest">
@@ -668,7 +668,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
                 {isSignedIn ? (
                   <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
-                    <button aria-label={t.myProfile} className="header-account-button flex h-10 w-10 items-center justify-center rounded-xl text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#081510]">
+                    <button aria-label={t.myProfile} className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
                       <div className="flex h-5 w-5 items-center justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       </div>
@@ -688,14 +688,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => setModalType('login')} aria-label={t.login} className="header-account-button flex h-10 w-10 items-center justify-center rounded-xl text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#081510]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <button onClick={() => setModalType('login')} aria-label={t.login} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" /></svg>
                   </button>
                 )}
 
                 {/* Custom Language Dropdown */}
                 <div className="relative group" onMouseEnter={() => setActiveDropdown('lang')} onMouseLeave={() => setActiveDropdown('none')}>
-                  <button className="header-language-button flex h-10 min-w-10 items-center justify-center gap-1 rounded-xl px-2 text-[9px] font-black text-white uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#081510]">
+                  <button className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-xl px-2 text-[9px] font-black text-slate-600 uppercase tracking-widest transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
                     <span>{currentLang}</span>
                     <svg className={`w-2 h-2 transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
@@ -914,7 +914,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               </div>
             ) : (
               <button onClick={() => setModalType('login')} className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-emerald-600 transition-all uppercase tracking-widest">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
                 {t.login}
               </button>
             )}
