@@ -2080,7 +2080,7 @@ const AppContent: React.FC = () => {
           activePage={view.page}
           currentLang={lang}
           onLangChange={handleLanguageChange}
-          logoSrc={previewLogo || '/volt-logo.png'}
+          logoSrc={previewLogo || '/volt-logo-test.png'}
           user={user}
           onLogout={handleLogout}
           onLogin={handleLogin}
@@ -2216,7 +2216,7 @@ const AppContent: React.FC = () => {
         }}
       />
 
-      {location.pathname !== '/theme-lab' && !isSimplifiedCheckout && <Footer onNavigate={(p, id, extra) => navigateTo(p as PageView, id, extra)} lang={lang} logoSrc={previewLogo || '/volt-logo.png'} />}
+      {location.pathname !== '/theme-lab' && !isSimplifiedCheckout && <Footer onNavigate={(p, id, extra) => navigateTo(p as PageView, id, extra)} lang={lang} logoSrc={previewLogo || '/volt-logo-test.png'} />}
     </div>
   );
 };

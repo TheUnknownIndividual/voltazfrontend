@@ -40,7 +40,7 @@ const verseQuoteByLang = {
   tr: '“Ve parlak bir kandil yarattık”',
 };
 
-const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, onLangChange, logoSrc = '/volt-logo.png', user, onLogout, onLogin }) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, onLangChange, logoSrc = '/volt-logo-test.png', user, onLogout, onLogin }) => {
   const { role, logout, isAuthenticated } = useAuth();
   const {
     categories,

@@ -15,7 +15,7 @@ interface FooterProps {
   logoSrc?: string;
 }
 
-const Footer: React.FC<FooterProps> = ({ onNavigate, lang, logoSrc = '/volt-logo.png'}) => {
+const Footer: React.FC<FooterProps> = ({ onNavigate, lang, logoSrc = '/volt-logo-test.png'}) => {
   const handleNav = (e: React.MouseEvent, page: any, extra?: any) => {
     e.preventDefault();
     if (onNavigate) {

@@ -36,8 +36,7 @@ const FALLBACK_LOGO =
 const VOLT_LOGO = 'https://i.ibb.co/zHF55zs5/Simple-Modern-Yoga-Studio-Logo-removebg-preview-1.png';
 const VIRTUAL_AZERBAIJAN_LOGO = new URL('./virtualazerbaijan.png', import.meta.url).href;
 const AIKTSA_LOGO = new URL('./aiktsa.png', import.meta.url).href;
-// Color test: swap back to './solarix.png' to restore the original lockup + old green.
-const SOLARIX_LOGO = new URL('./solarix-mark.png', import.meta.url).href;
+const SOLARIX_LOGO = new URL('./solarix.png', import.meta.url).href;
 
 const partnerGroups: PartnerGroup[] = [
   {
