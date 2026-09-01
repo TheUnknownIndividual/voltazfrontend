@@ -226,7 +226,7 @@ const handleNext = () => {
             )}
 
             {onViewAll && (
-              <button onClick={onViewAll} className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-lg bg-[var(--header-bg)] px-8 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-10 md:py-5">
+              <button onClick={onViewAll} className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-xl bg-[var(--header-bg)] px-8 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-10 md:py-5">
                 {t.viewAll}
                 <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </button>

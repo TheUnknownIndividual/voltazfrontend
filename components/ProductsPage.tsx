@@ -393,7 +393,7 @@ useEffect(() => {
         <button
           type="button"
           onClick={() => setReloadToken((current) => current + 1)}
-          className="mt-6 rounded-2xl bg-slate-900 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-colors hover:bg-slate-800"
+          className="mt-6 rounded-xl bg-slate-900 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-colors hover:bg-slate-800"
         >
           {t.retry[lang]}
         </button>
@@ -414,7 +414,7 @@ useEffect(() => {
             setSubFilter(null);
             setPage(1);
           }}
-          className="mt-6 rounded-2xl bg-emerald-600 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-700/20 transition-colors hover:bg-emerald-700"
+          className="mt-6 rounded-xl bg-emerald-600 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-700/20 transition-colors hover:bg-emerald-700"
         >
           {t.clearFilters[lang]}
         </button>

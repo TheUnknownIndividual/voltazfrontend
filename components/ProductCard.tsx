@@ -301,7 +301,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
               {hasStock ? (
                 <button
                   onClick={(e) => { e.stopPropagation(); onOrderNow?.(product.id, 1, productSpecBadge, firstCount); }}
-                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg bg-[var(--primary)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
+                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-[var(--primary)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
                 >
                   {!hasPrice ? t.requestPrice : t.orderNow}
                 </button>
@@ -320,7 +320,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                     requestedQuantity: 1,
                     availableStock: firstCount,
                   }}
-                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg bg-[var(--primary)] py-3 text-center text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
+                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-[var(--primary)] py-3 text-center text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
                 >
                   {t.check}
                 </OutOfStockWhatsappAction>
@@ -328,7 +328,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
               <button
                 onClick={(e) => { e.stopPropagation(); onAddToCart?.(product.id, 1, productSpecBadge, firstCount); }}
                 disabled={!hasPrice || !hasStock}
-                className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--primary)_24%,white)] bg-[var(--mint)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--header-bg)] transition-colors hover:bg-[var(--mint-hover)] disabled:cursor-not-allowed disabled:border-[var(--border-light)] disabled:bg-slate-100 disabled:text-slate-400 md:py-4"
+                className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--primary)_24%,white)] bg-[var(--mint)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--header-bg)] transition-colors hover:bg-[var(--mint-hover)] disabled:cursor-not-allowed disabled:border-[var(--border-light)] disabled:bg-slate-100 disabled:text-slate-400 md:py-4"
               >
                 {t.addToCart}
               </button>

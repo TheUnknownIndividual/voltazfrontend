@@ -454,10 +454,10 @@ const SolarInstallationPage: React.FC<Props> = ({ lang }) => {
                     aria-expanded={isOpen}
                     aria-controls={panelId}
                     onClick={() => toggleFaq(index)}
-                    className="flex min-h-[4.5rem] w-full touch-manipulation items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] md:px-6 md:text-base"
+                    className="flex min-h-[65.5px] w-full touch-manipulation items-center justify-between gap-4 px-5 py-3.5 text-left text-sm font-medium leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)] md:px-6 md:text-base"
                   >
                     {item.question}
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-700 transition-[background-color,color] duration-200 motion-reduce:transition-none ${isOpen ? 'bg-[var(--color-primary)] text-[var(--color-dark)]' : 'bg-slate-100'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-700 transition-[background-color,color] duration-200 motion-reduce:transition-none ${isOpen ? 'bg-[var(--color-primary)] text-[var(--color-dark)]' : 'bg-slate-100'}`}>
                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} strokeWidth={2.5} aria-hidden="true" />
                     </span>
                   </button>

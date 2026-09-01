@@ -235,11 +235,11 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
 .product-description-clamped{ display:-webkit-box; max-height:4.875em; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:3 }
 .product-description-ellipsis{ display:inline; margin-left:0; padding:0; border-radius:0; background:transparent; color:var(--color-primary); font:inherit; font-weight:900; line-height:inherit; vertical-align:baseline; transition:color .18s ease,background-color .18s ease }
 .product-description-ellipsis:hover,.product-description-ellipsis:focus-visible{ background:transparent; color:var(--color-dark); text-decoration:underline; outline:none }
-.product-order-button{ display:flex; flex-grow:1; align-items:center; justify-content:center; gap:12px; padding:20px 24px; border-radius:8px; background:var(--color-primary); color:var(--text-inverse); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; box-shadow:none; transition:background-color .18s ease,transform .18s ease }
+.product-order-button{ display:flex; flex-grow:1; align-items:center; justify-content:center; gap:12px; padding:20px 24px; border-radius:12px; background:var(--color-primary); color:var(--text-inverse); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; box-shadow:none; transition:background-color .18s ease,transform .18s ease }
 .product-order-button:hover{ background:var(--primary-hover) }
 .product-order-button:active{ transform:scale(.98) }
 .product-order-button:disabled{ background:color-mix(in srgb,var(--color-primary) 35%,white); color:color-mix(in srgb,var(--color-dark) 45%,white); box-shadow:none; cursor:not-allowed; pointer-events:none }
-.product-cart-button{ display:flex; width:auto; min-width:155px; flex-shrink:0; align-items:center; justify-content:center; gap:12px; padding:20px 24px; border:1px solid color-mix(in srgb,var(--primary) 28%,white); border-radius:8px; background:var(--mint); color:var(--header-bg); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:opacity .18s ease,transform .18s ease,background-color .18s ease }
+.product-cart-button{ display:flex; width:auto; min-width:155px; flex-shrink:0; align-items:center; justify-content:center; gap:12px; padding:20px 24px; border:1px solid color-mix(in srgb,var(--primary) 28%,white); border-radius:12px; background:var(--mint); color:var(--header-bg); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:opacity .18s ease,transform .18s ease,background-color .18s ease }
 .product-cart-button:hover{ opacity:1; background:var(--mint-hover) }
 .product-cart-button:active{ transform:scale(.96) }
 .product-cart-button:disabled{ background:color-mix(in srgb,var(--color-dark) 25%,white); color:color-mix(in srgb,var(--color-dark) 45%,white); box-shadow:none; cursor:not-allowed; pointer-events:none }
@@ -258,14 +258,15 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
   .product-quantity-control{ min-width:0; height:54px; border-radius:8px }
   .product-quantity-button{ width:35%; min-width:34px; height:46px }
   .product-quantity-input{ width:30%; min-width:30px; font-size:14px }
-  .product-order-button{ min-width:0; height:54px; padding:0 12px; gap:8px; border-radius:8px; font-size:12px; letter-spacing:.04em; white-space:nowrap }
+  .product-order-button{ min-width:0; height:54px; padding:0 12px; gap:8px; border-radius:12px; font-size:12px; letter-spacing:.04em; white-space:nowrap }
   .product-order-button svg{ width:17px; height:17px }
   .product-cart-button{ width:54px; min-width:54px; height:54px; padding:0; border-radius:8px }
   .product-cart-button__label{ display:none }
   .product-cart-button svg{ width:20px; height:20px }
   .product-floating-cart-button{ width:54px; min-width:54px; height:54px; min-height:54px; padding:0; border-radius:8px }
   .product-floating-cart-button svg{ width:20px; height:20px }
-  .product-floating-actions__controls .product-quantity-control,.product-floating-actions__controls .product-order-button,.product-floating-actions__controls .product-cart-button{ height:50px; border-radius:8px }
+  .product-floating-actions__controls .product-quantity-control,.product-floating-actions__controls .product-cart-button{ height:50px; border-radius:8px }
+  .product-floating-actions__controls .product-order-button{ height:50px; border-radius:12px }
   .product-floating-actions__controls .product-order-button{ font-size:12px; box-shadow:none }
 }
 .site-header-theme{ background:var(--header-bg); border-color:var(--border-dark); color:var(--text-inverse); font-family:Inter,ui-sans-serif,system-ui,sans-serif }
