@@ -318,10 +318,10 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
   .site-header-theme .header-logo-image{ height:46px; width:46px }
   .site-header-theme .header-main-row{ gap:24px; justify-content:flex-start; padding-block:0 }
   .site-header-theme .header-search-shell{ flex:0 1 360px; max-width:360px; min-width:300px; width:360px }
-  .site-header-theme .header-search-input{ border-radius:8px; height:42px; padding-right:48px }
-  .site-header-theme .header-search-button{ border-radius:8px; height:40px; right:2px; width:40px }
+  .site-header-theme .header-search-input{ border-radius:12px; height:42px; padding-right:48px }
+  .site-header-theme .header-search-button{ border-radius:9px; height:40px; right:2px; width:40px }
   .site-header-theme .header-actions{ flex:0 0 auto; gap:12px; margin-left:auto }
-  .site-header-theme .header-primary-action,.site-header-theme .header-secondary-action,.site-header-theme .header-login-action,.site-header-theme .header-language-action,.site-header-theme .header-profile-action{ border-radius:8px; height:42px; white-space:nowrap }
+  .site-header-theme .header-primary-action,.site-header-theme .header-secondary-action,.site-header-theme .header-login-action,.site-header-theme .header-language-action,.site-header-theme .header-profile-action{ border-radius:12px; height:42px; white-space:nowrap }
   .site-header-theme .header-primary-action{ min-width:112px }
   .site-header-theme .header-secondary-action{ min-width:108px }
   .site-header-theme .header-primary-icon,.site-header-theme .header-secondary-icon{ height:19px; width:19px }
