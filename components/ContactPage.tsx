@@ -461,7 +461,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
             <p className="text-slate-500 text-sm mb-8">{t.successMessage}</p>
             <button
               onClick={() => setShowSuccessPopup(false)}
-              className="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 transition-all shadow-lg"
+              className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-slate-900 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 transition-all shadow-lg"
             >
               {t.close}
             </button>
@@ -593,7 +593,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                     ></textarea>
                   </div>
 
-                  <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-600">
+                  <button type="submit" disabled={isSubmitting} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-600">
                     {isSubmitting && (
                       <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" /><path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 00-9 9h3a6 6 0 016-6V3z" /></svg>
                     )}

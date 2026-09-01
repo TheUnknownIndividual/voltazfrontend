@@ -936,7 +936,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className={`relative flex w-full items-center justify-center gap-2 overflow-hidden py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-[0.98] disabled:cursor-not-allowed ${submitStatus === 'success' ? 'bg-emerald-600 text-white shadow-emerald-600/20' : isSubmitting ? 'bg-sky-600 text-white shadow-sky-600/20' : 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-slate-900'}`}
+                  className={`relative flex w-full min-h-[var(--cta-btn-h)] items-center justify-center gap-2 overflow-hidden py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-[0.98] disabled:cursor-not-allowed ${submitStatus === 'success' ? 'bg-emerald-600 text-white shadow-emerald-600/20' : isSubmitting ? 'bg-sky-600 text-white shadow-sky-600/20' : 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-slate-900'}`}
                 >
                   {submitStatus === 'success' ? (
                     <>

@@ -1514,7 +1514,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
               <h2 id="similar-products-title" className="text-2xl font-black text-slate-900 md:text-3xl">
                 {t.similarProducts}
               </h2>
-              <span className="h-1 w-12 shrink-0 rounded-full bg-[#9ac21d] md:w-16" aria-hidden="true" />
+              <span className="h-1 w-12 shrink-0 rounded-full bg-[var(--primary)] md:w-16" aria-hidden="true" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">

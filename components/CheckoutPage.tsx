@@ -1193,7 +1193,7 @@ const RadioCard = ({ active, icon: Icon, title, detail, onClick }: { active: boo
 );
 
 const StepAction = ({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
-  <button disabled={disabled} onClick={onClick} className="mt-6 w-full rounded-xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:px-8">
+  <button disabled={disabled} onClick={onClick} className="mt-6 inline-flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:px-8">
     {children}
   </button>
 );

@@ -152,7 +152,7 @@ const handleNext = () => {
             <button
               onClick={handlePrev}
               aria-label="Previous"
-              className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full border-2 border-slate-100 bg-white items-center justify-center text-slate-400 hover:border-emerald-600 hover:text-emerald-600 transition-all active:scale-90 shadow-md"
+              className="absolute left-0 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)] lg:flex"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
             </button>
@@ -200,7 +200,7 @@ const handleNext = () => {
             <button
               onClick={handleNext}
               aria-label="Next"
-              className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full border-2 border-slate-100 bg-white items-center justify-center text-slate-400 hover:border-emerald-600 hover:text-emerald-600 transition-all active:scale-90 shadow-md"
+              className="absolute right-0 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)] lg:flex"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
             </button>
@@ -219,14 +219,14 @@ const handleNext = () => {
                       setDirection(i > currentPage ? 1 : -1);
                       setStartIndex(i * itemsPerPage);
                     }}
-                    className={`h-1.5 transition-all rounded-full ${currentPage === i ? 'w-8 bg-emerald-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                    className={`h-1.5 rounded-full transition-all ${currentPage === i ? 'w-8 bg-[var(--primary)]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                   />
                 ))}
               </div>
             )}
 
             {onViewAll && (
-              <button onClick={onViewAll} className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl active:scale-95 group">
+              <button onClick={onViewAll} className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-lg bg-[var(--header-bg)] px-8 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-10 md:py-5">
                 {t.viewAll}
                 <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </button>

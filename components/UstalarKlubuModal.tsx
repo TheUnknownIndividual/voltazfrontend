@@ -117,7 +117,7 @@ const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, 
                 <input type="password" title="password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
               </div>
               
-              <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 mt-4">
+              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 mt-4">
                 Klubun Üzvü Ol
               </button>
             </form>

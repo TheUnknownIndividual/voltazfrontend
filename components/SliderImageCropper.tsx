@@ -127,12 +127,12 @@ const SliderImageCropper: React.FC<Props> = ({
         <div className="flex flex-col gap-4 border-t border-white/10 px-5 py-5 sm:flex-row sm:items-center">
           <div className="flex flex-1 items-center gap-3 text-white">
             <Minus className="h-4 w-4" />
-            <input type="range" min={1} max={4} step={0.01} value={zoom} onChange={event => setZoom(Number(event.target.value))} className="w-full accent-[#9ac21d]" aria-label="Şəkil ölçüsü" />
+            <input type="range" min={1} max={4} step={0.01} value={zoom} onChange={event => setZoom(Number(event.target.value))} className="w-full accent-[var(--primary)]" aria-label="Şəkil ölçüsü" />
             <Plus className="h-4 w-4" />
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={onCancel} className="rounded-xl border border-white/15 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white">Ləğv et</button>
-            <button type="button" onClick={() => void finish()} disabled={!pixels || saving} className="rounded-xl bg-[#9ac21d] px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-950 disabled:opacity-50">{saving ? 'Hazırlanır…' : 'Hazırdır'}</button>
+            <button type="button" onClick={() => void finish()} disabled={!pixels || saving} className="rounded-lg bg-[var(--primary)] px-8 py-3 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] disabled:opacity-50">{saving ? 'Hazırlanır…' : 'Hazırdır'}</button>
           </div>
         </div>
       </div>

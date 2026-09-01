@@ -220,7 +220,7 @@ Solarix sizin elektrik tüketim ve nesne koşullarınızı inceleyerek uygun sis
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => onNavigate('solar-panels')} className="mt-10 inline-flex rounded-2xl bg-[var(--color-dark)] px-6 py-4 text-xs font-black text-white">
+        <button type="button" onClick={() => onNavigate('solar-panels')} className="mt-10 inline-flex min-h-[var(--cta-btn-h)] items-center rounded-2xl bg-[var(--color-dark)] px-6 py-4 text-xs font-black text-white">
           {{ az: 'Günəş panellərinə bax', en: 'Explore solar panels', ru: 'Смотреть солнечные панели', tr: 'Güneş panellerini incele' }[lang]}
         </button>
       </div>

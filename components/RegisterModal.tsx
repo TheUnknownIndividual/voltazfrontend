@@ -157,7 +157,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
 
           {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-          <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-4 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={loading} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-4 disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? copy.submitting : copy.submit}
           </button>
         </form>

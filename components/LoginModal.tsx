@@ -130,7 +130,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded" disabled={loading}>
+          <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-3 rounded" disabled={loading}>
             {copy.submit}
           </button>
         </form>

@@ -145,7 +145,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
                 ))}
               </ul>
 
-              <button onClick={() => onNavigate?.('calculator')} className="group mt-4 flex w-full items-center justify-between rounded-xl bg-[var(--color-dark)] px-4 py-3 text-left text-[9px] font-black uppercase tracking-[0.12em] text-white transition-all hover:bg-white hover:text-[var(--color-dark)] md:mt-6 md:px-5 md:py-4 md:text-[10px]">
+              <button onClick={() => onNavigate?.('calculator')} className="group mt-4 flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--header-bg)] px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-active)] md:mt-6 md:px-5 md:py-4">
                 <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>

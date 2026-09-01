@@ -9,11 +9,11 @@ type Theme = {
 };
 
 const DEFAULT_THEME: Theme = {
-  primary: '#99c21c',
-  accent: '#a0ae5e',
-  dark: '#172b27',
-  surface: '#f7faf9',
-  text: '#334155',
+  primary: '#2b8659',
+  accent: '#7fe0a7',
+  dark: '#0b2b23',
+  surface: '#f7f9f8',
+  text: '#191f1c',
 };
 
 const rgbToHex = (r: number, g: number, b: number) =>
@@ -99,9 +99,9 @@ const deriveTheme = (palette: string[]): Theme => {
   return {
     primary,
     accent,
-    dark: luminance(darkest) < 0.24 ? darkest : '#172b27',
-    surface: '#f7faf9',
-    text: '#334155',
+    dark: luminance(darkest) < 0.24 ? darkest : '#0b2b23',
+    surface: '#f7f9f8',
+    text: '#191f1c',
   };
 };
 
@@ -190,7 +190,7 @@ const ThemeLab: React.FC = () => {
   const initialSavedTheme = useRef<Theme | null>(readSavedTheme());
   const [logo, setLogo] = useState('/volt-logo.png');
   const [fileName, setFileName] = useState('Current Volt logo');
-  const [palette, setPalette] = useState<string[]>(['#99c21c', '#a0ae5e', '#172b27', '#334155']);
+  const [palette, setPalette] = useState<string[]>(['#2b8659', '#7fe0a7', '#0b2b23', '#191f1c']);
   const [theme, setTheme] = useState<Theme>(initialSavedTheme.current || DEFAULT_THEME);
   const [savedTheme, setSavedTheme] = useState<Theme | null>(initialSavedTheme.current);
   const [dragging, setDragging] = useState(false);

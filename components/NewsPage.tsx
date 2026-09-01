@@ -354,7 +354,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                     href={selectedNews.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-10 inline-flex rounded-2xl bg-slate-900 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-emerald-600"
+                    className="mt-10 inline-flex min-h-[var(--cta-btn-h)] items-center rounded-2xl bg-slate-900 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-emerald-600"
                   >
                     {t.readMore[currentLang]}
                   </a>

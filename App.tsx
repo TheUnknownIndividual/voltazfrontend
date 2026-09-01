@@ -827,10 +827,19 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const defaults = { primary: '#99c21c', accent: '#a0ae5e', dark: '#172b27', surface: '#f7faf9', text: '#334155' };
+    const defaults = { primary: '#2b8659', accent: '#7fe0a7', dark: '#0b2b23', surface: '#f7f9f8', text: '#191f1c' };
     let activeTheme = defaults;
     try {
-      activeTheme = { ...defaults, ...JSON.parse(localStorage.getItem('volt-theme-lab-saved') || '{}') };
+      const savedTheme = JSON.parse(localStorage.getItem('volt-theme-lab-saved') || '{}');
+      activeTheme = {
+        ...defaults,
+        ...savedTheme,
+        primary: String(savedTheme.primary || '').toLowerCase() === '#99c21c' ? defaults.primary : (savedTheme.primary || defaults.primary),
+        accent: String(savedTheme.accent || '').toLowerCase() === '#a0ae5e' ? defaults.accent : (savedTheme.accent || defaults.accent),
+        dark: String(savedTheme.dark || '').toLowerCase() === '#172b27' ? defaults.dark : (savedTheme.dark || defaults.dark),
+        surface: String(savedTheme.surface || '').toLowerCase() === '#f7faf9' ? defaults.surface : (savedTheme.surface || defaults.surface),
+        text: String(savedTheme.text || '').toLowerCase() === '#334155' ? defaults.text : (savedTheme.text || defaults.text),
+      };
     } catch {
       activeTheme = defaults;
     }

@@ -35,7 +35,7 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
     listLoadFailed: 'The message list could not be loaded.', settingsLoadFailed: 'Inbox settings could not be loaded.', conversationLoadFailed: 'The conversation could not be loaded.',
     sendFailed: 'The message could not be sent.', noteFailed: 'The internal note could not be added.', assignmentFailed: 'The assignment could not be changed.', statusFailed: 'The conversation status could not be changed.',
     eyebrow: 'Team inbox', title: 'Meta Messages', subtitle: 'Messenger, Instagram and WhatsApp conversations, assignees, and internal team notes.', refresh: 'Refresh',
-    channelsPending: 'Some Meta channels are not active yet.', ready: 'ready', notConfigured: 'not configured', search: 'Search by name or message...', open: 'Open', closed: 'Closed', all: 'All', allAssignments: 'All assignments', mine: 'Mine', unassigned: 'Unassigned',
+    channelsPending: 'Some Meta channels are not active yet.', ready: 'ready', notConfigured: 'not configured', search: 'Search by name or message...', open: 'Open', closed: 'Closed', all: 'All', allAssignments: 'All assignments', availableAssignments: 'Available conversations', mine: 'Mine', unassigned: 'Unassigned',
     loading: 'Loading...', noConversation: 'No conversation matches this filter.', newConversation: 'New conversation', selectConversation: 'Select a conversation', close: 'Close', reopen: 'Reopen',
     reply: 'Write a reply to the customer...', connectionPending: 'connection is not complete', sendHelp: 'Enter to send · Shift+Enter for a new line', whatsappWindow: ' · Free-form WhatsApp replies can be sent within 24 hours of the customer’s latest message',
     notes: 'Internal notes', notesHelp: 'Visible only to authorized team members. Not sent to the customer.', selectForNotes: 'Select a conversation to view notes.', noNotes: 'There are no internal notes yet.', notePlaceholder: 'Write a note for the team...', addNote: 'Add internal note'
@@ -43,7 +43,7 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
     listLoadFailed: 'Mesaj siyahısı yüklənmədi.', settingsLoadFailed: 'Inbox parametrləri yüklənmədi.', conversationLoadFailed: 'Söhbət yüklənmədi.',
     sendFailed: 'Mesaj göndərilmədi.', noteFailed: 'Daxili qeyd əlavə edilmədi.', assignmentFailed: 'Təyinat dəyişdirilmədi.', statusFailed: 'Söhbətin statusu dəyişdirilmədi.',
     eyebrow: 'Komanda inbox-u', title: 'Meta Mesajları', subtitle: 'Messenger, Instagram və WhatsApp söhbətləri, məsul şəxs və daxili komanda qeydləri.', refresh: 'Yenilə',
-    channelsPending: 'Bəzi Meta kanalları hələ aktiv deyil.', ready: 'hazırdır', notConfigured: 'konfiqurasiya edilməyib', search: 'Ad və ya mesaj axtar...', open: 'Açıq', closed: 'Bağlı', all: 'Hamısı', allAssignments: 'Bütün təyinatlar', mine: 'Mənimkilər', unassigned: 'Təyin edilməyib',
+    channelsPending: 'Bəzi Meta kanalları hələ aktiv deyil.', ready: 'hazırdır', notConfigured: 'konfiqurasiya edilməyib', search: 'Ad və ya mesaj axtar...', open: 'Açıq', closed: 'Bağlı', all: 'Hamısı', allAssignments: 'Bütün təyinatlar', availableAssignments: 'Əlçatan söhbətlər', mine: 'Mənimkilər', unassigned: 'Təyin edilməyib',
     loading: 'Yüklənir...', noConversation: 'Bu filtrə uyğun söhbət yoxdur.', newConversation: 'Yeni söhbət', selectConversation: 'Söhbət seçin', close: 'Bağla', reopen: 'Yenidən aç',
     reply: 'Müştəriyə cavab yazın...', connectionPending: 'bağlantısı tamamlanmayıb', sendHelp: 'Enter göndərir · Shift+Enter yeni sətir', whatsappWindow: ' · WhatsApp sərbəst cavabları son müştəri mesajından sonra 24 saat ərzində göndərilir',
     notes: 'Daxili qeydlər', notesHelp: 'Yalnız komanda üzvləri görür. Müştəriyə göndərilmir.', selectForNotes: 'Qeydləri görmək üçün söhbət seçin.', noNotes: 'Hələ daxili qeyd yoxdur.', notePlaceholder: 'Komanda üçün qeyd yazın...', addNote: 'Daxili qeyd əlavə et'
@@ -94,9 +94,13 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
   };
 
   useEffect(() => {
-    Promise.all([getMetaInboxAssignees(), getMetaInboxConfiguration()])
-      .then(([users, config]) => { setAssignees(users); setConfiguration(config); })
-      .catch(() => showNotification(copy.settingsLoadFailed, 'error'));
+    Promise.allSettled([getMetaInboxAssignees(), getMetaInboxConfiguration()])
+      .then(([users, config]) => {
+        if (users.status === 'fulfilled') setAssignees(users.value);
+        if (config.status === 'fulfilled') setConfiguration(config.value);
+        if (users.status === 'rejected' || config.status === 'rejected')
+          showNotification(copy.settingsLoadFailed, 'error');
+      });
   }, []);
 
   useEffect(() => {
@@ -127,7 +131,17 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
         noteLastId.current = loadedNotes.at(-1)?.id;
         replaceConversation(updated);
       })
-      .catch(() => { if (!cancelled) showNotification(copy.conversationLoadFailed, 'error'); });
+      .catch((error: any) => {
+        if (cancelled) return;
+        if (error?.response?.status === 403 || error?.response?.status === 404) {
+          setSelectedId(null);
+          setMessages([]);
+          setNotes([]);
+          loadList(true);
+          return;
+        }
+        showNotification(copy.conversationLoadFailed, 'error');
+      });
 
     const interval = window.setInterval(async () => {
       if (document.visibilityState === 'hidden') return;
@@ -146,7 +160,13 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
           setNotes((current) => mergeById(current, newNotes));
           noteLastId.current = newNotes.at(-1)?.id;
         }
-      } catch { }
+      } catch (error: any) {
+        if (cancelled || (error?.response?.status !== 403 && error?.response?.status !== 404)) return;
+        setSelectedId(null);
+        setMessages([]);
+        setNotes([]);
+        loadList(true);
+      }
     }, 6000);
     return () => { cancelled = true; window.clearInterval(interval); };
   }, [selectedId]);
@@ -208,13 +228,13 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
 
     {configuration && (!configuration.messengerReady || !configuration.whatsAppReady) && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800"><strong>{copy.channelsPending}</strong> Messenger/Instagram: {configuration.messengerReady ? copy.ready : copy.notConfigured} · WhatsApp: {configuration.whatsAppReady ? copy.ready : copy.notConfigured}.</div>}
 
-    {configuration?.webhook && <WebhookMonitor diagnostics={configuration.webhook} lang={lang}/>}
+    {configuration?.canViewWebhookDiagnostics === true && configuration.webhook && <WebhookMonitor diagnostics={configuration.webhook} lang={lang}/>}
 
     <div className="grid min-h-[70vh] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[320px_minmax(420px,1fr)_320px]">
       <aside className="border-b border-slate-200 xl:border-b-0 xl:border-r">
         <div className="space-y-3 border-b border-slate-100 p-4">
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={copy.search} className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-emerald-500"/></div>
-          <div className="grid grid-cols-2 gap-2"><select value={status} onChange={(event) => setStatus(event.target.value as any)} className="rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold"><option value="open">{copy.open}</option><option value="closed">{copy.closed}</option><option value="all">{copy.all}</option></select><select value={assignment} onChange={(event) => setAssignment(event.target.value as any)} className="rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold"><option value="all">{copy.allAssignments}</option><option value="mine">{copy.mine}</option><option value="unassigned">{copy.unassigned}</option></select></div>
+          <div className="grid grid-cols-2 gap-2"><select value={status} onChange={(event) => setStatus(event.target.value as any)} className="rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold"><option value="open">{copy.open}</option><option value="closed">{copy.closed}</option><option value="all">{copy.all}</option></select><select value={assignment} onChange={(event) => setAssignment(event.target.value as any)} className="rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold"><option value="all">{configuration?.canViewAllConversations === true ? copy.allAssignments : copy.availableAssignments}</option><option value="mine">{copy.mine}</option><option value="unassigned">{copy.unassigned}</option></select></div>
         </div>
         <div className="max-h-[360px] overflow-y-auto xl:max-h-[calc(70vh-92px)]">
           {loadingList && <div className="p-8 text-center text-sm text-slate-400">{copy.loading}</div>}

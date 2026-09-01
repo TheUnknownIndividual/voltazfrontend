@@ -64,7 +64,7 @@ const CreditPrivileges: React.FC<{ lang: string; onBack: () => void }> = ({ lang
               <p className="text-emerald-100/60 text-sm leading-loose mb-10 max-w-lg">
                 Hesablamalarımıza görə, sistemin yaratdığı qənaət aylıq kredit ödənişinin bir hissəsini birbaşa kompensasiya edir. Bu o deməkdir ki, enerji stansiyası özü özünü ödəyir.
               </p>
-              <button className="bg-[var(--color-primary)] text-[var(--color-dark)] px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:brightness-95 transition-all shadow-xl active:scale-95">Məsləhət alın</button>
+              <button className="inline-flex items-center justify-center bg-[var(--color-primary)] text-[var(--color-dark)] px-10 py-5 min-h-[var(--cta-btn-h)] rounded-2xl font-black uppercase tracking-widest text-xs hover:brightness-95 transition-all shadow-xl active:scale-95">Məsləhət alın</button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[

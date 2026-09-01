@@ -224,7 +224,7 @@ const totalAmount = cartProducts.reduce(
                 <button 
                   onClick={onCheckout}
                   disabled={hasStockIssue}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 >
                   {t.checkout}
                 </button>

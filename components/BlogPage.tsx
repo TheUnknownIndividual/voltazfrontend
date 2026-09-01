@@ -436,13 +436,13 @@ const transformBlog = (item: any) => {
                     <button
                       type="button"
                       onClick={() => onNavigate?.('solar-panels')}
-                      className="mb-3 mr-3 inline-flex items-center gap-3 rounded-2xl bg-[var(--color-primary)] px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-dark)]"
+                      className="mb-3 mr-3 inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-2xl bg-[var(--color-primary)] px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-dark)]"
                     >
                       {{ az: 'Günəş panellərinə bax', en: 'Explore solar panels', ru: 'Смотреть солнечные панели', tr: 'Güneş panellerini incele' }[lang]}
                     </button>
                     <button 
                       onClick={() => setSelectedPost(null)}
-                      className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/20"
+                      className="inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-900/20"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                       {t.backToBlog[lang]}

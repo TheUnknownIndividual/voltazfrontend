@@ -13,10 +13,10 @@ const NotFoundPage: React.FC<{ lang: SiteLanguage; onHome: () => void }> = ({ la
   return (
     <section className="min-h-[65vh] flex items-center justify-center px-5 bg-slate-50">
       <div className="max-w-xl text-center">
-        <p className="text-7xl font-black text-[#99c21c]">404</p>
+        <p className="text-7xl font-black text-[var(--primary)]">404</p>
         <h1 className="mt-5 text-3xl md:text-4xl font-black text-[#132b27]">{title}</h1>
         <p className="mt-4 text-slate-600">{text}</p>
-        <button onClick={onHome} className="mt-8 rounded-xl bg-[#132b27] px-6 py-4 text-xs font-black uppercase tracking-wider text-white">{action}</button>
+        <button onClick={onHome} className="mt-8 inline-flex min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-[#132b27] px-6 py-4 text-xs font-black uppercase tracking-wider text-white">{action}</button>
       </div>
     </section>
   );

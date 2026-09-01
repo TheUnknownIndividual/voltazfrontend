@@ -71,7 +71,7 @@ const HomeCategoryStrip: React.FC<HomeCategoryStripProps> = ({ lang, onSelectCat
               aria-pressed={selectedCategoryId === category.id}
               className="group flex w-[5.25rem] shrink-0 snap-start flex-col items-center gap-2.5 text-center transition active:scale-[0.97]"
             >
-              <span className={`flex h-[5.25rem] w-[5.25rem] items-center justify-center overflow-hidden rounded-full border bg-white p-2 shadow-sm transition-all group-active:shadow-none ${selectedCategoryId === category.id ? 'border-[#9ac21d] ring-4 ring-[#9ac21d]/15' : 'border-slate-200'}`}>
+              <span className={`flex h-[5.25rem] w-[5.25rem] items-center justify-center overflow-hidden rounded-full border bg-white p-2 shadow-sm transition-all group-active:shadow-none ${selectedCategoryId === category.id ? 'border-[var(--primary)] ring-4 ring-[color-mix(in_srgb,var(--primary)_15%,transparent)]' : 'border-slate-200'}`}>
                 <img
                   src={category.imageUrl || '/volt-logo.png'}
                   alt={category.name}

@@ -363,7 +363,7 @@ const ProClubPage: React.FC<ProClubPageProps> = ({ lang = 'az', onBack, onRegist
 
               {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-              <button type="submit" className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                 Usta Hesabını Yarat
               </button>
             </form>

@@ -219,7 +219,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                     type="button"
                     aria-label="Əvvəlki şəkil"
                     onClick={(event) => { event.stopPropagation(); showPreviousImage(); }}
-                    className="absolute left-3 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-lg backdrop-blur-sm transition-colors hover:bg-white md:flex"
+                    className="absolute left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)] md:flex"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
                   </button>
@@ -227,7 +227,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                     type="button"
                     aria-label="Növbəti şəkil"
                     onClick={(event) => { event.stopPropagation(); showNextImage(); }}
-                    className="absolute right-3 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-lg backdrop-blur-sm transition-colors hover:bg-white md:flex"
+                    className="absolute right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)] md:flex"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
                   </button>
@@ -242,7 +242,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                     aria-label={`${index + 1}-ci şəkli göstər`}
                     aria-current={activeImageIndex === index ? 'true' : undefined}
                     onClick={(event) => { event.stopPropagation(); setActiveImageIndex(index); }}
-                    className={`h-1.5 rounded-full transition-all ${activeImageIndex === index ? 'w-4 bg-[#9ac21d]' : 'w-1.5 bg-white/75'}`}
+                    className={`h-1.5 rounded-full transition-all ${activeImageIndex === index ? 'w-4 bg-[var(--primary)]' : 'w-1.5 bg-white/75'}`}
                   />
                 ))}
               </div>
@@ -251,7 +251,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
           {productSpecBadge && (
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            <div className="bg-white/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[7px] md:text-[9px] font-black text-emerald-600 border border-emerald-100 shadow-sm">
+            <div className="rounded-full border border-[color-mix(in_srgb,var(--primary)_22%,white)] bg-[var(--mint)] px-2.5 py-0.5 text-[7px] font-bold text-[var(--primary)] md:text-[9px]">
               {productSpecBadge}
             </div>
           </div>
@@ -259,7 +259,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
           {hasStock && (
             <div className="absolute bottom-3 right-3">
-              <div className="bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20">
+              <div className="rounded-full bg-[var(--mint)] px-2.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.04em] text-[var(--primary)] md:text-[9px]">
                 {firstCount}
               </div>
             </div>
@@ -301,7 +301,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
               {hasStock ? (
                 <button
                   onClick={(e) => { e.stopPropagation(); onOrderNow?.(product.id, 1, productSpecBadge, firstCount); }}
-                  className="w-full py-3 md:py-4 rounded-xl bg-emerald-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all active:scale-95 shadow-lg shadow-emerald-600/20"
+                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg bg-[var(--primary)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
                 >
                   {!hasPrice ? t.requestPrice : t.orderNow}
                 </button>
@@ -320,7 +320,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
                     requestedQuantity: 1,
                     availableStock: firstCount,
                   }}
-                  className="w-full py-3 md:py-4 rounded-xl bg-emerald-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all active:scale-95 shadow-lg shadow-emerald-600/20 text-center"
+                  className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg bg-[var(--primary)] py-3 text-center text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:py-4"
                 >
                   {t.check}
                 </OutOfStockWhatsappAction>
@@ -328,7 +328,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
               <button
                 onClick={(e) => { e.stopPropagation(); onAddToCart?.(product.id, 1, productSpecBadge, firstCount); }}
                 disabled={!hasPrice || !hasStock}
-                className="w-full py-3 md:py-4 rounded-xl bg-slate-100 text-slate-600 text-[8px] md:text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--primary)_24%,white)] bg-[var(--mint)] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--header-bg)] transition-colors hover:bg-[var(--mint-hover)] disabled:cursor-not-allowed disabled:border-[var(--border-light)] disabled:bg-slate-100 disabled:text-slate-400 md:py-4"
               >
                 {t.addToCart}
               </button>

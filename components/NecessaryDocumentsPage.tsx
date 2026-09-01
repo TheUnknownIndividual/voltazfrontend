@@ -365,7 +365,7 @@ const t = {
   data-whatsapp-interaction="documents_consultation"
   data-whatsapp-language={lang}
 >
-            <button className="bg-[var(--color-primary)] text-[var(--color-dark)] px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-[var(--color-dark)] transition-all shadow-2xl">
+            <button className="inline-flex items-center justify-center bg-[var(--color-primary)] text-[var(--color-dark)] px-10 py-5 min-h-[var(--cta-btn-h)] rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-[var(--color-dark)] transition-all shadow-2xl">
               {t.ctaBtn[lang]}
             </button></a>
           </div>

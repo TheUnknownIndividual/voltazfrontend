@@ -24,7 +24,7 @@ interface HeaderProps {
 const DropdownItem = ({ label, onClick, icon }: { label: string; onClick: () => void; icon?: React.ReactNode }) => (
   <button
     onClick={onClick}
-    className="w-full text-left px-6 py-4 text-[10px] font-black text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all uppercase tracking-widest border-b border-slate-50 last:border-0 flex items-center justify-between group/item"
+    className="header-dropdown-item group/item flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 transition-colors last:border-0 hover:bg-emerald-50 hover:text-emerald-600"
   >
     <span>{label}</span>
     <svg className="w-3 h-3 shrink-0 text-slate-400 group-hover/item:text-emerald-500 group-hover/item:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,10 +241,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     usefulInfo: currentLang === 'az' ? 'Faydalı Məlumat' : currentLang === 'en' ? 'Useful Information' : currentLang === 'ru' ? 'Полезная информация' : 'Faydalı Bilgiler',
     howToStart: currentLang === 'az' ? 'Necə başlamalı?' : currentLang === 'en' ? 'How to Start?' : currentLang === 'ru' ? 'С чего начать?' : 'Nasıl Başlanır?',
     reels: currentLang === 'az' ? 'Video Reels' : currentLang === 'en' ? 'Video Reels' : currentLang === 'ru' ? 'Видео Reels' : 'Video Reels',
-    faq: currentLang === 'az' ? 'Tez-tez verilən suallar' : currentLang === 'en' ? 'FAQ' : currentLang === 'ru' ? 'Часто задаваемые вопросы' : 'Sık Sorulan Sorular',
+    faq: currentLang === 'az' ? 'Suallar' : currentLang === 'en' ? 'FAQ' : currentLang === 'ru' ? 'Часто задаваемые вопросы' : 'Sık Sorulan Sorular',
     mastersClubInfo: currentLang === 'az' ? 'Ustalar klubu nədir?' : currentLang === 'en' ? 'What is Pro Club?' : currentLang === 'ru' ? 'Что такое Клуб мастеров?' : 'Ustalar Kulübü Nedir?',
     necessaryDocuments: currentLang === 'az' ? 'Zəruri sənədlər' : currentLang === 'en' ? 'Necessary Documents' : currentLang === 'ru' ? 'Необходимые документы' : 'Gerekli Belgeler',
-    legislationAndDecrees: currentLang === 'az' ? 'Qanunvericilik və Fərmanlar' : currentLang === 'en' ? 'Legislation and Decrees' : currentLang === 'ru' ? 'Законодательство и указы' : 'Mevzuat ve Kararnameler',
+    legislationAndDecrees: currentLang === 'az' ? 'Qanunvericilik' : currentLang === 'en' ? 'Legislation and Decrees' : currentLang === 'ru' ? 'Законодательство и указы' : 'Mevzuat ve Kararnameler',
     creditTerms: currentLang === 'az' ? 'Kredit şərtləri' : currentLang === 'en' ? 'Credit Terms' : currentLang === 'ru' ? 'Условия кредита' : 'Kredi Şartları',
     support: currentLang === 'az' ? 'Dəstək' : currentLang === 'en' ? 'Support' : currentLang === 'ru' ? 'Поддержка' : 'Destek',
     blog: currentLang === 'az' ? 'Bloq' : currentLang === 'en' ? 'Blog' : currentLang === 'ru' ? 'Блог' : 'Blog',
@@ -379,17 +379,17 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     return (
       <div
         onMouseDown={(event) => event.preventDefault()}
-        className="absolute left-0 right-0 top-full mt-2 bg-white border border-[color-mix(in_srgb,var(--color-primary)_18%,white)] rounded-xl z-[120] overflow-hidden"
+        className="header-search-results absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-lg border bg-white"
       >
         <div className="max-h-[70vh] overflow-y-auto overscroll-contain py-2">
           {isSearchLoading && (
-            <div className="px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">
               {t.searchLoading}
             </div>
           )}
 
           {!isSearchLoading && hasTypedSearch && !hasSearchResults && (
-            <div className="px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">
               {t.searchNoResults}
             </div>
           )}
@@ -397,10 +397,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           {(searchResults?.products?.items?.length || 0) > 0 && (
             <div className="py-2">
               <div className="px-5 pb-2 flex items-center justify-between gap-3">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.products}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">{t.products}</span>
                 <button
                   onClick={handleSearchSubmit}
-                  className="text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700"
+                  className="text-xs font-semibold uppercase tracking-[0.04em] text-emerald-600 hover:text-emerald-700"
                 >
                   {searchResults?.products?.totalCount || 0} {t.resultsCount}
                 </button>
@@ -419,7 +419,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     alt={product.productName}
                     className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100"
                   />
-                  <span className="text-[11px] font-bold text-slate-700 line-clamp-2">{product.productName}</span>
+                  <span className="line-clamp-2 text-xs font-semibold text-slate-700">{product.productName}</span>
                 </button>
               ))}
             </div>
@@ -427,7 +427,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           {(searchResults?.categories?.length || 0) > 0 && (
             <div className="py-2 border-t border-slate-50">
-              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.productCategories}</div>
+              <div className="px-5 pb-2 text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">{t.productCategories}</div>
               {searchResults.categories.map((category: any) => (
                 <button
                   key={`${category.type}-${category.productCategoryId}-${category.productSubCategoryId || 'all'}`}
@@ -438,7 +438,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                       subCategory: category.productSubCategoryId,
                     });
                   }}
-                  className="w-full px-5 py-2 text-left text-[11px] font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  className="w-full px-5 py-2.5 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
                 >
                   {category.name}
                 </button>
@@ -448,7 +448,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           {(searchResults?.services?.length || 0) > 0 && (
             <div className="py-2 border-t border-slate-50">
-              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.servicesGroup}</div>
+              <div className="px-5 pb-2 text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">{t.servicesGroup}</div>
               {searchResults.services.map((service: any) => (
                 <button
                   key={service.id}
@@ -458,8 +458,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                   }}
                   className="w-full px-5 py-2 text-left hover:bg-emerald-50 transition-colors"
                 >
-                  <span className="block text-[11px] font-bold text-slate-700">{service.title}</span>
-                  {service.description && <span className="block text-[9px] text-slate-400 line-clamp-1">{service.description}</span>}
+                  <span className="block text-xs font-semibold text-slate-700">{service.title}</span>
+                  {service.description && <span className="block text-xs text-slate-400 line-clamp-1">{service.description}</span>}
                 </button>
               ))}
             </div>
@@ -467,7 +467,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           {usefulPages.length > 0 && (
             <div className="py-2 border-t border-slate-50">
-              <div className="px-5 pb-2 text-[9px] font-black uppercase tracking-widest text-slate-400">{t.usefulInfo}</div>
+              <div className="px-5 pb-2 text-xs font-semibold uppercase tracking-[0.04em] text-slate-400">{t.usefulInfo}</div>
               {usefulPages.map((page: any, index: number) => (
                 <button
                   key={`${page.page}-${page.id || index}`}
@@ -477,8 +477,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                   }}
                   className="w-full px-5 py-2 text-left hover:bg-emerald-50 transition-colors"
                 >
-                  <span className="block text-[11px] font-bold text-slate-700">{page.title}</span>
-                  {page.description && <span className="block text-[9px] text-slate-400 line-clamp-1">{page.description}</span>}
+                  <span className="block text-xs font-semibold text-slate-700">{page.title}</span>
+                  {page.description && <span className="block text-xs text-slate-400 line-clamp-1">{page.description}</span>}
                 </button>
               ))}
             </div>
@@ -490,32 +490,31 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
   const getLinkClass = (page: string, isDropdown?: boolean) => {
     const isActive = activePage === page;
-    return `text-[11px] font-black uppercase tracking-widest transition-all duration-300 transform hover:scale-105 hover:text-emerald-600 flex items-center gap-1 ${isActive ? 'text-emerald-600' : 'text-slate-600'
-      }`;
+    return `header-nav-link flex items-center gap-1 uppercase transition-colors duration-200 ${isActive ? 'is-active' : ''}`;
   };
 
   return (
-    <header className="site-header-theme w-full bg-[#f8f9fa] border-b border-gray-200 sticky top-0 z-50">
-      <div className="w-full px-2 md:px-4 lg:grid lg:grid-cols-[120px_1fr] items-stretch">
+    <header className={`site-header-theme sticky top-0 z-50 w-full border-b ${isDesktopNavHidden ? 'is-compact' : ''}`}>
+      <div className="header-top-grid mx-auto w-full max-w-[1440px] items-stretch px-2 md:px-4 lg:grid lg:grid-cols-[64px_minmax(0,1fr)] lg:px-8">
         {/* Logo Column - Spans full height of top + main bars on desktop */}
-        <div className="hidden lg:flex items-center justify-center overflow-visible border-r border-gray-100">
-          <div onClick={() => onNavigate('home')} className="cursor-pointer transition-transform hover:scale-105 duration-500">
+        <div className="header-logo-column hidden lg:flex items-center justify-center overflow-visible">
+          <div onClick={() => onNavigate('home')} className="header-logo-link cursor-pointer">
             {/* <Logo className="scale-100" /> */}
-            <img className="h-[96px] w-[96px] object-contain" src={logoSrc} alt="Volt.az" />
+            <img className="header-logo-image object-contain" src={logoSrc} alt="Volt.az" />
           </div>
         </div>
 
         {/* Content Column */}
-        <div className="flex flex-col">
+        <div className="header-content-column flex flex-col">
           {/* Top Utility Bar */}
-          <div className="py-2 flex justify-between lg:justify-end items-center border-b border-gray-100 lg:hidden">
+          <div className="header-mobile-row flex min-h-[76px] items-center justify-between border-b py-2 lg:hidden">
             {/* Mobile Logo */}
             <div onClick={() => onNavigate('home')} className="lg:hidden cursor-pointer">
               {/* <Logo className="scale-100 origin-left" /> */}
               <img className="h-[61px] w-[61px] object-contain" src={logoSrc} alt="Volt.az" />
             </div>
 
-            <div className="flex md:hidden items-center gap-1">
+            <div className="flex items-center gap-1 md:hidden">
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
@@ -550,7 +549,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
             </div>
 
-            <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-1 md:gap-3">
               {/* Mobile Search Toggle */}
               <button
                 onClick={() => {
@@ -561,7 +560,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                   }
                 }}
                 aria-label={t.search}
-                className="lg:hidden p-1 text-slate-500 hover:text-emerald-600 transition-all"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -569,8 +568,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               </button>
 
               {/* Mobile Menu Button */}
-              <div className="lg:hidden border-l border-slate-200 pl-3">
-                <button aria-label={isMobileMenuOpen ? t.closeMenu : t.menu} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-1 text-slate-600">
+              <div className="border-l border-slate-200 pl-1 lg:hidden">
+                <button aria-label={isMobileMenuOpen ? t.closeMenu : t.menu} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-white/5 hover:text-white">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
                   </svg>
@@ -580,9 +579,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           </div>
 
           {/* Main Bar */}
-          <div className="hidden md:flex py-3 md:py-5 flex items-center justify-between gap-4">
+          <div className="header-main-row hidden items-center gap-4 py-3 lg:flex lg:py-5">
             {/* Search Bar - Desktop */}
-            <div className="flex-1 max-w-lg relative hidden lg:block lg:ml-8">
+            <div className="header-search-shell relative hidden lg:block">
               <input
                 type="text"
                 placeholder="Axtarış..."
@@ -591,13 +590,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
                 onKeyDown={handleSearchKeyDown}
-                style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)' }}
-                className="header-search-input w-full h-10 px-4 pr-11 rounded-xl border focus:border-[var(--color-primary)] outline-none transition-colors text-sm font-medium bg-white"
+                className="header-search-input h-11 w-full rounded-lg border px-4 pr-11 text-sm font-medium outline-none transition-colors"
               />
               <button
                 onClick={handleSearchSubmit}
                 aria-label={t.search}
-                className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-primary)] transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -606,18 +604,18 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {renderSearchDropdown()}
             </div>
 
-            <div className="hidden xl:flex items-center border-l border-gray-100 pl-4 max-w-[430px] 2xl:max-w-[520px]">
+            <div className="header-verse hidden items-center xl:flex">
               <p className="relative m-0 pl-7 text-left">
-                <span className="absolute left-0 top-0.5 flex h-5 w-5 items-center justify-center text-[rgb(179_211_69)]" aria-hidden="true">
-                  <span className="absolute h-3.5 w-3.5 rounded-full bg-[rgb(179_211_69_/_0.18)]"></span>
+                <span className="header-verse-icon absolute left-0 top-0.5 flex h-5 w-5 items-center justify-center" aria-hidden="true">
+                  <span className="header-verse-icon-halo absolute h-3.5 w-3.5 rounded-full"></span>
                   <svg className="relative h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="3.25" stroke="currentColor" strokeWidth="2" />
                     <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </span>
-                <span className="block text-[13.5px] font-bold leading-5 text-emerald-700 2xl:text-[15px] 2xl:leading-6">
+                <span className="header-verse-text block text-sm font-bold leading-5">
                   {verseQuote}
-                  <span className="ml-1.5 whitespace-nowrap align-baseline text-[10px] font-black tracking-widest text-slate-400 2xl:text-[11px]">
+                  <span className="header-verse-reference ml-1.5 whitespace-nowrap align-baseline text-xs font-semibold">
                     78:13
                   </span>
                 </span>
@@ -628,17 +626,17 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             </div>
 
             {/* Action Buttons */}
-            <div className="hidden md:flex items-center gap-2 md:gap-4">
+            <div className="header-actions hidden items-center gap-3 lg:flex">
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
-                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                className="header-primary-action flex items-center justify-center rounded-lg border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest">
+                  <span className="header-action-label uppercase">
                     {t.calculate}
                   </span>
-                  <div className="flex h-5 w-5 items-center justify-center">
+                  <div className="header-primary-icon flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
@@ -649,13 +647,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Contact Button */}
               <button
                 onClick={() => handleItemClick('contact')}
-                className="flex h-10 items-center justify-center rounded-xl border border-emerald-600 px-3.5 text-emerald-600 transition-colors hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                className="header-secondary-action flex items-center justify-center rounded-lg border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest">
+                  <span className="header-action-label uppercase">
                     {t.contact}
                   </span>
-                  <div className="flex h-5 w-5 items-center justify-center">
+                  <div className="header-secondary-icon flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
@@ -665,16 +663,16 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
 
               {/* User / Login & Languages - Desktop Only */}
-              <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
+              <div className="header-account-cluster flex items-center gap-3">
                 {isSignedIn ? (
                   <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
-                    <button aria-label={t.myProfile} className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
+                    <button aria-label={t.myProfile} className="header-profile-action flex h-11 w-11 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
                       <div className="flex h-5 w-5 items-center justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       </div>
                     </button>
                     {activeDropdown === 'profile' && (
-                      <div className="absolute top-full right-0 w-48 bg-white shadow-2xl border-t-2 border-emerald-500 py-0 z-[100] rounded-b-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                      <div className="header-dropdown-panel absolute top-full right-0 w-48 bg-white border py-1 z-[100] rounded-lg overflow-hidden">
                         {resolvedRole === 'Admin' ? (
                           <DropdownItem label="Admin Panel" onClick={() => handleItemClick('admin-dashboard')} />
                         ) : (
@@ -683,19 +681,23 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                             <DropdownItem label={t.myOrders} onClick={() => handleItemClick('customer-dashboard', undefined, { tab: 'orders' })} />
                           </>
                         )}
-                        <button onClick={handleLogout} className="w-full text-left px-6 py-4 text-[10px] font-black text-red-500 hover:bg-red-50 transition-all uppercase tracking-widest">{t.logout}</button>
+                        <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-red-500 transition-colors hover:bg-red-50">{t.logout}</button>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => setModalType('login')} aria-label={t.login} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" /></svg>
+                  <button onClick={() => setModalType('login')} className="header-login-action flex h-11 items-center gap-2 rounded-lg px-2 text-xs font-semibold uppercase tracking-[0.04em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
+                    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m10 17 5-5-5-5m5 5H3" />
+                    </svg>
+                    <span>{t.login}</span>
                   </button>
                 )}
 
                 {/* Custom Language Dropdown */}
                 <div className="relative group" onMouseEnter={() => setActiveDropdown('lang')} onMouseLeave={() => setActiveDropdown('none')}>
-                  <button className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-xl px-2 text-[9px] font-black text-slate-600 uppercase tracking-widest transition-colors hover:bg-slate-100 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">
+                  <button className="header-language-action flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold uppercase tracking-[0.04em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
                     <span>{currentLang}</span>
                     <svg className={`w-2 h-2 transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
@@ -703,7 +705,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                   </button>
 
                   {activeDropdown === 'lang' && (
-                    <div className="absolute top-full right-0 w-20 bg-white shadow-2xl border-t-2 border-emerald-500 py-0 z-[100] rounded-b-xl overflow-hidden animate-in slide-in-from-top-2 duration-200 before:absolute before:-top-4 before:left-0 before:right-0 before:h-4 before:content-['']">
+                    <div className="header-dropdown-panel absolute top-full right-0 w-20 bg-white border py-1 z-[100] rounded-lg overflow-hidden">
                       {(['az', 'en', 'ru', 'tr'] as const).map(l => (
                         <button
                           key={l}
@@ -712,7 +714,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                             onLangChange(l);
                             setActiveDropdown('none');
                           }}
-                          className={`w-full text-center py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border-b border-slate-50 last:border-0 relative z-10 ${currentLang === l ? 'text-emerald-600 bg-emerald-50' : 'text-slate-600 hover:bg-slate-50'}`}
+                          className={`relative z-10 w-full border-b border-slate-100 py-2 text-center text-xs font-semibold uppercase tracking-[0.04em] transition-colors last:border-0 ${currentLang === l ? 'text-emerald-600 bg-emerald-50' : 'text-slate-600 hover:bg-slate-50'}`}
                         >
                           {l}
                         </button>
@@ -728,7 +730,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
       {/* Mobile Search Bar Overlay */}
       {isMobileSearchOpen && (
-        <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-3 animate-in slide-in-from-top-2 duration-300">
+        <div className="header-mobile-search lg:hidden border-b px-4 py-3 animate-in slide-in-from-top-2 duration-300">
 
           <div className="relative">
               <input
@@ -740,10 +742,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 150)}
                 onKeyDown={handleSearchKeyDown}
-                style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 28%, white)' }}
-                className="header-search-input w-full h-10 px-4 pr-11 rounded-xl border focus:border-[var(--color-primary)] outline-none text-xs font-medium bg-gray-50"
+                className="header-search-input w-full h-11 px-4 pr-11 rounded-lg border outline-none text-xs font-medium"
               />
-            <button onClick={handleSearchSubmit} aria-label={t.search} className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-primary)] transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+            <button onClick={handleSearchSubmit} aria-label={t.search} className="header-search-button absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -755,20 +756,20 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-xl z-[60] py-4 px-6 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300 max-h-[calc(100vh-80px)] overflow-y-auto overscroll-contain">
-          <button onClick={() => handleItemClick('home')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.home}</button>
+        <div className="header-mobile-menu absolute left-0 top-full z-[60] flex max-h-[calc(100vh-80px)] w-full flex-col gap-2 overflow-y-auto overscroll-contain border-b px-6 py-4 lg:hidden">
+          <button onClick={() => handleItemClick('home')} className="header-mobile-link border-b border-gray-50">{t.home}</button>
 
-          <button onClick={() => handleItemClick('about')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.about}</button>
+          <button onClick={() => handleItemClick('about')} className="header-mobile-link border-b border-gray-50">{t.about}</button>
 
-          <button onClick={() => handleItemClick('solar-installation')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.installationPage}</button>
+          <button onClick={() => handleItemClick('solar-installation')} className="header-mobile-link border-b border-gray-50">{t.installationPage}</button>
 
-          <button onClick={() => handleItemClick('services')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.services}</button>
+          <button onClick={() => handleItemClick('services')} className="header-mobile-link border-b border-gray-50">{t.services}</button>
 
           {/* VOLT Mobile Dropdown */}
           <div className="flex flex-col border-b border-gray-50">
             <button
               onClick={() => toggleMobileSubMenu('volt')}
-              className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-600"
+              className="header-mobile-link flex w-full items-center justify-between"
             >
               <span>{t.volt}</span>
               <svg className={`w-4 h-4 transition-transform ${openMobileSubMenu === 'volt' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
@@ -776,9 +777,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {openMobileSubMenu === 'volt' && (
               <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {/* <button onClick={() => handleItemClick('projects')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.projects}</button> */}
-                <button onClick={() => handleItemClick('news')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.news}</button>
+                <button onClick={() => handleItemClick('news')} className="header-mobile-sub-link">{t.news}</button>
                 {/* <button onClick={() => handleItemClick('reels')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.reels}</button> */}
-                <button onClick={() => handleItemClick('blog')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.blog}</button>
+                <button onClick={() => handleItemClick('blog')} className="header-mobile-sub-link">{t.blog}</button>
               </div>
             )}
           </div>
@@ -787,7 +788,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           <div className="flex flex-col border-b border-gray-50">
             <button
               onClick={() => toggleMobileSubMenu('products')}
-              className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-600"
+              className="header-mobile-link flex w-full items-center justify-between"
             >
               <span>{t.products}</span>
               <svg className={`w-4 h-4 text-slate-400 transition-transform ${openMobileSubMenu === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
@@ -799,7 +800,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     <div className="relative flex items-center justify-between gap-2">
                       <button
                         onClick={() => handleItemClick("products", undefined, { category: category.id })}
-                        className="flex-1 text-left text-[9px] font-black uppercase tracking-widest text-slate-500"
+                        className="header-mobile-sub-link min-h-11 flex-1 pr-[45%]"
                       >
                         {getItemName(category)}
                       </button>
@@ -828,7 +829,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                                 subCategory: sub.id,
                               })
                             }
-                            className="text-left text-[8px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600"
+                            className="header-mobile-sub-link min-h-10 text-slate-400 hover:text-white"
                           >
                             {getItemName(sub, 'subcategory')}
                           </button>
@@ -845,43 +846,43 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           <div className="flex flex-col border-b border-gray-50">
             <button
               onClick={() => toggleMobileSubMenu('usefulInfo')}
-              className="flex items-center justify-between w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-600"
+              className="header-mobile-link flex w-full items-center justify-between"
             >
               <span>{t.usefulInfo}</span>
               <svg className={`w-4 h-4 transition-transform ${openMobileSubMenu === 'usefulInfo' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {openMobileSubMenu === 'usefulInfo' && (
               <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
-                <button onClick={() => handleItemClick('how-to-start')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.howToStart}</button>
+                <button onClick={() => handleItemClick('how-to-start')} className="header-mobile-sub-link">{t.howToStart}</button>
                 {/* <button onClick={() => handleItemClick('pro-club')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.mastersClubInfo}</button> */}
-                <button onClick={() => handleItemClick('necessary-documents')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.necessaryDocuments}</button>
-                <button onClick={() => handleItemClick('legislation')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.legislationAndDecrees}</button>
-                <button onClick={() => handleItemClick('faq')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.faq}</button>
+                <button onClick={() => handleItemClick('necessary-documents')} className="header-mobile-sub-link">{t.necessaryDocuments}</button>
+                <button onClick={() => handleItemClick('legislation')} className="header-mobile-sub-link">{t.legislationAndDecrees}</button>
+                <button onClick={() => handleItemClick('faq')} className="header-mobile-sub-link">{t.faq}</button>
               </div>
             )}
           </div>
 
 
-          <button onClick={() => handleItemClick('partnership')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3 border-b border-gray-50">{t.partnership}</button>
+          <button onClick={() => handleItemClick('partnership')} className="header-mobile-link border-b border-gray-50">{t.partnership}</button>
           {/* <button onClick={() => handleItemClick('pro-club')} className="text-left text-[11px] font-black uppercase tracking-widest text-emerald-600 py-3 px-4 bg-emerald-50 rounded-xl border border-emerald-100 my-1">{t.proClub}</button> */}
-          <button onClick={() => handleItemClick('contact')} className="text-left text-[11px] font-black uppercase tracking-widest text-slate-600 py-3">{t.contact}</button>
+          <button onClick={() => handleItemClick('contact')} className="header-mobile-link">{t.contact}</button>
 
           {/* User / Login & Languages - mobile Only */}
           <div className=" flex items-center justify-between gap-2 ">
             {isSignedIn ? (
               <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
-                <button className="flex items-center gap-1.5 pr-2 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                <button className="header-mobile-account-action flex min-h-11 items-center gap-1.5 pr-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </div>
                 </button>
               {activeDropdown === 'profile' && (
-  <div className="absolute top-0 left-full flex bg-white shadow-2xl border-l-2 border-emerald-500 z-[100] rounded-r-2xl overflow-hidden animate-in slide-in-from-left-2 duration-200">
+  <div className="header-dropdown-panel absolute left-full top-0 z-[100] flex overflow-hidden rounded-lg border bg-white">
     
     {resolvedRole === 'Admin' ? (
       <button
         onClick={() => handleItemClick('admin-dashboard')}
-        className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+        className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 hover:bg-slate-50"
       >
         Admin Panel
       </button>
@@ -889,13 +890,13 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
       <>
         <button
           onClick={() => handleItemClick(resolvedRole === 'Master' ? 'pro-club-dashboard' : 'customer-dashboard', undefined, { tab: 'profile' })}
-          className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+          className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 hover:bg-slate-50"
         >
           {t.myProfile}
         </button>
         <button
           onClick={() => handleItemClick('customer-dashboard', undefined, { tab: 'orders' })}
-          className="px-6 py-4 text-[10px] font-black text-slate-700 hover:bg-slate-50 uppercase tracking-widest whitespace-nowrap"
+          className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 hover:bg-slate-50"
         >
           {t.myOrders}
         </button>
@@ -904,7 +905,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
     <button
       onClick={handleLogout}
-      className="px-6 py-4 text-[10px] font-black text-red-500 hover:bg-red-50 uppercase tracking-widest whitespace-nowrap"
+      className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-[0.04em] text-red-500 hover:bg-red-50"
     >
       {t.logout}
     </button>
@@ -913,15 +914,18 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 )}
               </div>
             ) : (
-              <button onClick={() => setModalType('login')} className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-emerald-600 transition-all uppercase tracking-widest">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+              <button onClick={() => setModalType('login')} className="header-mobile-account-action flex min-h-11 items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m10 17 5-5-5-5m5 5H3" />
+                </svg>
                 {t.login}
               </button>
             )}
 
             {/* Custom Language Dropdown */}
             <div className="relative group" onMouseEnter={() => setActiveDropdown('lang')} onMouseLeave={() => setActiveDropdown('none')}>
-              <button className="flex items-center gap-1 pl-2 text-[9px] font-black text-slate-600 uppercase tracking-widest hover:text-emerald-600 transition-colors py-1">
+              <button className="header-mobile-account-action flex min-h-11 min-w-11 items-center justify-center gap-1 px-2">
                 <span>{currentLang}</span>
                 <svg className={`w-2 h-2 transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
@@ -929,7 +933,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               </button>
 
               {activeDropdown === 'lang' && (
-  <div className="absolute top-0 right-full flex bg-white shadow-2xl border-r-2 border-emerald-500 z-[100] rounded-xl overflow-hidden">
+  <div className="header-dropdown-panel absolute right-full top-0 z-[100] flex overflow-hidden rounded-lg border bg-white">
     {(['az', 'en', 'ru', 'tr'] as const).map(l => (
       <button
         key={l}
@@ -938,7 +942,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           onLangChange(l);
           setActiveDropdown('none');
         }}
-        className={`px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all
+        className={`px-3 py-2 text-xs font-semibold uppercase tracking-[0.04em] transition-colors
           ${
             currentLang === l
               ? 'text-emerald-600 bg-emerald-50'
@@ -958,10 +962,11 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
       {/* Desktop Navigation */}
       <nav
-        className={`site-desktop-nav hidden lg:flex w-full h-14 px-2 md:px-4 items-center justify-center bg-white shadow-sm border-t border-gray-50 overflow-visible ${isDesktopNavHidden ? 'is-scroll-hidden' : ''}`}
+        className={`site-desktop-nav hidden w-full border-t lg:flex ${isDesktopNavHidden ? 'is-scroll-hidden' : ''}`}
         aria-hidden={isDesktopNavHidden}
       >
-        <div className="flex items-center gap-6 lg:gap-8 whitespace-nowrap">
+        <div className="site-desktop-nav-inner mx-auto flex h-14 w-full max-w-[1440px] items-center justify-center px-8">
+        <div className="header-nav-list flex items-center gap-6 whitespace-nowrap">
           <button onClick={() => handleItemClick('home')} className={getLinkClass('home')}>{t.home}</button>
 
           <button onClick={() => handleItemClick('about')} className={getLinkClass('about')}>{t.about}</button>
@@ -977,7 +982,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <svg className={`w-3 h-3 transition-transform ${activeDropdown === 'volt' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {activeDropdown === 'volt' && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
+              <div className="header-dropdown-panel absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white border py-1 z-[100] rounded-lg overflow-hidden">
                 {/* <DropdownItem label={t.projects} onClick={() => handleItemClick('projects')} /> */}
                 <DropdownItem label={t.news} onClick={() => handleItemClick('news')} />
                 {/* <DropdownItem label={t.reels} onClick={() => handleItemClick('reels')} /> */}
@@ -994,7 +999,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             </button>
 
             {activeDropdown === 'products' && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-72 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-visible animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
+              <div className="header-dropdown-panel absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white border py-1 z-[100] rounded-lg overflow-visible">
 
                 {categories.map((category: any) => (
                   <div
@@ -1012,7 +1017,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                           category: category.id,
                         })
                       }
-                      className="w-full text-left px-6 py-4 text-[10px] font-black text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all uppercase tracking-widest border-b border-slate-50 last:border-0 flex items-center justify-between"
+                      className="header-dropdown-item group/item flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 transition-colors last:border-0 hover:bg-emerald-50 hover:text-emerald-600"
                     >
                       <span>{getItemName(category)}</span>
 
@@ -1033,7 +1038,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
                     {/* SUBCATEGORIES */}
                     {activeCategoryId === category.id && (
-                      <div className="absolute top-0 left-[calc(100%-1px)] w-72 bg-white shadow-2xl border-l-4 border-emerald-500 py-0 z-[110] rounded-r-3xl opacity-0 invisible group-hover/nested:opacity-100 group-hover/nested:visible transition-all duration-200 ring-1 ring-slate-200/50">
+                      <div className="header-dropdown-panel absolute top-0 left-[calc(100%-1px)] w-64 bg-white border py-1 z-[110] rounded-lg opacity-0 invisible group-hover/nested:opacity-100 group-hover/nested:visible transition-opacity duration-150">
 
                         {subcategories.map((sub: any) => (
                           <button
@@ -1044,7 +1049,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                                 subCategory: sub.id,
                               })
                             }
-                            className="w-full text-left px-6 py-4 text-[10px] font-black text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all uppercase tracking-widest border-b border-slate-50 last:border-0 flex items-center justify-between group/subitem"
+                            className="header-dropdown-item group/subitem flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 transition-colors last:border-0 hover:bg-emerald-50 hover:text-emerald-600"
                           >
                             <span>{getItemName(sub, 'subcategory')}</span>
 
@@ -1078,7 +1083,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <svg className={`w-3 h-3 transition-transform ${activeDropdown === 'usefulInfo' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {activeDropdown === 'usefulInfo' && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white shadow-2xl border-t-4 border-emerald-500 py-0 z-[100] rounded-b-3xl overflow-hidden animate-in slide-in-from-top-2 duration-200 ring-1 ring-slate-200/50">
+              <div className="header-dropdown-panel absolute top-full left-1/2 -translate-x-1/2 w-56 bg-white border py-1 z-[100] rounded-lg overflow-hidden">
                 <DropdownItem label={t.howToStart} onClick={() => handleItemClick('how-to-start')} />
                 {/* <DropdownItem label={t.mastersClubInfo} onClick={() => handleItemClick('pro-club')} /> */}
                 <DropdownItem label={t.necessaryDocuments} onClick={() => handleItemClick('necessary-documents')} />
@@ -1095,6 +1100,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           >
             {t.proClub}
           </button> */}
+        </div>
         </div>
       </nav>
       <RegisterModal

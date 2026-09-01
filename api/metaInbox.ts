@@ -57,7 +57,9 @@ export interface MetaInboxConfiguration {
   graphApiVersion: string;
   messengerReady: boolean;
   whatsAppReady: boolean;
-  webhook: MetaInboxWebhookDiagnostics;
+  canViewAllConversations: boolean;
+  canViewWebhookDiagnostics: boolean;
+  webhook?: MetaInboxWebhookDiagnostics | null;
 }
 export interface MetaInboxPage { items: MetaInboxConversation[]; total: number; unreadTotal: number; page: number; pageSize: number; }
 
@@ -78,7 +80,24 @@ export interface WhatsAppOnboardingStatus {
   accountMode?: string | null;
   appSubscribed: boolean;
   webhookMessagesSubscribed: boolean;
+  webhookHistorySubscribed: boolean;
+  webhookMessageEchoesSubscribed: boolean;
+  webhookAppStateSyncSubscribed: boolean;
   lastError?: string | null;
+}
+
+export interface WhatsAppHistorySyncStatus {
+  phoneNumberId: string;
+  metaRequestId?: string | null;
+  status: 'not_requested' | 'requested' | 'processing' | 'completed' | 'declined' | 'failed' | string;
+  progress: number;
+  phase?: number | null;
+  lastChunkOrder?: number | null;
+  requestedAt?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
 }
 
 export interface WhatsAppOnboardingResult {
@@ -115,3 +134,7 @@ export const completeWhatsAppOnboarding = async (payload: { code: string; whatsA
   unwrap<WhatsAppOnboardingResult>(await axiosInstance.post('meta-inbox/whatsapp-onboarding/complete', payload));
 export const registerWhatsAppOnboardingPhone = async (continuationToken: string, pin: string) =>
   unwrap<WhatsAppOnboardingResult>(await axiosInstance.post('meta-inbox/whatsapp-onboarding/register', { continuationToken, pin }));
+export const getWhatsAppHistorySyncStatus = async () =>
+  unwrap<WhatsAppHistorySyncStatus>(await axiosInstance.get('meta-inbox/whatsapp-onboarding/history-sync'));
+export const requestWhatsAppHistorySync = async () =>
+  unwrap<WhatsAppHistorySyncStatus>(await axiosInstance.post('meta-inbox/whatsapp-onboarding/history-sync'));

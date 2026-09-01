@@ -862,11 +862,11 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
             </div>
 
             <div className="flex h-12 flex-col items-center" aria-hidden="true">
-              <span className="h-8 w-px bg-[#9ac21d]" />
-              <span className="h-3 w-3 rotate-45 border-b-2 border-r-2 border-[#9ac21d]" />
+              <span className="h-8 w-px bg-[var(--primary)]" />
+              <span className="h-3 w-3 rotate-45 border-b-2 border-r-2 border-[var(--primary)]" />
             </div>
 
-            <div className="w-full max-w-xl rounded-[2rem] border-2 border-[#9ac21d] bg-white px-6 py-7 text-center shadow-lg shadow-[#9ac21d]/10 sm:px-10 md:py-9">
+            <div className="w-full max-w-xl rounded-[2rem] border-2 border-[var(--primary)] bg-white px-6 py-7 text-center shadow-lg shadow-[color-mix(in_srgb,var(--primary)_10%,transparent)] sm:px-10 md:py-9">
               <div className="mx-auto h-20 w-full max-w-sm overflow-hidden">
                 <img
                   src={VOLT_LOGO}
@@ -880,8 +880,8 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                   }}
                 />
               </div>
-              <div className="mx-auto mt-5 max-w-md border-t border-[#9ac21d]/80 pt-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9ac21d]">
+              <div className="mx-auto mt-5 max-w-md border-t border-[var(--primary)] pt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--primary)]">
                   {getText(translations.voltBrandLabel, lang)}
                 </p>
                 <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600 md:text-[15px]">
@@ -1027,7 +1027,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`partnership-submit-button relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl py-4 text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed ${submitStage === 'success'
+                      className={`partnership-submit-button relative flex w-full min-h-[var(--cta-btn-h)] cursor-pointer items-center justify-center overflow-hidden rounded-xl py-4 text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed ${submitStage === 'success'
                           ? 'partnership-submit-success bg-emerald-600'
                           : hasSubmitAnimation
                             ? 'bg-sky-600 partnership-submit-flight'
