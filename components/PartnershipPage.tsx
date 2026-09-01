@@ -866,7 +866,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
               <span className="h-3 w-3 rotate-45 border-b-2 border-r-2 border-[var(--primary)]" />
             </div>
 
-            <div className="w-full max-w-xl rounded-[2rem] border-2 border-[var(--primary)] bg-white px-6 py-7 text-center shadow-lg shadow-[color-mix(in_srgb,var(--primary)_10%,transparent)] sm:px-10 md:py-9">
+            <div className="w-full max-w-xl rounded-[2rem] border-2 border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_6%,white)] px-6 py-7 text-center shadow-[0_1px_2px_rgba(15,23,42,0.08),0_24px_56px_-32px_color-mix(in_srgb,var(--primary)_45%,transparent)] transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-[var(--primary-hover)] hover:shadow-[0_4px_10px_rgba(15,23,42,0.1),0_32px_72px_-30px_color-mix(in_srgb,var(--primary)_60%,transparent)] sm:px-10 md:py-9">
               <div className="mx-auto h-20 w-full max-w-sm overflow-hidden">
                 <img
                   src={VOLT_LOGO}
