@@ -145,6 +145,8 @@ html{ scrollbar-color:var(--color-primary) var(--color-surface); scrollbar-width
 .text-emerald-100\/60,.text-emerald-300\/60{ color:var(--color-primary) }
 .text-emerald-900\/40{ color:color-mix(in srgb,var(--color-dark) 40%,transparent) }
 .text-emerald-900\/5{ color:color-mix(in srgb,var(--color-dark) 5%,transparent) }
+/* Site-wide near-black text: replace default Tailwind slate-900/950 headings with the brand near-black. */
+.text-slate-900,.text-slate-950{ color:#081510 }
 .bg-emerald-950{ background-color:var(--color-dark) }
 .bg-emerald-700{ background-color:color-mix(in srgb,var(--color-primary) 78%,var(--color-dark)) }
 .bg-emerald-400,.bg-emerald-500,.bg-emerald-600{ background-color:var(--color-primary); color:var(--text-inverse) }

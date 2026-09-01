@@ -198,7 +198,7 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
               <div className="absolute inset-0  z-10" />
               <div className="absolute inset-0 flex items-center justify-center bg-white" aria-hidden="true">
                 <img
-                  src="/volt-logo.png"
+                  src="/volt-logo-test.png"
                   alt=""
                   width="112"
                   height="112"

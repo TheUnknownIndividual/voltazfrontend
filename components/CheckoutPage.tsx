@@ -864,7 +864,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <main className="mx-auto max-w-3xl px-4 py-10">
             <div className="relative overflow-hidden rounded-2xl border border-amber-100 bg-white p-8 text-center shadow-sm">
               <img
-                src="/volt-logo.png"
+                src="/volt-logo-test.png"
                 alt=""
                 className="pointer-events-none absolute -bottom-10 -right-8 h-48 w-48 object-contain opacity-[0.09] grayscale brightness-50 sm:h-64 sm:w-64"
                 aria-hidden="true"
@@ -1155,7 +1155,7 @@ const CheckoutHeader = ({ lang, onLangChange, onBackToCart, onGoHome, compact = 
   <header className="border-b border-slate-200 bg-white">
     <div className={`mx-auto flex max-w-7xl items-center justify-between px-4 lg:px-8 ${compact ? 'py-3' : 'py-4'}`}>
       <button type="button" onClick={onGoHome || onBackToCart} className="rounded-lg transition-transform hover:-translate-y-0.5 active:scale-95" aria-label="Volt.az home">
-        <img src="/volt-logo.png" alt="Volt.az" className="h-9 w-auto" />
+        <img src="/volt-logo-test.png" alt="Volt.az" className="h-9 w-auto" />
       </button>
       <div className="hidden items-center gap-2 text-sm font-black text-slate-700 sm:flex"><ShieldCheck className="h-4 w-4 text-emerald-600" /> {(checkoutCopy[lang] || checkoutCopy.az).secure}</div>
       <div className="flex items-center gap-2">

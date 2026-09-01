@@ -7,7 +7,7 @@ const BrandedPageLoader: React.FC = () => (
     aria-label="Volt.az"
   >
     <img
-      src="/volt-logo.png"
+      src="/volt-logo-test.png"
       alt="Volt.az"
       width="112"
       height="112"

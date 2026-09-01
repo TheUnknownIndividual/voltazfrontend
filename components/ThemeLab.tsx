@@ -188,7 +188,7 @@ const ThemeLab: React.FC = () => {
     catch { return null; }
   };
   const initialSavedTheme = useRef<Theme | null>(readSavedTheme());
-  const [logo, setLogo] = useState('/volt-logo.png');
+  const [logo, setLogo] = useState('/volt-logo-test.png');
   const [fileName, setFileName] = useState('Current Volt logo');
   const [palette, setPalette] = useState<string[]>(['#2b8659', '#7fe0a7', '#0b2b23', '#191f1c']);
   const [theme, setTheme] = useState<Theme>(initialSavedTheme.current || DEFAULT_THEME);
