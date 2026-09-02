@@ -104,7 +104,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
     <section id="legislation" className="relative overflow-hidden bg-[var(--color-dark)] py-6 md:py-20">
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
-          <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'color-mix(in srgb, var(--color-dark) 95%, transparent)' }}>
+          <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'var(--header-bg)' }}>
             <header className="mb-4 md:mb-8">
               <div className="mb-3 flex items-center gap-3 md:mb-4">
                 <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
@@ -186,7 +186,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
 
     <section className="bg-white py-10 md:py-14">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="flex flex-col items-start justify-between gap-6 rounded-[1.25rem] border border-slate-100 bg-[var(--color-surface)] p-6 md:flex-row md:items-center md:gap-10 md:rounded-[2rem] md:p-10">
+        <div className="flex flex-col items-start justify-between gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:flex-row md:items-center md:gap-10 md:rounded-[2rem] md:p-10">
           <div className="max-w-2xl">
             <div className="mb-3 flex items-center gap-3">
               <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
