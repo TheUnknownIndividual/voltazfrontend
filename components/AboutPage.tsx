@@ -148,7 +148,7 @@ const t = {
                     section: item.id,
                   })
                 }
-                className="group inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.13em] text-[var(--color-dark)] transition-colors duration-150 hover:bg-[var(--color-accent)]"
+                className="group inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.13em] text-[var(--color-dark)] transition-colors duration-150 hover:bg-[var(--color-accent)]"
               >
                 {t.readMore[lang]}
                 <svg
