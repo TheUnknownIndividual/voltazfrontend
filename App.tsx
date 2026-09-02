@@ -2055,10 +2055,10 @@ const AppContent: React.FC = () => {
               </CategoryProvider>
             </ProductProvider>
             <InfoSection lang={lang} onNavigate={navigateTo} />
-            <ProjectProvider>
+            {/* <ProjectProvider>
               <Projects onSelectProject={(id) => navigateTo('project-detail', id)} lang={lang} />
-            </ProjectProvider>
-            <PartnersSlider lang={lang === 'az' ? 'az' : 'en'} />
+            </ProjectProvider> */}
+            {/* <PartnersSlider lang={lang === 'az' ? 'az' : 'en'} /> */}
             <GoogleReviewsProvider>
               <GoogleReviewsSlider lang={lang} />
             </GoogleReviewsProvider>
