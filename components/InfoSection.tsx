@@ -219,7 +219,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
         <div className="flex flex-col gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:gap-8 md:rounded-[2rem] md:p-10">
           <div className="flex flex-col items-start gap-4 md:flex-row md:gap-6">
             <div className="h-20 w-20 flex-none overflow-hidden rounded-2xl bg-white/40 md:h-32 md:w-32">
-              <img src="/packages-card-highlight.jpg" alt="" className="h-full w-full object-cover" />
+              <img src="/packages-card-highlight.png" alt="" className="h-full w-full object-cover" />
             </div>
             <div className="max-w-2xl text-left">
               <div className="mb-3 flex items-center gap-3">
