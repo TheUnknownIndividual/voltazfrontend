@@ -25,6 +25,10 @@ const copy = {
     note: 'Nəticə evinizin enerji sərfiyyatı, dam sahəsi və qoşulma imkanından asılıdır.',
     primary: 'Evim üçün hesabla',
     secondary: 'Qaydaları sadə dildə oxu',
+    consumerEyebrow: 'Bilirdinizmi?',
+    consumerTitle: 'Aktiv istehlakçı statusu ilə enerjinizi qazanca çevirin',
+    consumerBody: 'Aktiv istehlakçı — günəş panelləri ilə istehsal etdiyi enerjini öz ehtiyacları üçün istifadə edən və artıq qalan hissəsini rəsmi qaydada elektrik şəbəkəsinə ötürən şəxsdir. Volt.az komandası quraşdırmadan rəsmi qeydiyyata qədər bütün prosesi sizin üçün idarə edir.',
+    consumerCta: 'Quraşdırma paketlərinə bax',
   },
   en: {
     eyebrow: 'Solar energy, in plain language',
@@ -42,6 +46,10 @@ const copy = {
     note: 'Your result depends on your energy use, available roof space and grid connection.',
     primary: 'Estimate my home',
     secondary: 'Read the rules simply',
+    consumerEyebrow: 'Did you know?',
+    consumerTitle: 'Turn your energy into savings with active consumer status',
+    consumerBody: 'An active consumer produces solar electricity for their own needs and officially transfers any surplus to the electricity grid. The Volt.az team manages everything for you, from installation to official registration.',
+    consumerCta: 'See installation packages',
   },
   ru: {
     eyebrow: 'Солнечная энергия простыми словами',
@@ -59,6 +67,10 @@ const copy = {
     note: 'Результат зависит от потребления, площади крыши и возможности подключения.',
     primary: 'Рассчитать для дома',
     secondary: 'Простое объяснение правил',
+    consumerEyebrow: 'Знаете ли вы?',
+    consumerTitle: 'Превратите свою энергию в экономию со статусом активного потребителя',
+    consumerBody: 'Активный потребитель производит солнечную электроэнергию для собственных нужд и официально передаёт излишки в электросеть. Команда Volt.az берёт на себя весь процесс — от установки до официальной регистрации.',
+    consumerCta: 'Посмотреть пакеты установки',
   },
   tr: {
     eyebrow: 'Basit dille güneş enerjisi',
@@ -76,6 +88,10 @@ const copy = {
     note: 'Sonuç; enerji kullanımınıza, çatı alanınıza ve bağlantı imkânına bağlıdır.',
     primary: 'Evim için hesapla',
     secondary: 'Kuralları basitçe oku',
+    consumerEyebrow: 'Biliyor muydunuz?',
+    consumerTitle: 'Aktif tüketici statüsüyle enerjinizi tasarrufa dönüştürün',
+    consumerBody: 'Aktif tüketici, güneş panelleriyle ürettiği elektriği kendi ihtiyaçları için kullanan ve fazlasını resmi olarak elektrik şebekesine aktaran kişidir. Volt.az ekibi kurulumdan resmi kayda kadar tüm süreci sizin için yönetir.',
+    consumerCta: 'Kurulum paketlerine bakın',
   },
 } as const;
 
@@ -84,6 +100,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
   const icons = [Sun, House, UtilityPole];
 
   return (
+    <>
     <section id="legislation" className="relative overflow-hidden bg-[var(--color-dark)] py-6 md:py-20">
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
@@ -166,6 +183,29 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
         </div>
       </div>
     </section>
+
+    <section className="bg-white py-10 md:py-14">
+      <div className="mx-auto max-w-[1440px] px-4 md:px-12">
+        <div className="flex flex-col items-start justify-between gap-6 rounded-[1.25rem] border border-slate-100 bg-[var(--color-surface)] p-6 md:flex-row md:items-center md:gap-10 md:rounded-[2rem] md:p-10">
+          <div className="max-w-2xl">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.consumerEyebrow}</span>
+            </div>
+            <h3 className="mb-2 text-lg font-black leading-tight tracking-tight text-[#081510] md:text-2xl">{t.consumerTitle}</h3>
+            <p className="text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerBody}</p>
+          </div>
+          <button
+            onClick={() => onNavigate?.('solar-installation')}
+            className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
+          >
+            {t.consumerCta}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </section>
+    </>
   );
 };
 
