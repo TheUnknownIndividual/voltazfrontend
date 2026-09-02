@@ -27,7 +27,22 @@ const copy = {
     secondary: 'Qaydaları sadə dildə oxu',
     consumerEyebrow: 'Bilirdinizmi?',
     consumerTitle: 'Aktiv istehlakçı statusu ilə enerjinizi qazanca çevirin',
-    consumerBody: 'Aktiv istehlakçı — günəş panelləri ilə istehsal etdiyi enerjini öz ehtiyacları üçün istifadə edən və artıq qalan hissəsini rəsmi qaydada elektrik şəbəkəsinə ötürən şəxsdir. Volt.az komandası quraşdırmadan rəsmi qeydiyyata qədər bütün prosesi sizin üçün idarə edir.',
+    consumerIntro: 'Aktiv istehlakçı — günəş panelləri ilə istehsal etdiyi enerjini öz ehtiyacları üçün istifadə edən və artıq qalan hissəsini rəsmi net-metering mexanizmi ilə elektrik şəbəkəsinə ötürən şəxsdir.',
+    consumerListOneTitle: 'Net-metering necə işləyir?',
+    consumerListOne: [
+      'Gündüz istehsal olunan enerjinin şəbəkəyə ötürülməsi',
+      'İkitərəfli smart sayğacla dəqiq qeydiyyat',
+      'Aylıq və ya illik balanslaşdırma imkanı',
+      'Elektrik xərclərinin əhəmiyyətli azalması',
+    ],
+    consumerListTwoTitle: 'Aktiv istehlakçı statusunun faydaları',
+    consumerListTwo: [
+      'Daha çox enerji müstəqilliyi',
+      'Şəbəkə ilə rəsmi hesablaşma',
+      'İstehsal və sərfiyyata şəffaf nəzarət',
+      'Qanuni və texniki uyğunluq',
+    ],
+    consumerServiceText: '1 kW gücündə sistemin qiyməti təxminən 1000 AZN-dən başlaya bilər və quraşdırma adətən 1–3 gün çəkir. Volt.az komandası texniki sənədlərdən quraşdırmaya, aktiv istehlakçı müraciətindən rəsmi qeydiyyata qədər bütün prosesi sizin əvəzinizə idarə edir.',
     consumerCta: 'Quraşdırma paketlərinə bax',
   },
   en: {
@@ -48,7 +63,22 @@ const copy = {
     secondary: 'Read the rules simply',
     consumerEyebrow: 'Did you know?',
     consumerTitle: 'Turn your energy into savings with active consumer status',
-    consumerBody: 'An active consumer produces solar electricity for their own needs and officially transfers any surplus to the electricity grid. The Volt.az team manages everything for you, from installation to official registration.',
+    consumerIntro: 'An active consumer produces solar electricity for their own needs and officially transfers any surplus to the grid through the net-metering mechanism.',
+    consumerListOneTitle: 'How net metering works',
+    consumerListOne: [
+      'Surplus daytime generation can be exported to the grid',
+      'Accurate recording through a two-way smart meter',
+      'Possibility of monthly or annual balancing',
+      'Significant reduction of electricity costs',
+    ],
+    consumerListTwoTitle: 'Benefits of active consumer status',
+    consumerListTwo: [
+      'Greater energy independence',
+      'Official settlement with the grid',
+      'Transparent control of production and consumption',
+      'Legal and technical compliance',
+    ],
+    consumerServiceText: 'A 1 kW system may start from around 1000 AZN, and installation usually takes 1–3 days. The Volt.az team manages the whole process for you, from technical documentation and installation to the active consumer application and official registration.',
     consumerCta: 'See installation packages',
   },
   ru: {
@@ -69,7 +99,22 @@ const copy = {
     secondary: 'Простое объяснение правил',
     consumerEyebrow: 'Знаете ли вы?',
     consumerTitle: 'Превратите свою энергию в экономию со статусом активного потребителя',
-    consumerBody: 'Активный потребитель производит солнечную электроэнергию для собственных нужд и официально передаёт излишки в электросеть. Команда Volt.az берёт на себя весь процесс — от установки до официальной регистрации.',
+    consumerIntro: 'Активный потребитель производит солнечную электроэнергию для собственных нужд и официально передаёт излишки в сеть через механизм net metering.',
+    consumerListOneTitle: 'Как работает net metering',
+    consumerListOne: [
+      'Передача излишков дневной генерации в сеть',
+      'Точный учёт через двусторонний smart-счётчик',
+      'Возможность месячного или годового баланса',
+      'Существенное снижение расходов на электроэнергию',
+    ],
+    consumerListTwoTitle: 'Преимущества статуса активного потребителя',
+    consumerListTwo: [
+      'Больше энергетической независимости',
+      'Официальный расчёт с сетью',
+      'Прозрачный контроль производства и потребления',
+      'Юридическое и техническое соответствие',
+    ],
+    consumerServiceText: 'Система мощностью 1 кВт может начинаться примерно от 1000 AZN, а установка обычно занимает 1–3 дня. Команда Volt.az берёт на себя весь процесс — от технической документации и монтажа до заявки активного потребителя и официальной регистрации.',
     consumerCta: 'Посмотреть пакеты установки',
   },
   tr: {
@@ -90,7 +135,22 @@ const copy = {
     secondary: 'Kuralları basitçe oku',
     consumerEyebrow: 'Biliyor muydunuz?',
     consumerTitle: 'Aktif tüketici statüsüyle enerjinizi tasarrufa dönüştürün',
-    consumerBody: 'Aktif tüketici, güneş panelleriyle ürettiği elektriği kendi ihtiyaçları için kullanan ve fazlasını resmi olarak elektrik şebekesine aktaran kişidir. Volt.az ekibi kurulumdan resmi kayda kadar tüm süreci sizin için yönetir.',
+    consumerIntro: 'Aktif tüketici, güneş panelleriyle ürettiği elektriği kendi ihtiyaçları için kullanan ve fazlasını net metering mekanizmasıyla resmi olarak şebekeye aktaran kişidir.',
+    consumerListOneTitle: 'Net metering nasıl işler?',
+    consumerListOne: [
+      'Gündüz üretilen fazla enerjinin şebekeye aktarılması',
+      'Çift yönlü smart sayaç ile doğru kayıt',
+      'Aylık veya yıllık dengeleme imkânı',
+      'Elektrik maliyetlerinde önemli azalma',
+    ],
+    consumerListTwoTitle: 'Aktif tüketici statüsünün faydaları',
+    consumerListTwo: [
+      'Daha fazla enerji bağımsızlığı',
+      'Şebeke ile resmî mahsuplaşma',
+      'Üretim ve tüketimin şeffaf takibi',
+      'Hukuki ve teknik uygunluk',
+    ],
+    consumerServiceText: "1 kW gücündeki bir sistem yaklaşık 1000 AZN'den başlayabilir ve kurulum genellikle 1–3 gün sürer. Volt.az ekibi teknik belgelerden kuruluma, aktif tüketici başvurusundan resmi kayda kadar tüm süreci sizin için yönetir.",
     consumerCta: 'Kurulum paketlerine bakın',
   },
 } as const;
@@ -104,7 +164,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
     <section id="legislation" className="relative overflow-hidden bg-[var(--color-dark)] py-6 md:py-20">
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
-          <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'var(--header-bg)' }}>
+          <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'var(--header-surface)' }}>
             <header className="mb-4 md:mb-8">
               <div className="mb-3 flex items-center gap-3 md:mb-4">
                 <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
@@ -186,22 +246,54 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
 
     <section className="bg-white py-10 md:py-14">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="flex flex-col items-start justify-between gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:flex-row md:items-center md:gap-10 md:rounded-[2rem] md:p-10">
-          <div className="max-w-2xl">
+        <div className="flex flex-col gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:gap-8 md:rounded-[2rem] md:p-10">
+          <div>
             <div className="mb-3 flex items-center gap-3">
               <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.consumerEyebrow}</span>
             </div>
-            <h3 className="mb-2 text-lg font-black leading-tight tracking-tight text-[#081510] md:text-2xl">{t.consumerTitle}</h3>
-            <p className="text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerBody}</p>
+            <h3 className="mb-3 max-w-2xl text-lg font-black leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
+            <p className="max-w-2xl text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerIntro}</p>
           </div>
-          <button
-            onClick={() => onNavigate?.('solar-installation')}
-            className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
-          >
-            {t.consumerCta}
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </button>
+
+          <div className="border-t border-[var(--border-light)] pt-6 md:pt-8">
+            <h4 className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-4 md:text-xs">{t.consumerListOneTitle}</h4>
+            <ul className="grid gap-2 md:gap-3">
+              {t.consumerListOne.map(item => (
+                <li key={item} className="flex gap-2 text-xs font-medium leading-5 text-slate-600 md:gap-3 md:text-sm">
+                  <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-[var(--color-primary)]" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
+                    <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="border-t border-[var(--border-light)] pt-6 md:pt-8">
+            <h4 className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-4 md:text-xs">{t.consumerListTwoTitle}</h4>
+            <ul className="grid gap-2 md:gap-3">
+              {t.consumerListTwo.map(item => (
+                <li key={item} className="flex gap-2 text-xs font-medium leading-5 text-slate-600 md:gap-3 md:text-sm">
+                  <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-[var(--color-primary)]" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
+                    <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:items-center md:justify-between md:gap-10 md:pt-8">
+            <p className="max-w-2xl text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerServiceText}</p>
+            <button
+              onClick={() => onNavigate?.('solar-installation')}
+              className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
+            >
+              {t.consumerCta}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </section>
