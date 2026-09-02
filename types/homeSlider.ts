@@ -12,8 +12,8 @@ export interface HomeSlide {
 export const DEFAULT_HOME_SLIDES: HomeSlide[] = [
   {
     id: 1,
-    title: 'solar enerji',
-    subtitle: '',
+    title: 'Evinizə Peşəkar Günəş Enerjisi Həlli',
+    subtitle: 'Panel seçimindən quraşdırmaya qədər bütün prosesi Volt.az komandası idarə edir.',
     image: '/sliderphoto.webp',
     mobileImage: '/sliderphotomobile.webp',
     cta: 'Ətraflı Öyrən',
@@ -21,8 +21,8 @@ export const DEFAULT_HOME_SLIDES: HomeSlide[] = [
   },
   {
     id: 2,
-    title: 'enerji qənaəti',
-    subtitle: '',
+    title: 'Aylıq Elektrik Xərcinizi Azaldın',
+    subtitle: 'Günəş panelləri ilə enerjinizi özünüz istehsal edin, artığını şəbəkəyə ötürün.',
     image: '/sliderphoto2.webp',
     mobileImage: '/sliderphotomobile2.webp',
     cta: 'Ətraflı Öyrən',

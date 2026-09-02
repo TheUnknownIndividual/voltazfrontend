@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface FAQPageProps {
   lang: 'az' | 'en' | 'ru' | 'tr';
@@ -196,6 +196,39 @@ Solarix sizin elektrik tüketim ve nesne koşullarınızı inceleyerek uygun sis
     }[lang]
   }
 ];
+
+  useEffect(() => {
+    const toPlainText = (node: React.ReactNode): string => {
+      if (node === null || node === undefined || typeof node === 'boolean') return '';
+      if (typeof node === 'string' || typeof node === 'number') return String(node);
+      if (Array.isArray(node)) return node.map(toPlainText).join('');
+      if (React.isValidElement(node)) return toPlainText((node.props as { children?: React.ReactNode })?.children);
+      return '';
+    };
+
+    let script = document.getElementById('volt-faq-jsonld') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'volt-faq-jsonld';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      inLanguage: lang,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: toPlainText(faq.q),
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: toPlainText(faq.a),
+        },
+      })),
+    });
+
+    return () => document.getElementById('volt-faq-jsonld')?.remove();
+  }, [lang, faqs]);
 
   return (
     <div className="bg-white min-h-screen relative">

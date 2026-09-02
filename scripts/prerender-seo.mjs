@@ -259,6 +259,67 @@ const fallbackMarkup = (route, language, meta) => {
   const links = navRoutes.map((item, index) =>
     `<a href="${localizedPath(item, language)}">${escapeHtml(localized.nav[index])}</a>`
   ).join(' · ');
+  if (route === '/') {
+    const homeContent = {
+      az: {
+        stepsHeading: 'Necə işləyir?',
+        steps: [
+          ['Panellər enerji yaradır', 'Günəş işığı elektrik enerjisinə çevrilir. Sistem avtomatik işləyir.'],
+          ['Eviniz öncə onu istifadə edir', 'Soyuducu, işıqlandırma və digər cihazlar ilk növbədə günəş enerjisi ilə işləyir.'],
+          ['Artıq enerji boşa getmir', 'İstifadə etmədiyiniz enerji uyğun sistem olduqda elektrik şəbəkəsinə ötürülə bilər.'],
+        ],
+        packagesHeading: 'Quraşdırılma paketləri',
+        packagesIntro: 'Eviniz və ya obyektiniz üçün panel, Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulmanı bir paketdə təqdim edirik.',
+        projectsNote: 'Volt.az tərəfindən Azərbaycanda həyata keçirilən günəş enerjisi layihələri və rəsmi partnyorlarımızla (Growatt, LONGi Solar) əməkdaşlığımız haqqında ətraflı məlumat üçün layihələr bölməsinə baxın.',
+      },
+      en: {
+        stepsHeading: 'How it works',
+        steps: [
+          ['Panels produce electricity', 'Sunlight is converted into usable electricity. The system works automatically.'],
+          ['Your home uses it first', 'Your fridge, lights and other appliances use solar electricity before grid electricity.'],
+          ['Extra energy is not wasted', 'When your system is eligible, electricity you do not use can be sent to the public grid.'],
+        ],
+        packagesHeading: 'Installation packages',
+        packagesIntro: 'Get solar panels, a Growatt inverter, mounting structure, and grid connection together in one package for your home or property.',
+        projectsNote: 'See the projects section for solar energy installations Volt.az has completed in Azerbaijan and our official partners, including Growatt and LONGi Solar.',
+      },
+      ru: {
+        stepsHeading: 'Как это работает',
+        steps: [
+          ['Панели вырабатывают энергию', 'Солнечный свет превращается в электричество. Система работает автоматически.'],
+          ['Дом использует её первым', 'Холодильник, освещение и другие приборы сначала используют солнечную энергию.'],
+          ['Излишки не пропадают', 'Если система соответствует условиям, неиспользованную энергию можно передавать в общую сеть.'],
+        ],
+        packagesHeading: 'Пакеты установки',
+        packagesIntro: 'Солнечные панели, инвертор Growatt, монтажная конструкция и подключение к сети — в одном пакете для вашего дома или объекта.',
+        projectsNote: 'Подробнее о реализованных Volt.az проектах солнечной энергетики в Азербайджане и наших официальных партнерах, включая Growatt и LONGi Solar, смотрите в разделе проектов.',
+      },
+      tr: {
+        stepsHeading: 'Nasıl çalışır?',
+        steps: [
+          ['Paneller elektrik üretir', 'Güneş ışığı kullanılabilir elektriğe dönüşür. Sistem otomatik çalışır.'],
+          ['Önce eviniz kullanır', 'Buzdolabı, aydınlatma ve diğer cihazlar önce güneş elektriğini kullanır.'],
+          ['Fazla enerji boşa gitmez', 'Sisteminiz uygunsa kullanmadığınız enerji elektrik şebekesine aktarılabilir.'],
+        ],
+        packagesHeading: 'Kurulum paketleri',
+        packagesIntro: 'Eviniz veya tesisiniz için güneş panelleri, Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısını tek pakette sunuyoruz.',
+        projectsNote: 'Volt.az\'ın Azerbaycan\'da tamamladığı güneş enerjisi projeleri ve Growatt, LONGi Solar dahil resmi partnerlerimiz hakkında daha fazla bilgi için projeler bölümüne bakın.',
+      },
+    }[language];
+    return `<main class="seo-prerender" data-seo-prerendered="true">
+      <h1>${escapeHtml(meta.title.replace(/ \| Volt\.az$/, ''))}</h1>
+      <p>${escapeHtml(meta.description)}</p>
+      <section><h2>${escapeHtml(homeContent.stepsHeading)}</h2>
+        ${homeContent.steps.map(([heading, body]) => `<article><h3>${escapeHtml(heading)}</h3><p>${escapeHtml(body)}</p></article>`).join('')}
+      </section>
+      <section><h2>${escapeHtml(homeContent.packagesHeading)}</h2>
+        <p>${escapeHtml(homeContent.packagesIntro)}</p>
+        ${installationPackages.map((item) => `<article><h3>${escapeHtml(item.capacity)} — ${escapeHtml(item.price)}</h3></article>`).join('')}
+      </section>
+      <section><p>${escapeHtml(homeContent.projectsNote)}</p></section>
+      <nav aria-label="Primary">${links}</nav>
+    </main>`;
+  }
   if (route === '/solar-installation') {
     const labels = {
       az: { heading: 'Quraşdırılma paketləri', panels: 'Panellər', inverter: 'İnverter', included: 'Bütün paketlərə montaj konstruksiyası və şəbəkəyə qoşulma daxildir.' },

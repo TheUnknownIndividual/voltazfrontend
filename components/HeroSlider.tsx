@@ -254,20 +254,20 @@ const HeroSlider: React.FC<HeroSliderProps> = ({ lang, onNavigate }) => {
                 )
               )}
               
-              {/* <div className={`absolute inset-0 z-20 flex ${slide.centered ? 'items-center justify-center' : 'items-start pt-24 md:pt-[18vh] lg:pt-[22vh] pb-24 md:pb-32'}`}>
-              <div className="w-full px-6 md:px-16">
-                <div className={`max-w-4xl ${slide.centered ? 'text-center mx-auto' : 'text-left'} text-white`}>
-                  <h1 className={`text-3xl md:text-5xl lg:text-7xl font-black ${slide.subtitle ? 'mb-4 md:mb-8' : 'mb-0'} leading-[1.1] drop-shadow-2xl animate-in fade-in ${slide.centered ? 'zoom-in-95' : 'slide-in-from-left-12'} duration-1000`}>
-                    {slide.title}
-                  </h1>
-                  {slide.subtitle && (
-                    <p className="text-xs md:text-lg lg:text-xl mb-8 md:mb-12 opacity-90 font-medium leading-relaxed max-w-2xl mx-auto animate-in fade-in slide-in-from-left-12 duration-1000 delay-300">
-                      {slide.subtitle}
-                    </p>
-                  )}
+              <div className={`absolute inset-0 z-20 flex ${slide.centered ? 'items-center justify-center' : 'items-start pt-24 md:pt-[18vh] lg:pt-[22vh] pb-24 md:pb-32'}`}>
+                <div className="w-full px-6 md:px-16">
+                  <div className={`max-w-4xl ${slide.centered ? 'text-center mx-auto' : 'text-left'} text-white`}>
+                    <h1 className={`text-3xl md:text-5xl lg:text-7xl font-black ${slide.subtitle ? 'mb-4 md:mb-8' : 'mb-0'} leading-[1.1] drop-shadow-2xl animate-in fade-in ${slide.centered ? 'zoom-in-95' : 'slide-in-from-left-12'} duration-1000`}>
+                      {slide.title}
+                    </h1>
+                    {slide.subtitle && (
+                      <p className="text-xs md:text-lg lg:text-xl mb-8 md:mb-12 opacity-90 font-medium leading-relaxed max-w-2xl mx-auto animate-in fade-in slide-in-from-left-12 duration-1000 delay-300">
+                        {slide.subtitle}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div> */}
           </div>
         );
       })}
