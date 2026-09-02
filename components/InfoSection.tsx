@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, BookOpen, Calculator, Check, CircleDollarSign, CloudSun, House, Info, Sun, UtilityPole } from 'lucide-react';
+import { ArrowRight, BookOpen, Calculator, Check, CloudSun, House, Info, Sun, UtilityPole } from 'lucide-react';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 
@@ -126,73 +126,64 @@ const copy = {
 
 const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) => {
   const t = copy[lang] || copy.az;
-  const icons = [Sun, House, UtilityPole];
+  const stepIcons = [Sun, House, UtilityPole];
   const locale = localeByLanguage[lang] || localeByLanguage.az;
 
   return (
     <>
-    <section id="legislation" className="relative overflow-hidden bg-[#0b2b23] py-6 md:py-20">
+    <section id="legislation" className="relative overflow-hidden bg-[#0b2b23] py-10 md:py-20">
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
-          <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'var(--header-surface)' }}>
-            <header className="mb-4 md:mb-8">
-              <div className="mb-3 flex items-center gap-3 md:mb-4">
-                <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.eyebrow}</span>
-              </div>
-              <h2 className="mb-3 max-w-2xl text-xl font-black leading-tight tracking-tight text-white md:mb-4 md:text-4xl">{t.title}</h2>
-              <p className="max-w-xl text-xs leading-5 text-slate-300 md:text-sm md:leading-7">{t.intro}</p>
+        <div className="grid overflow-hidden rounded-2xl border border-white/10 md:rounded-[1.75rem] lg:grid-cols-2">
+          <div className="flex flex-col p-5 md:p-10 lg:min-h-[680px] lg:p-12" style={{ backgroundColor: 'var(--header-surface)' }}>
+            <header className="mb-6 md:mb-10">
+              <span className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] md:mb-4">{t.eyebrow}</span>
+              <h2 className="mb-3 max-w-2xl text-2xl font-bold leading-[1.15] tracking-tight text-white md:mb-4 md:text-[2.25rem]">{t.title}</h2>
+              <p className="max-w-xl text-sm leading-6 text-slate-300 md:text-base md:leading-7">{t.intro}</p>
             </header>
 
-            <div className="border-t border-white/10">
+            <div className="relative">
               {t.steps.map((step, index) => {
-                const Icon = icons[index];
+                const Icon = stepIcons[index];
+                const isLast = index === t.steps.length - 1;
                 return (
-                  <article key={step[0]} className="flex gap-3 border-b border-white/10 py-3 md:gap-5 md:py-5">
-                    <div className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/10 text-[var(--color-primary)] md:h-11 md:w-11">
-                      <Icon className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.8} aria-hidden="true" />
+                  <article key={step[0]} className="relative flex gap-4 pb-6 md:gap-6 md:pb-8">
+                    {!isLast && <span className="absolute left-[15px] top-9 h-[calc(100%-2.25rem)] w-px bg-white/10 md:left-[19px] md:top-11" />}
+                    <div className="relative flex flex-none flex-col items-center">
+                      <span className="font-mono text-[13px] font-medium leading-none text-white/25 md:text-base">{step[0]}</span>
                     </div>
-                    <div>
-                      <div className="mb-1 flex items-center gap-3">
-                        <span className="text-[8px] font-black tracking-[0.18em] text-[var(--color-accent)]">{step[0]}</span>
-                        <h3 className="text-sm font-black text-white md:text-base">{step[1]}</h3>
+                    <div className="pt-0.5">
+                      <div className="mb-1.5 flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.75} aria-hidden="true" />
+                        <h3 className="text-[15px] font-semibold text-white md:text-base">{step[1]}</h3>
                       </div>
-                      <p className="text-[11px] leading-5 text-slate-400 md:text-sm">{step[2]}</p>
+                      <p className="text-[13px] leading-5 text-slate-400 md:text-sm md:leading-6">{step[2]}</p>
                     </div>
                   </article>
                 );
               })}
             </div>
 
-            <div className="flex gap-3 pt-3 md:gap-4 md:pt-5">
-              <div className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/10 text-[var(--color-primary)] md:h-11 md:w-11">
-                <CloudSun className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.8} aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="mb-1 text-sm font-black text-white">{t.nightTitle}</h3>
-                <p className="text-xs leading-5 text-slate-400">{t.nightText}</p>
-              </div>
+            <div className="border-t border-white/10 pt-4 md:pt-6">
+              <p className="flex gap-2.5 text-[13px] leading-5 text-slate-400 md:text-sm">
+                <CloudSun className="mt-0.5 h-4 w-4 flex-none text-white/40" strokeWidth={1.75} aria-hidden="true" />
+                <span><span className="font-semibold text-slate-200">{t.nightTitle}</span> {t.nightText}</span>
+              </p>
             </div>
           </div>
 
-          <div className="flex min-h-0 items-stretch justify-center p-0 md:min-h-[620px] md:items-center md:p-10 lg:min-h-[720px]">
-            <aside data-cart-contrast-surface className="w-full max-w-none rounded-b-[1.25rem] rounded-t-none bg-[var(--color-primary)] p-4 text-[var(--color-dark)] shadow-xl shadow-black/10 md:max-w-md md:rounded-[2rem] md:p-8">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-dark)] text-[var(--color-primary)] md:mb-4 md:h-11 md:w-11">
-                <CircleDollarSign className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.8} aria-hidden="true" />
-              </div>
-              <h3 className="mb-4 text-base font-black leading-tight md:mb-5 md:text-2xl">{t.benefitTitle}</h3>
-              <ul className="grid gap-2 md:gap-3">
+          <div className="flex min-h-0 items-stretch justify-center p-0 md:min-h-[560px] md:items-center md:p-10 lg:min-h-[680px]">
+            <aside data-cart-contrast-surface className="w-full max-w-none bg-[var(--color-primary)] p-5 text-[var(--color-dark)] md:max-w-md md:rounded-2xl md:p-8">
+              <h3 className="mb-4 text-lg font-bold leading-tight md:mb-5 md:text-xl">{t.benefitTitle}</h3>
+              <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
                 {t.benefits.map(benefit => (
-                  <li key={benefit} className="flex gap-2 text-xs font-medium leading-5 text-[var(--color-dark)] opacity-90 md:gap-3 md:text-sm">
-                    <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--color-dark) 10%, transparent)' }}>
-                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-                    </span>
+                  <li key={benefit} className="flex gap-3 border-b border-black/10 pb-2.5 text-sm leading-5 text-[var(--color-dark)] last:border-0 last:pb-0">
+                    <Check className="mt-0.5 h-4 w-4 flex-none" strokeWidth={2.25} aria-hidden="true" />
                     {benefit}
                   </li>
                 ))}
               </ul>
 
-              <button onClick={() => onNavigate?.('calculator')} className="group mt-4 flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--header-bg)] px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-active)] md:mt-6 md:px-5 md:py-4">
+              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--header-bg)] px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-active)] md:px-5 md:py-4">
                 <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
@@ -200,71 +191,62 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-4 md:mt-6 md:flex-row md:items-center md:gap-5 md:pt-6">
-          <p className="flex max-w-2xl gap-3 text-xs leading-5 text-white/55">
-            <Info className="mt-0.5 h-4 w-4 flex-none text-[var(--color-primary)]" strokeWidth={1.8} aria-hidden="true" />
+        <div className="mt-4 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-4 md:mt-6 md:flex-row md:items-center md:gap-5 md:pt-6">
+          <p className="flex max-w-2xl gap-2.5 text-xs leading-5 text-white/50">
+            <Info className="mt-0.5 h-4 w-4 flex-none text-white/40" strokeWidth={1.75} aria-hidden="true" />
             {t.note}
           </p>
-          <button onClick={() => onNavigate?.('legislation', undefined, { section: 'net-metering' })} className="group flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)] transition-colors hover:text-white">
-            <BookOpen className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+          <button onClick={() => onNavigate?.('legislation', undefined, { section: 'net-metering' })} className="group flex items-center gap-2 text-sm font-medium text-[var(--color-accent)] transition-colors hover:text-white">
+            <BookOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             {t.secondary}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
           </button>
         </div>
       </div>
     </section>
 
-    <section className="bg-white py-10 md:py-14">
+    <section className="bg-white py-12 md:py-16">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="flex flex-col gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:gap-8 md:rounded-[2rem] md:p-10">
-          <div className="flex flex-col items-start gap-4 md:flex-row md:gap-6">
-            <div className="h-20 w-20 flex-none overflow-hidden rounded-2xl bg-white/40 md:h-32 md:w-32">
-              <img src="/packages-card-highlight.png" alt="" className="h-full w-full object-cover" />
-            </div>
-            <div className="max-w-2xl text-left">
-              <div className="mb-3 flex items-center gap-3">
-                <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.consumerEyebrow}</span>
-              </div>
-              <h3 className="mb-3 text-lg font-black leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
-              <p className="text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerIntro}</p>
-            </div>
+        <div className="grid gap-6 overflow-hidden rounded-2xl border border-[var(--border-light)] md:grid-cols-5 md:rounded-[1.75rem]">
+          <div className="relative min-h-[180px] md:col-span-2 md:min-h-full">
+            <img src="/packages-card-highlight.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
 
-          <div className="border-t border-[var(--border-light)] pt-6 md:pt-8">
-            <h4 className="mb-3 text-right text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-4 md:text-xs">{t.consumerPackagesLabel}</h4>
-            <ul className="grid gap-2 md:gap-3">
+          <div className="p-5 md:col-span-3 md:p-10 md:pl-0">
+            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.consumerEyebrow}</span>
+            <h3 className="mb-3 max-w-lg text-xl font-bold leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
+            <p className="max-w-xl text-sm leading-6 text-slate-500 md:text-base md:leading-7">{t.consumerIntro}</p>
+
+            <ul className="mt-6 grid gap-3 sm:grid-cols-3 md:mt-8">
               {installationPackages.map(pkg => (
-                <li key={pkg.capacityKw} className="flex flex-row-reverse items-center justify-between gap-3 rounded-xl border border-[var(--border-light)] bg-white/70 px-4 py-3">
-                  <div className="text-right">
-                    <div className="flex flex-row-reverse items-center gap-2">
-                      <span className="text-base font-black text-[#081510] md:text-lg">{pkg.capacityKw}&nbsp;kW</span>
-                      {pkg.recommended && (
-                        <span className="rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">
-                          {t.consumerRecommendedLabel}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-[11px] leading-4 text-slate-500">{t.consumerPanelLabel(pkg.panelCount, pkg.panelWattage)}</p>
-                  </div>
-                  <div className="flex-none text-left">
-                    <span className="text-lg font-black text-[var(--color-primary)] md:text-xl">{pkg.priceAzn.toLocaleString(locale)}</span>
-                    <span className="ml-1 text-[10px] font-black uppercase tracking-wide text-slate-500">AZN</span>
-                  </div>
+                <li
+                  key={pkg.capacityKw}
+                  className={`relative rounded-xl border p-4 ${pkg.recommended ? 'border-[var(--color-primary)] bg-[color-mix(in_srgb,var(--color-primary)_5%,white)]' : 'border-[var(--border-light)]'}`}
+                >
+                  {pkg.recommended && (
+                    <span className="absolute -top-2.5 left-4 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                      {t.consumerRecommendedLabel}
+                    </span>
+                  )}
+                  <span className="block text-xl font-bold text-[#081510] md:text-2xl">{pkg.capacityKw}&nbsp;kW</span>
+                  <span className="mt-1 block text-xs leading-4 text-slate-500">{t.consumerPanelLabel(pkg.panelCount, pkg.panelWattage)}</span>
+                  <span className="mt-3 block text-lg font-bold text-[var(--color-primary)]">
+                    {pkg.priceAzn.toLocaleString(locale)} <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">AZN</span>
+                  </span>
                 </li>
               ))}
             </ul>
-          </div>
 
-          <div className="flex flex-col gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row-reverse md:items-center md:justify-between md:gap-10 md:pt-8">
-            <p className="max-w-2xl text-right text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerServiceText}</p>
-            <button
-              onClick={() => onNavigate?.('solar-installation')}
-              className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
-            >
-              <ArrowRight className="h-4 w-4 rotate-180" aria-hidden="true" />
-              {t.consumerCta}
-            </button>
+            <div className="mt-6 flex flex-col gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:items-center md:justify-between md:gap-10">
+              <p className="max-w-xl text-sm leading-6 text-slate-500">{t.consumerServiceText}</p>
+              <button
+                onClick={() => onNavigate?.('solar-installation')}
+                className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
+              >
+                {t.consumerCta}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
