@@ -75,6 +75,9 @@ export const API_ENDPOINTS = {
     DELETE_PROJECT: (id: string) => `${URL}Projects/${id}`,
     GET_ID_PROJECT: (id: string) => `${URL}Projects/${id}`,
   },
+  GOOGLE_REVIEWS: {
+    GET_GOOGLE_REVIEWS: `${URL}GoogleReviews`,
+  },
   ADMIN_PROJECT_TRACKER: {
     GET_PROJECTS: `${URL}AdminProjectTracker`,
     CREATE_PROJECT: `${URL}AdminProjectTracker`,

@@ -11,6 +11,7 @@ import Products from './components/Products';
 import InfoSection from './components/InfoSection';
 import Footer from './components/Footer';
 import PartnersSlider from './components/PartnersSlider';
+import GoogleReviewsSlider from './components/GoogleReviewsSlider';
 import BrandedPageLoader from './components/BrandedPageLoader';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AUTH_EXPIRED_EVENT } from './utils/constants';
@@ -105,6 +106,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { AboutProvider } from './contexts/AboutContext';
 import { BlogProvider } from './contexts/BlogContext';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { GoogleReviewsProvider } from './contexts/GoogleReviewsContext';
 import { ContactProvider } from './contexts/ContactContext';
 import { ProductProvider, useProduct } from './contexts/ProductContext';
 import { CategoryProvider } from './contexts/CategoryContext';
@@ -2057,6 +2059,9 @@ const AppContent: React.FC = () => {
               <Projects onSelectProject={(id) => navigateTo('project-detail', id)} lang={lang} />
             </ProjectProvider>
             <PartnersSlider lang={lang === 'az' ? 'az' : 'en'} />
+            <GoogleReviewsProvider>
+              <GoogleReviewsSlider lang={lang} />
+            </GoogleReviewsProvider>
           </>
         );
     }
