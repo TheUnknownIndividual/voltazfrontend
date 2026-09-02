@@ -131,7 +131,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
 
   return (
     <>
-    <section id="legislation" className="relative overflow-hidden bg-[var(--color-dark)] py-6 md:py-20">
+    <section id="legislation" className="relative overflow-hidden bg-[#0b2b23] py-6 md:py-20">
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid overflow-hidden rounded-[1.25rem] border border-white/10 shadow-xl shadow-black/10 md:rounded-[2rem] lg:grid-cols-2">
           <div className="flex flex-col p-4 md:p-10 lg:min-h-[720px] lg:p-12" style={{ backgroundColor: 'var(--header-surface)' }}>
@@ -217,13 +217,18 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
     <section className="bg-white py-10 md:py-14">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="flex flex-col gap-6 rounded-[1.25rem] border border-[var(--border-light)] bg-[color-mix(in_srgb,var(--color-primary)_6%,white)] p-6 shadow-sm md:gap-8 md:rounded-[2rem] md:p-10">
-          <div className="ml-auto max-w-2xl text-right">
-            <div className="mb-3 flex flex-row-reverse items-center gap-3">
-              <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.consumerEyebrow}</span>
+          <div className="flex flex-col items-start gap-4 md:flex-row md:gap-6">
+            <div className="h-20 w-20 flex-none overflow-hidden rounded-2xl bg-white/40 md:h-32 md:w-32">
+              <img src="/packages-card-highlight.jpg" alt="" className="h-full w-full object-cover" />
             </div>
-            <h3 className="mb-3 text-lg font-black leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
-            <p className="text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerIntro}</p>
+            <div className="max-w-2xl text-left">
+              <div className="mb-3 flex items-center gap-3">
+                <span className="h-px w-6 bg-[var(--color-primary)] md:w-8" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t.consumerEyebrow}</span>
+              </div>
+              <h3 className="mb-3 text-lg font-black leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
+              <p className="text-xs leading-5 text-slate-500 md:text-sm md:leading-7">{t.consumerIntro}</p>
+            </div>
           </div>
 
           <div className="border-t border-[var(--border-light)] pt-6 md:pt-8">
