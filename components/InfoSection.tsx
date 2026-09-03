@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, BookOpen, Calculator, Check, CloudSun, House, Info, Sun, UtilityPole } from 'lucide-react';
+import { ArrowRight, BookOpen, Calculator, Check, CloudSun, House, Info, Share2, Sun } from 'lucide-react';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 
@@ -126,7 +126,7 @@ const copy = {
 
 const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) => {
   const t = copy[lang] || copy.az;
-  const stepIcons = [Sun, House, UtilityPole];
+  const stepIcons = [Sun, House, Share2];
   const locale = localeByLanguage[lang] || localeByLanguage.az;
 
   return (
@@ -147,13 +147,13 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
                 const isLast = index === t.steps.length - 1;
                 return (
                   <article key={step[0]} className="relative flex gap-4 pb-6 md:gap-6 md:pb-8">
-                    {!isLast && <span className="absolute left-[15px] top-9 h-[calc(100%-2.25rem)] w-px bg-white/10 md:left-[19px] md:top-11" />}
-                    <div className="relative flex flex-none flex-col items-center">
-                      <span className="font-mono text-[13px] font-medium leading-none text-white/25 md:text-base">{step[0]}</span>
+                    {!isLast && <span className="absolute left-4 top-8 h-[calc(100%-2rem)] w-px bg-white/20 md:left-5 md:top-10" />}
+                    <div className="relative z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border border-white/15 bg-[#0f2a22] md:h-10 md:w-10">
+                      <Icon className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.75} aria-hidden="true" />
                     </div>
-                    <div className="pt-0.5">
+                    <div className="pt-1">
                       <div className="mb-1.5 flex items-center gap-2.5">
-                        <Icon className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.75} aria-hidden="true" />
+                        <span className="font-mono text-[11px] font-medium leading-none text-white/30">{step[0]}</span>
                         <h3 className="text-[15px] font-semibold text-white md:text-base">{step[1]}</h3>
                       </div>
                       <p className="text-[13px] leading-5 text-slate-400 md:text-sm md:leading-6">{step[2]}</p>
