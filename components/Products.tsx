@@ -139,7 +139,7 @@ const handleNext = () => {
   };
 
   return (
-    <section id="products" className="products-theme py-12 md:py-24 bg-white overflow-hidden">
+    <section id="products" className="products-theme py-12 md:py-20 bg-white overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-4 md:px-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 md:mb-16 gap-6">
           <div className="text-left">

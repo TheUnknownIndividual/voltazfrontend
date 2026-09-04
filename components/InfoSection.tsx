@@ -227,7 +227,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
       </div>
     </section>
 
-    <section className="bg-white py-12 md:py-16">
+    <section className="bg-white py-12 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid gap-6 overflow-hidden rounded-2xl border border-[var(--border-light)] md:grid-cols-5 md:rounded-[1.75rem]">
           <div className="relative min-h-[180px] md:col-span-2 md:min-h-full">
