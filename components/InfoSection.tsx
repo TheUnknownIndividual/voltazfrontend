@@ -172,21 +172,25 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
           </div>
 
           <div className="flex min-h-0 items-stretch justify-center p-0 md:min-h-[560px] md:items-center md:p-10 lg:min-h-[680px]">
-            <aside data-cart-contrast-surface className="w-full max-w-none bg-[var(--color-primary)] p-5 text-[var(--color-dark)] md:max-w-md md:rounded-2xl md:p-8">
-              <h3 className="mb-4 text-lg font-bold leading-tight md:mb-5 md:text-xl">{t.benefitTitle}</h3>
-              <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
-                {t.benefits.map(benefit => (
-                  <li key={benefit} className="flex gap-3 border-b border-black/10 pb-2.5 text-sm leading-5 text-[var(--color-dark)] last:border-0 last:pb-0">
-                    <Check className="mt-0.5 h-4 w-4 flex-none" strokeWidth={2.25} aria-hidden="true" />
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
+            <aside data-cart-contrast-surface className="relative w-full max-w-none overflow-hidden p-5 text-white md:max-w-md md:rounded-2xl md:p-8">
+              <img src="/benefit-card-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#06180f]/95 via-[#0b2b23]/85 to-[#0b2b23]/45" aria-hidden="true" />
+              <div className="relative">
+                <h3 className="mb-4 text-lg font-bold leading-tight md:mb-5 md:text-xl">{t.benefitTitle}</h3>
+                <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
+                  {t.benefits.map(benefit => (
+                    <li key={benefit} className="flex gap-3 border-b border-white/15 pb-2.5 text-sm leading-5 text-white/90 last:border-0 last:pb-0">
+                      <Check className="mt-0.5 h-4 w-4 flex-none text-[var(--color-accent)]" strokeWidth={2.25} aria-hidden="true" />
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
 
-              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--header-bg)] px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-active)] md:px-5 md:py-4">
-                <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-              </button>
+                <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--color-accent)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-dark)] transition-colors hover:brightness-95 md:px-5 md:py-4">
+                  <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </button>
+              </div>
             </aside>
           </div>
         </div>
@@ -209,7 +213,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="grid gap-6 overflow-hidden rounded-2xl border border-[var(--border-light)] md:grid-cols-5 md:rounded-[1.75rem]">
           <div className="relative min-h-[180px] md:col-span-2 md:min-h-full">
-            <img src="/packages-card-highlight.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img src="/installation-packages-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
 
           <div className="p-5 md:col-span-3 md:p-10 md:pl-0">
