@@ -205,7 +205,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
                 ))}
               </ul>
 
-              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[#2c8659] px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:brightness-95 md:px-5 md:py-4">
+              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-xl bg-[var(--color-primary)] px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:px-5 md:py-4">
                 <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
@@ -229,12 +229,12 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
 
     <section className="bg-white py-12 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="grid gap-6 overflow-hidden rounded-2xl border border-[var(--border-light)] md:grid-cols-5 md:rounded-[1.75rem]">
-          <div className="relative min-h-[180px] md:col-span-2 md:min-h-full">
+        <div className="overflow-hidden rounded-2xl border border-[var(--border-light)] md:rounded-[1.75rem]">
+          <div className="relative h-48 w-full md:h-72">
             <img src="/installation-packages-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
 
-          <div className="p-5 text-center md:col-span-3 md:p-10 md:pl-0">
+          <div className="p-5 text-center md:p-10">
             <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.consumerEyebrow}</span>
             <h3 className="mx-auto mb-3 max-w-lg text-xl font-bold leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.consumerTitle}</h3>
             <p className="mx-auto max-w-xl text-sm leading-6 text-slate-500 md:text-base md:leading-7">{t.consumerIntro}</p>

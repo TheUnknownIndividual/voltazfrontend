@@ -1010,7 +1010,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
                   data-whatsapp-interaction="calculator_quote"
                   data-whatsapp-language={lang}
                   data-whatsapp-context={JSON.stringify(buildTrackingPayload('whatsapp'))}
-                  className="inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-6 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest text-[var(--color-dark)] shadow-lg shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:bg-[var(--color-accent)]"
+                  className="inline-flex min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-[var(--color-primary)] px-6 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white shadow-lg shadow-slate-900/5 transition-colors hover:bg-[var(--primary-hover)] md:px-8 md:py-4"
                 >
                   {getText(financeSource === 'ebrd' && propertyType === 'business' ? t.ebrdContactButton : t.quoteButton, lang)}
                 </a>
