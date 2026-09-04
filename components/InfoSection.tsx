@@ -136,7 +136,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
         <div className="grid overflow-hidden rounded-2xl border border-white/10 md:rounded-[1.75rem] lg:grid-cols-2">
           <div className="flex flex-col p-5 md:p-10 lg:min-h-[680px] lg:p-12" style={{ backgroundColor: 'var(--header-surface)' }}>
             <header className="mb-6 md:mb-10">
-              <span className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] md:mb-4">{t.eyebrow}</span>
+              <span className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.14em] text-white md:mb-4">{t.eyebrow}</span>
               <h2 className="mb-3 max-w-2xl text-2xl font-bold leading-[1.15] tracking-tight text-white md:mb-4 md:text-[2.25rem]">{t.title}</h2>
               <p className="max-w-xl text-sm leading-6 text-slate-300 md:text-base md:leading-7">{t.intro}</p>
             </header>
@@ -149,7 +149,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
                   <article key={step[0]} className="relative flex gap-4 pb-6 md:gap-6 md:pb-8">
                     {!isLast && <span className="absolute left-4 top-8 h-[calc(100%-2rem)] w-px bg-white/20 md:left-5 md:top-10" />}
                     <div className="relative z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border border-white/15 bg-[#0f2a22] md:h-10 md:w-10">
-                      <Icon className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.75} aria-hidden="true" />
+                      <Icon className="h-4 w-4 text-white" strokeWidth={1.75} aria-hidden="true" />
                     </div>
                     <div className="pt-1">
                       <div className="mb-1.5 flex items-center gap-2.5">
@@ -171,26 +171,24 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
             </div>
           </div>
 
-          <div className="flex min-h-0 items-stretch justify-center p-0 md:min-h-[560px] md:items-center md:p-10 lg:min-h-[680px]">
-            <aside data-cart-contrast-surface className="relative w-full max-w-none overflow-hidden p-5 text-white md:max-w-md md:rounded-2xl md:p-8">
-              <img src="/benefit-card-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#06180f]/95 via-[#0b2b23]/85 to-[#0b2b23]/45" aria-hidden="true" />
-              <div className="relative">
-                <h3 className="mb-4 text-lg font-bold leading-tight md:mb-5 md:text-xl">{t.benefitTitle}</h3>
-                <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
-                  {t.benefits.map(benefit => (
-                    <li key={benefit} className="flex gap-3 border-b border-white/15 pb-2.5 text-sm leading-5 text-white/90 last:border-0 last:pb-0">
-                      <Check className="mt-0.5 h-4 w-4 flex-none text-[var(--color-accent)]" strokeWidth={2.25} aria-hidden="true" />
-                      {benefit}
-                    </li>
-                  ))}
-                </ul>
+          <div className="relative flex min-h-0 items-stretch justify-center overflow-hidden p-0 md:min-h-[560px] md:items-center md:p-10 lg:min-h-[680px]">
+            <img src="/benefit-card-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#06180f]/95 via-[#0b2b23]/80 to-[#0b2b23]/40" aria-hidden="true" />
+            <aside data-cart-contrast-surface className="relative w-full max-w-none border-white/15 p-5 text-white md:max-w-md md:rounded-2xl md:border md:bg-white/10 md:p-8 md:backdrop-blur-md">
+              <h3 className="mb-4 text-lg font-bold leading-tight md:mb-5 md:text-xl">{t.benefitTitle}</h3>
+              <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
+                {t.benefits.map(benefit => (
+                  <li key={benefit} className="flex gap-3 border-b border-white/15 pb-2.5 text-sm leading-5 text-white/90 last:border-0 last:pb-0">
+                    <Check className="mt-0.5 h-4 w-4 flex-none text-[var(--color-accent)]" strokeWidth={2.25} aria-hidden="true" />
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
 
-                <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--color-accent)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-dark)] transition-colors hover:brightness-95 md:px-5 md:py-4">
-                  <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </button>
-              </div>
+              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--color-accent)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-dark)] transition-colors hover:brightness-95 md:px-5 md:py-4">
+                <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </button>
             </aside>
           </div>
         </div>
@@ -225,7 +223,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
               {installationPackages.map(pkg => (
                 <li
                   key={pkg.capacityKw}
-                  className={`relative rounded-xl border p-4 ${pkg.recommended ? 'border-[var(--color-primary)] bg-[color-mix(in_srgb,var(--color-primary)_5%,white)]' : 'border-[var(--border-light)]'}`}
+                  className={`relative rounded-xl border p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${pkg.recommended ? 'border-[var(--color-primary)] bg-[color-mix(in_srgb,var(--color-primary)_5%,white)] hover:border-[var(--primary-hover)]' : 'border-[var(--border-light)] hover:border-[var(--color-primary)]'}`}
                 >
                   {pkg.recommended && (
                     <span className="absolute -top-2.5 left-4 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
