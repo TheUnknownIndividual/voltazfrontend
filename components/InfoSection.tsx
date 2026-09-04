@@ -293,10 +293,10 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
             </ul>
 
             <div className="mt-6 flex flex-col items-center gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:justify-between md:gap-10">
-              <p className="max-w-xl text-sm leading-6 text-slate-500">{t.consumerServiceText}</p>
+              <p className="flex-1 text-left text-sm leading-6 text-slate-500">{t.consumerServiceText}</p>
               <button
                 onClick={() => onNavigate?.('solar-installation')}
-                className="inline-flex min-h-[42px] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[var(--primary-hover)]"
+                className="inline-flex min-h-[var(--cta-btn-h)] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:px-6 md:py-4"
               >
                 {t.consumerCta}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
