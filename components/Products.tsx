@@ -141,7 +141,7 @@ const handleNext = () => {
   return (
     <section id="products" className="products-theme py-12 md:py-20 bg-white overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-4 md:px-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 md:mb-16 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-6">
           <div className="text-left">
             <h2 className="text-2xl md:text-5xl font-black text-slate-900 leading-tight mb-1 md:mb-2">{t.title}</h2>
           </div>
@@ -226,7 +226,7 @@ const handleNext = () => {
             )}
 
             {onViewAll && (
-              <button onClick={onViewAll} className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-xl bg-[var(--header-bg)] px-8 py-4 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-10 md:py-5">
+              <button onClick={onViewAll} className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-3 rounded-xl bg-[var(--header-bg)] px-6 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-8 md:py-4">
                 {t.viewAll}
                 <svg className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </button>
