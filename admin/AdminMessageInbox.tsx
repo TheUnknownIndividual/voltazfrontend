@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, AlertTriangle, Archive, Camera, CheckCircle2, MessageCircle, Phone, RefreshCw, Search, Send, StickyNote, UserRound } from 'lucide-react';
+import { Activity, AlertTriangle, Archive, Camera, CheckCircle2, ImagePlus, MessageCircle, Phone, RefreshCw, Search, Send, StickyNote, UserRound, X } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
 import {
   addMetaInboxNote,
@@ -10,6 +10,7 @@ import {
   getMetaInboxMessages,
   getMetaInboxNotes,
   markMetaInboxConversationRead,
+  sendMetaInboxAttachment,
   sendMetaInboxMessage,
   updateMetaInboxConversationStatus,
   type MetaInboxAssignee,
@@ -38,6 +39,7 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
     channelsPending: 'Some Meta channels are not active yet.', ready: 'ready', notConfigured: 'not configured', search: 'Search by name or message...', open: 'Open', closed: 'Closed', all: 'All', allAssignments: 'All assignments', availableAssignments: 'Available conversations', mine: 'Mine', unassigned: 'Unassigned',
     loading: 'Loading...', noConversation: 'No conversation matches this filter.', newConversation: 'New conversation', selectConversation: 'Select a conversation', close: 'Close', reopen: 'Reopen',
     reply: 'Write a reply to the customer...', connectionPending: 'connection is not complete', sendHelp: 'Enter to send · Shift+Enter for a new line', whatsappWindow: ' · Free-form WhatsApp replies can be sent within 24 hours of the customer’s latest message',
+    attachImage: 'Attach an image', attachInvalidType: 'Only JPG, PNG, or WEBP images can be sent.', attachTooLarge: 'Image must be smaller than 15 MB.', attachFailed: 'The image could not be sent.', removeAttachment: 'Remove',
     notes: 'Internal notes', notesHelp: 'Visible only to authorized team members. Not sent to the customer.', selectForNotes: 'Select a conversation to view notes.', noNotes: 'There are no internal notes yet.', notePlaceholder: 'Write a note for the team...', addNote: 'Add internal note'
   } : {
     listLoadFailed: 'Mesaj siyahısı yüklənmədi.', settingsLoadFailed: 'Inbox parametrləri yüklənmədi.', conversationLoadFailed: 'Söhbət yüklənmədi.',
@@ -46,6 +48,7 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
     channelsPending: 'Bəzi Meta kanalları hələ aktiv deyil.', ready: 'hazırdır', notConfigured: 'konfiqurasiya edilməyib', search: 'Ad və ya mesaj axtar...', open: 'Açıq', closed: 'Bağlı', all: 'Hamısı', allAssignments: 'Bütün təyinatlar', availableAssignments: 'Əlçatan söhbətlər', mine: 'Mənimkilər', unassigned: 'Təyin edilməyib',
     loading: 'Yüklənir...', noConversation: 'Bu filtrə uyğun söhbət yoxdur.', newConversation: 'Yeni söhbət', selectConversation: 'Söhbət seçin', close: 'Bağla', reopen: 'Yenidən aç',
     reply: 'Müştəriyə cavab yazın...', connectionPending: 'bağlantısı tamamlanmayıb', sendHelp: 'Enter göndərir · Shift+Enter yeni sətir', whatsappWindow: ' · WhatsApp sərbəst cavabları son müştəri mesajından sonra 24 saat ərzində göndərilir',
+    attachImage: 'Şəkil əlavə et', attachInvalidType: 'Yalnız JPG, PNG və ya WEBP şəkillər göndərilə bilər.', attachTooLarge: 'Şəkil 15 MB-dan kiçik olmalıdır.', attachFailed: 'Şəkil göndərilmədi.', removeAttachment: 'Sil',
     notes: 'Daxili qeydlər', notesHelp: 'Yalnız komanda üzvləri görür. Müştəriyə göndərilmir.', selectForNotes: 'Qeydləri görmək üçün söhbət seçin.', noNotes: 'Hələ daxili qeyd yoxdur.', notePlaceholder: 'Komanda üçün qeyd yazın...', addNote: 'Daxili qeyd əlavə et'
   };
   const [conversations, setConversations] = useState<MetaInboxConversation[]>([]);
@@ -63,10 +66,14 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
   const [loadingList, setLoadingList] = useState(true);
   const [sending, setSending] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const attachmentPreviewUrl = useMemo(() => attachmentFile ? URL.createObjectURL(attachmentFile) : null, [attachmentFile]);
+  useEffect(() => () => { if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl); }, [attachmentPreviewUrl]);
   const messageLastId = useRef<number | undefined>(undefined);
   const noteLastId = useRef<number | undefined>(undefined);
   const messageEnd = useRef<HTMLDivElement | null>(null);
   const noteEnd = useRef<HTMLDivElement | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
 
   const selected = useMemo(() => conversations.find((item) => item.id === selectedId) || null, [conversations, selectedId]);
   const selectedChannelReady = selected
@@ -118,6 +125,9 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
   }, [delayedSearch, status, assignment]);
 
   useEffect(() => {
+    setMessageDraft('');
+    setAttachmentFile(null);
+    if (fileInput.current) fileInput.current.value = '';
     if (!selectedId) { setMessages([]); setNotes([]); return; }
     let cancelled = false;
     messageLastId.current = undefined;
@@ -171,22 +181,41 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
     return () => { cancelled = true; window.clearInterval(interval); };
   }, [selectedId]);
 
-  useEffect(() => { messageEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
-  useEffect(() => { noteEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [notes.length]);
+  useEffect(() => { messageEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [messages.length]);
+  useEffect(() => { noteEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [notes.length]);
 
   const sendMessage = async () => {
     const text = messageDraft.trim();
-    if (!selected || !text || sending) return;
+    if (!selected || sending || (!text && !attachmentFile)) return;
     setSending(true);
     try {
-      const created = await sendMetaInboxMessage(selected.id, text);
+      const created = attachmentFile
+        ? await sendMetaInboxAttachment(selected.id, attachmentFile, text || undefined)
+        : await sendMetaInboxMessage(selected.id, text);
       setMessages((current) => mergeById(current, [created]));
       messageLastId.current = created.id;
       setMessageDraft('');
+      setAttachmentFile(null);
+      if (fileInput.current) fileInput.current.value = '';
       await loadList(true);
     } catch (error: any) {
-      showNotification(error?.response?.data?.error?.details || copy.sendFailed, 'error');
+      showNotification(error?.response?.data?.error?.details || (attachmentFile ? copy.attachFailed : copy.sendFailed), 'error');
     } finally { setSending(false); }
+  };
+
+  const selectAttachment = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      showNotification(copy.attachInvalidType, 'error');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      showNotification(copy.attachTooLarge, 'error');
+      return;
+    }
+    setAttachmentFile(file);
   };
 
   const addNote = async () => {
@@ -249,7 +278,20 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
         {!selected ? <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-slate-400"><MessageCircle size={42} strokeWidth={1.5}/><p className="mt-3 text-sm font-bold">{copy.selectConversation}</p></div> : <>
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4"><div className="flex items-center gap-3"><Avatar conversation={selected}/><div><h3 className="font-black text-slate-900">{selected.participantDisplayName}</h3><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{selected.channel} · {selected.participantExternalId}</p></div></div><div className="flex items-center gap-2"><select value={selected.assignedAdminUserId || ''} onChange={(event) => assign(event.target.value)} className="max-w-[180px] rounded-xl border border-slate-200 bg-white p-2 text-xs font-bold"><option value="">{copy.unassigned}</option>{assignees.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select><button onClick={toggleStatus} className={`flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-black ${selected.status === 'open' ? 'bg-slate-100 text-slate-600' : 'bg-emerald-50 text-emerald-700'}`}>{selected.status === 'open' ? <Archive size={14}/> : <CheckCircle2 size={14}/>} {selected.status === 'open' ? copy.close : copy.reopen}</button></div></header>
           <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-4 xl:max-h-[calc(70vh-142px)]">{messages.map((message) => <MessageBubble key={message.id} message={message} lang={lang}/>)}<div ref={messageEnd}/></div>
-          <div className="border-t border-slate-100 p-4"><div className="flex items-end gap-2"><textarea value={messageDraft} onChange={(event) => setMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} disabled={!selectedChannelReady} rows={2} maxLength={2000} placeholder={selectedChannelReady ? copy.reply : `${selected.channel} ${copy.connectionPending}`} className="min-h-[50px] flex-1 resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-emerald-500 disabled:bg-slate-100"/><button onClick={sendMessage} disabled={!messageDraft.trim() || sending || !selectedChannelReady} className="rounded-xl bg-emerald-600 p-4 text-white disabled:opacity-40"><Send size={18}/></button></div><p className="mt-1 text-[10px] text-slate-400">{copy.sendHelp}{selected.channel === 'whatsapp' ? copy.whatsappWindow : ''}</p></div>
+          <div className="border-t border-slate-100 p-4">
+            {attachmentFile && <div className="mb-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+              {attachmentPreviewUrl && <img src={attachmentPreviewUrl} alt="" className="h-12 w-12 rounded-lg object-cover"/>}
+              <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">{attachmentFile.name}</span>
+              <button type="button" onClick={() => { setAttachmentFile(null); if (fileInput.current) fileInput.current.value = ''; }} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700" title={copy.removeAttachment}><X size={14}/></button>
+            </div>}
+            <div className="flex items-end gap-2">
+              <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={selectAttachment} className="hidden"/>
+              <button type="button" onClick={() => fileInput.current?.click()} disabled={!selectedChannelReady} title={copy.attachImage} className="rounded-xl border border-slate-200 p-4 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"><ImagePlus size={18}/></button>
+              <textarea value={messageDraft} onChange={(event) => setMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} disabled={!selectedChannelReady} rows={2} maxLength={2000} placeholder={selectedChannelReady ? copy.reply : `${selected.channel} ${copy.connectionPending}`} className="min-h-[50px] flex-1 resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-emerald-500 disabled:bg-slate-100"/>
+              <button onClick={sendMessage} disabled={(!messageDraft.trim() && !attachmentFile) || sending || !selectedChannelReady} className="rounded-xl bg-emerald-600 p-4 text-white disabled:opacity-40"><Send size={18}/></button>
+            </div>
+            <p className="mt-1 text-[10px] text-slate-400">{copy.sendHelp}{selected.channel === 'whatsapp' ? copy.whatsappWindow : ''}</p>
+          </div>
         </>}
       </main>
 

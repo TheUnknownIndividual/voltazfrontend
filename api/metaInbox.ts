@@ -126,6 +126,12 @@ export const markMetaInboxConversationRead = async (conversationId: number) =>
   unwrap<MetaInboxConversation>(await axiosInstance.put(`meta-inbox/conversations/${conversationId}/read`));
 export const sendMetaInboxMessage = async (conversationId: number, text: string) =>
   unwrap<MetaInboxMessage>(await axiosInstance.post(`meta-inbox/conversations/${conversationId}/messages`, { text }));
+export const sendMetaInboxAttachment = async (conversationId: number, file: File, caption?: string) => {
+  const form = new FormData();
+  form.append('file', file);
+  if (caption) form.append('caption', caption);
+  return unwrap<MetaInboxMessage>(await axiosInstance.post(`meta-inbox/conversations/${conversationId}/attachments`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
+};
 export const addMetaInboxNote = async (conversationId: number, body: string) =>
   unwrap<MetaInboxNote>(await axiosInstance.post(`meta-inbox/conversations/${conversationId}/notes`, { body }));
 export const getWhatsAppOnboardingStatus = async () =>
