@@ -153,7 +153,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
                     </div>
                     <div className="pt-1">
                       <div className="mb-1.5 flex items-center gap-2.5">
-                        <span className="font-mono text-[11px] font-medium leading-none text-white/30">{step[0]}</span>
+                        <span className="font-mono text-[11px] font-medium leading-none text-white">{step[0]}</span>
                         <h3 className="text-[15px] font-semibold text-white md:text-base">{step[1]}</h3>
                       </div>
                       <p className="text-[13px] leading-5 text-slate-400 md:text-sm md:leading-6">{step[2]}</p>
@@ -179,13 +179,13 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
               <ul className="mb-5 grid gap-2.5 md:mb-6 md:gap-3">
                 {t.benefits.map(benefit => (
                   <li key={benefit} className="flex gap-3 border-b border-white/15 pb-2.5 text-sm leading-5 text-white/90 last:border-0 last:pb-0">
-                    <Check className="mt-0.5 h-4 w-4 flex-none text-[var(--color-accent)]" strokeWidth={2.25} aria-hidden="true" />
+                    <Check className="mt-0.5 h-4 w-4 flex-none text-white" strokeWidth={2.25} aria-hidden="true" />
                     {benefit}
                   </li>
                 ))}
               </ul>
 
-              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[var(--color-accent)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-dark)] transition-colors hover:brightness-95 md:px-5 md:py-4">
+              <button onClick={() => onNavigate?.('calculator')} className="group flex w-full min-h-[var(--cta-btn-h)] items-center justify-between rounded-lg bg-[#2c8659] px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:brightness-95 md:px-5 md:py-4">
                 <span className="flex items-center gap-3"><Calculator className="h-4 w-4" strokeWidth={2} aria-hidden="true" />{t.primary}</span>
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
@@ -198,7 +198,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
             <Info className="mt-0.5 h-4 w-4 flex-none text-white/40" strokeWidth={1.75} aria-hidden="true" />
             {t.note}
           </p>
-          <button onClick={() => onNavigate?.('legislation', undefined, { section: 'net-metering' })} className="group flex items-center gap-2 text-sm font-medium text-[var(--color-accent)] transition-colors hover:text-white">
+          <button onClick={() => onNavigate?.('legislation', undefined, { section: 'net-metering' })} className="group flex items-center gap-2 text-sm font-medium text-white transition-colors hover:text-[var(--color-accent)]">
             <BookOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             {t.secondary}
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
