@@ -13,6 +13,17 @@ export default {
   ],
   theme: {
     extend: {
+      // Header/title sizes shifted down one tier (each ≥15% smaller than Tailwind's
+      // default) — the "buttons and headers look huge" fix. Body text (xs–xl) is
+      // untouched.
+      fontSize: {
+        '2xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '3xl': ['1.5rem', { lineHeight: '2rem' }],
+        '4xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '5xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '6xl': ['3rem', { lineHeight: '1' }],
+        '7xl': ['3.75rem', { lineHeight: '1' }],
+      },
       colors: {
         emerald: {
           50: '#f2fff0',

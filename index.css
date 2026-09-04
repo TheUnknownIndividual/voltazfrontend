@@ -316,7 +316,7 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
 .site-header-theme .header-mobile-sub-link{ align-items:center; display:flex; min-height:44px }
 .site-header-theme .header-mobile-link:hover,.site-header-theme .header-mobile-sub-link:hover,.site-header-theme .header-mobile-account-action:hover{ color:var(--text-inverse) }
 @media(min-width:1024px){ .site-header-theme .header-top-grid,.site-header-theme .header-logo-column,.site-header-theme .header-content-column,.site-header-theme .header-main-row{ height:66px; min-width:0 }
-  .site-header-theme .header-top-grid{ grid-template-columns:64px minmax(0,1fr); -moz-column-gap:24px; column-gap:24px }
+  .site-header-theme .header-top-grid{ grid-template-columns:64px minmax(0,1fr); -moz-column-gap:48px; column-gap:48px }
   .site-header-theme .header-logo-link{ align-items:center; display:flex; height:46px; justify-content:center; width:46px }
   .site-header-theme .header-logo-image{ height:46px; width:46px }
   .site-header-theme .header-main-row{ gap:24px; justify-content:flex-start; padding-block:0 }
