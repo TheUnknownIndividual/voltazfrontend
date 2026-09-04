@@ -147,7 +147,7 @@ const handleNext = () => {
           </div>
         </div>
 
-        <div className="relative min-h-0 lg:min-h-[38rem] lg:px-16">
+        <div className="relative min-h-0 lg:px-16">
           {items.length > itemsPerPage && (
             <button
               onClick={handlePrev}
@@ -208,7 +208,7 @@ const handleNext = () => {
         </div>
 
         {(items.length > itemsPerPage || onViewAll) && (
-          <div className="mt-5 flex flex-col items-center gap-4 md:mt-12 md:gap-8">
+          <div className="mt-6 flex flex-col items-center gap-3 md:mt-8 md:gap-5">
             {/* Pagination Dots */}
             {items.length > itemsPerPage && (
               <div className="flex gap-2">
