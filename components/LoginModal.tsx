@@ -71,8 +71,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl sm:rounded-[2.5rem] sm:p-10">
-        <h2 className="text-2xl font-black mb-6">
+      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-5 text-[var(--color-dark)] shadow-2xl sm:rounded-[2.5rem] sm:p-10">
+        <h2 className="text-2xl font-black mb-6 text-[var(--color-dark)]">
           {copy.title}
         </h2>
 

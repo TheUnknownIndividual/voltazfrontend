@@ -77,13 +77,13 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
   return (
     <div className="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto p-3 py-6 sm:items-center sm:p-4" onKeyDown={handleModalKeyDown}>
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose} />
-      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl animate-in zoom-in-95 duration-300 sm:rounded-[2.5rem] sm:p-8 md:p-12">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-black text-slate-900 mb-2">{copy.title}</h2>
+      <div className="relative my-auto max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 text-[var(--color-dark)] shadow-2xl animate-in zoom-in-95 duration-300 sm:rounded-[2.5rem] sm:p-8 md:p-12">
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-black text-[var(--color-dark)] mb-2">{copy.title}</h2>
           <p className="text-slate-500 text-sm">{copy.intro}</p>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <SocialAuthButtons
             mode="register"
             lang={lang}
@@ -107,7 +107,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.firstName} *</label>
@@ -157,7 +157,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
 
           {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-          <button type="submit" disabled={loading} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-4 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={loading} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-2 disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? copy.submitting : copy.submit}
           </button>
         </form>
