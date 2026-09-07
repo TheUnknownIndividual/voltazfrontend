@@ -9,6 +9,7 @@ import Calculator from './components/Calculator';
 import Projects from './components/Projects';
 import Products from './components/Products';
 import InfoSection from './components/InfoSection';
+import HomeContentCarousel from './components/HomeContentCarousel';
 import Footer from './components/Footer';
 import PartnersSlider from './components/PartnersSlider';
 import GoogleReviewsSlider from './components/GoogleReviewsSlider';
@@ -2054,7 +2055,12 @@ const AppContent: React.FC = () => {
                 />
               </CategoryProvider>
             </ProductProvider>
-            <InfoSection lang={lang} onNavigate={navigateTo} />
+            <InfoSection lang={lang} onNavigate={navigateTo} hidePackages />
+            <BlogProvider>
+              <NewsProvider>
+                <HomeContentCarousel lang={lang as any} onNavigate={navigateTo} />
+              </NewsProvider>
+            </BlogProvider>
             {/* <ProjectProvider>
               <Projects onSelectProject={(id) => navigateTo('project-detail', id)} lang={lang} />
             </ProjectProvider> */}

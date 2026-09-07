@@ -133,7 +133,7 @@
 @media(prefers-reduced-motion:reduce){ .js-enabled #root:empty:after,.js-enabled .seo-prerender:after,.hero-slider-fallback-logo,.branded-page-loader-logo{ animation:none; opacity:.8 }
 }
 .admin-project-tracker,.admin-project-tracker input,.admin-project-tracker select,.admin-project-tracker textarea,.admin-project-tracker button{ font-family:Poppins,sans-serif; font-weight:700 }
-html{ scrollbar-color:var(--color-primary) var(--color-surface); scrollbar-width:thin }
+html{ scrollbar-color:var(--color-primary) var(--color-surface); scrollbar-width:thin; overflow-anchor:none }
 ::-webkit-scrollbar{ width:11px; height:11px }
 ::-webkit-scrollbar-track{ background:color-mix(in srgb,var(--color-surface) 92%,white); border-radius:999px }
 ::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,var(--color-primary),var(--color-accent)); border:3px solid color-mix(in srgb,var(--color-surface) 92%,white); border-radius:999px }
@@ -347,6 +347,15 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
   .site-header-theme .header-verse-text{ display:block; font-size:14px; line-height:20px; overflow:hidden; text-overflow:ellipsis }
 }
 @media(prefers-reduced-motion:reduce){ .site-header-theme .site-desktop-nav,.site-header-theme .header-top-grid,.site-header-theme .header-logo-column,.site-header-theme .header-content-column,.site-header-theme .header-main-row,.site-header-theme .header-account-cluster>.relative{ transition-duration:.01ms }
+}
+.volt-home-carousel-viewport{ mask-image:linear-gradient(90deg,transparent,black 40px,black calc(100% - 40px),transparent); -webkit-mask-image:linear-gradient(90deg,transparent,black 40px,black calc(100% - 40px),transparent) }
+.volt-home-carousel-track{ animation:volt-marquee var(--volt-marquee-duration,60s) linear infinite; padding-inline:16px }
+@media(min-width:768px){ .volt-home-carousel-track{ padding-inline:48px }
+}
+.volt-home-carousel-viewport:hover .volt-home-carousel-track,.volt-home-carousel-viewport:focus-within .volt-home-carousel-track{ animation-play-state:paused }
+@keyframes volt-marquee{ from{ transform:translateX(0) } to{ transform:translateX(-50%) }
+}
+@media(prefers-reduced-motion:reduce){ .volt-home-carousel-track{ animation:none; overflow-x:auto }
 }
 .products-theme{ background:var(--color-surface) }
 .products-theme .text-emerald-600{ color:var(--color-primary) }

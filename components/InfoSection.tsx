@@ -6,6 +6,7 @@ type Language = 'az' | 'en' | 'ru' | 'tr';
 interface InfoSectionProps {
   lang?: Language;
   onNavigate?: (page: any, id?: string, extra?: any) => void;
+  hidePackages?: boolean;
 }
 
 const installationPackages = [
@@ -144,7 +145,7 @@ const copy = {
   },
 } as const;
 
-const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) => {
+const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate, hidePackages = false }) => {
   const t = copy[lang] || copy.az;
   const stepIcons = [Sun, House, Share2];
   const locale = localeByLanguage[lang] || localeByLanguage.az;
@@ -227,6 +228,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
       </div>
     </section>
 
+    {!hidePackages && (
     <section className="bg-white py-12 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="overflow-hidden rounded-2xl border border-[var(--border-light)] md:rounded-[1.75rem]">
@@ -306,6 +308,7 @@ const InfoSection: React.FC<InfoSectionProps> = ({ lang = 'az', onNavigate }) =>
         </div>
       </div>
     </section>
+    )}
     </>
   );
 };
