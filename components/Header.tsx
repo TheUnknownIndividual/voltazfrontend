@@ -1012,7 +1012,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
           {/* Products Dropdown - Nested Menu */}
           <div className="relative h-14 flex items-center group/nav" onMouseEnter={() => setActiveDropdown('products')} onMouseLeave={() => setActiveDropdown('none')}>
-            <button className={getLinkClass('products')}>
+            <button onClick={() => handleItemClick('products')} className={getLinkClass('products')}>
               {t.products}
               <svg className={`w-3 h-3 transition-transform ${activeDropdown === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
