@@ -86,18 +86,12 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
 
   return (
     <section className="bg-white py-12 md:py-20">
-      <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="overflow-hidden rounded-2xl border border-[var(--border-light)] md:rounded-[1.75rem]">
-          <div className="relative h-48 w-full md:h-72">
-            <img src="/installation-packages-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
+      <div className="mx-auto max-w-[1440px] px-4 text-center md:px-12">
+        <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#081510] md:mb-3">{t.eyebrow}</span>
+        <h3 className="mx-auto mb-3 max-w-lg text-xl font-bold leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.title}</h3>
+        <p className="mx-auto max-w-xl text-sm leading-6 text-slate-500 md:text-base md:leading-7">{t.intro}</p>
 
-          <div className="p-5 text-center md:p-10">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.eyebrow}</span>
-            <h3 className="mx-auto mb-3 max-w-lg text-xl font-bold leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.title}</h3>
-            <p className="mx-auto max-w-xl text-sm leading-6 text-slate-500 md:text-base md:leading-7">{t.intro}</p>
-
-            <ul className="mt-6 grid items-stretch gap-4 text-left sm:grid-cols-3 md:mt-8">
+        <ul className="mt-6 grid items-stretch gap-4 text-left sm:grid-cols-3 md:mt-8">
               {installationPackages.map(pkg => {
                 const futurePriceAzn = Math.round(pkg.priceAzn * 1.12);
                 return (
@@ -148,19 +142,17 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
                   </ul>
                 </li>
               );})}
-            </ul>
+        </ul>
 
-            <div className="mt-6 flex flex-col items-center gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:justify-between md:gap-10">
-              <p className="flex-1 text-left text-sm leading-6 text-slate-500">{t.serviceText}</p>
-              <button
-                onClick={() => onNavigate?.('solar-installation')}
-                className="inline-flex min-h-[var(--cta-btn-h)] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:px-6 md:py-4"
-              >
-                {t.cta}
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+        <div className="mt-6 flex flex-col items-center gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:justify-between md:gap-10">
+          <p className="flex-1 text-left text-sm leading-6 text-slate-500">{t.serviceText}</p>
+          <button
+            onClick={() => onNavigate?.('solar-installation')}
+            className="inline-flex min-h-[var(--cta-btn-h)] flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-5 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary-hover)] md:px-6 md:py-4"
+          >
+            {t.cta}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </section>
