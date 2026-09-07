@@ -23,7 +23,6 @@ const localeByLanguage: Record<Language, string> = {
 
 const copy = {
   az: {
-    eyebrow: 'Quraşdırılma paketləri',
     title: 'Gücünüzü seçin. Quraşdırmanı bizə həvalə edin.',
     intro: 'Eviniz və ya obyektiniz üçün panel, Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulmanı bir paketdə təqdim edirik.',
     recommendedLabel: 'Tövsiyə olunan',
@@ -37,7 +36,6 @@ const copy = {
     cta: 'Quraşdırma paketlərinə bax',
   },
   en: {
-    eyebrow: 'Installation packages',
     title: 'Choose your capacity. Leave the installation to us.',
     intro: 'Get solar panels, a Growatt inverter, mounting structure, and grid connection together in one package for your home or property.',
     recommendedLabel: 'Recommended',
@@ -51,7 +49,6 @@ const copy = {
     cta: 'See installation packages',
   },
   ru: {
-    eyebrow: 'Пакеты установки',
     title: 'Выберите мощность. Монтаж доверьте нам.',
     intro: 'Солнечные панели, инвертор Growatt, монтажная конструкция и подключение к сети — в одном пакете для вашего дома или объекта.',
     recommendedLabel: 'Рекомендуемый',
@@ -65,7 +62,6 @@ const copy = {
     cta: 'Посмотреть пакеты установки',
   },
   tr: {
-    eyebrow: 'Kurulum paketleri',
     title: 'Gücünüzü seçin. Kurulumu bize bırakın.',
     intro: 'Eviniz veya tesisiniz için güneş panelleri, Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısını tek pakette sunuyoruz.',
     recommendedLabel: 'Önerilen',
@@ -86,12 +82,13 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
 
   return (
     <section className="bg-white py-12 md:py-20">
-      <div className="mx-auto max-w-[1440px] px-4 text-center md:px-12">
-        <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#081510] md:mb-3">{t.eyebrow}</span>
-        <h3 className="mx-auto mb-3 max-w-lg text-xl font-bold leading-tight tracking-tight text-[#081510] md:mb-4 md:text-2xl">{t.title}</h3>
-        <p className="mx-auto max-w-xl text-sm leading-6 text-slate-500 md:text-base md:leading-7">{t.intro}</p>
+      <div className="mx-auto max-w-[1440px] px-4 md:px-12">
+        <div className="mb-8 text-left md:mb-12">
+          <h3 className="max-w-2xl text-2xl font-black leading-tight tracking-tight text-[#081510] md:text-4xl">{t.title}</h3>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 md:mt-4 md:text-base md:leading-7">{t.intro}</p>
+        </div>
 
-        <ul className="mt-6 grid items-stretch gap-4 text-left sm:grid-cols-3 md:mt-8">
+        <ul className="grid items-stretch gap-4 text-left sm:grid-cols-3">
               {installationPackages.map(pkg => {
                 const futurePriceAzn = Math.round(pkg.priceAzn * 1.12);
                 return (
