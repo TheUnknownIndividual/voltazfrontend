@@ -22,6 +22,15 @@ interface CarouselCard {
 const MIN_FILL_CARDS = 8; // enough slots to cover the screen before looping
 const MAX_CARDS = 20;
 
+// Constant pixel speed (not a fixed loop duration) so the crawl reads the
+// same regardless of how many posts there are, and a spring-like lerp
+// toward the hover target instead of a hard speed swap — an instant
+// animation-duration change on a running CSS animation re-scales its
+// progress and makes the track visibly jump, which is what we're avoiding.
+const BASE_SPEED_PX_S = 40;
+const HOVER_SPEED_PX_S = 6;
+const SPEED_TIME_CONSTANT = 0.4;
+
 const copy = {
   az: {
     eyebrow: 'Bloq və Xəbərlər',
@@ -81,6 +90,8 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
 
   const [blogsLoaded, setBlogsLoaded] = useState(false);
   const [newsLoaded, setNewsLoaded] = useState(false);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const hoveredRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,14 +144,45 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
     return filled;
   }, [cards]);
 
-  const uniqueCount = cards.length;
+  const showSkeleton = !bothSettled && cards.length === 0;
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || trackItems.length === 0) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    let x = 0;
+    let speed = BASE_SPEED_PX_S;
+    let lastTime: number | null = null;
+    let frameId = 0;
+
+    const step = (time: number) => {
+      const loopWidth = track.scrollWidth / 2;
+      if (lastTime === null) lastTime = time;
+      const dt = Math.min(0.1, (time - lastTime) / 1000);
+      lastTime = time;
+
+      const target = hoveredRef.current ? HOVER_SPEED_PX_S : BASE_SPEED_PX_S;
+      const lerp = dt > 0 ? 1 - Math.exp(-dt / SPEED_TIME_CONSTANT) : 0;
+      speed += (target - speed) * lerp;
+
+      if (loopWidth > 0) {
+        x -= speed * dt;
+        if (x <= -loopWidth) x += loopWidth;
+        track.style.transform = `translateX(${x}px)`;
+      }
+
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [trackItems]);
 
   if (bothSettled && cards.length === 0) return null;
 
-  const showSkeleton = !bothSettled && cards.length === 0;
-
   return (
-    <section className="bg-white py-12 md:py-20">
+    <section className="bg-white py-12 md:py-20 overflow-hidden">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 md:mb-12 md:flex-row md:items-end">
           <div className="text-left">
@@ -157,56 +199,59 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="volt-home-carousel-viewport overflow-hidden">
-        {showSkeleton ? (
-          <div className="flex gap-4 px-4 md:gap-6 md:px-12">
-            {Array.from({ length: MIN_FILL_CARDS / 2 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <div
-            className="volt-home-carousel-track flex w-max gap-4 md:gap-6"
-            style={{ ['--volt-marquee-duration' as any]: `${Math.max(uniqueCount, 4) * 5 * 1.125}s` }}
-          >
-            {[...trackItems, ...trackItems].map((card, index) => {
-              const highPriority = index < 4;
-              return (
-                <button
-                  key={`${card.key}-${index}`}
-                  onClick={() => onNavigate?.(card.type, card.id)}
-                  className="group w-[260px] flex-none overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg md:w-[300px]"
-                >
-                  <div className="relative aspect-video overflow-hidden bg-slate-100">
-                    <img
-                      src={card.image}
-                      alt={card.title}
-                      // loading="lazy" never resolves on a transform-animated marquee, so load eagerly and only vary priority
-                      loading="eager"
-                      fetchPriority={highPriority ? 'high' : 'low'}
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow">
-                      {card.type === 'blog' ? t.blogPill : t.newsPill}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    {card.date && (
-                      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        <Calendar className="h-3 w-3" aria-hidden="true" />
-                        {new Date(card.date).toLocaleDateString(locale)}
-                      </div>
-                    )}
-                    <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-[var(--color-primary)]">
-                      {card.title}
-                    </h3>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div
+          className="volt-home-carousel-viewport relative overflow-hidden"
+          onMouseEnter={() => { hoveredRef.current = true; }}
+          onMouseLeave={() => { hoveredRef.current = false; }}
+          onFocus={() => { hoveredRef.current = true; }}
+          onBlur={() => { hoveredRef.current = false; }}
+        >
+          {showSkeleton ? (
+            <div className="flex gap-4 md:gap-6">
+              {Array.from({ length: MIN_FILL_CARDS / 2 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : (
+            <div ref={trackRef} className="volt-home-carousel-track flex w-max gap-4 will-change-transform md:gap-6">
+              {[...trackItems, ...trackItems].map((card, index) => {
+                const highPriority = index < 4;
+                return (
+                  <button
+                    key={`${card.key}-${index}`}
+                    onClick={() => onNavigate?.(card.type, card.id)}
+                    className="group w-[260px] flex-none overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg md:w-[300px]"
+                  >
+                    <div className="relative aspect-video overflow-hidden bg-slate-100">
+                      <img
+                        src={card.image}
+                        alt={card.title}
+                        // loading="lazy" never resolves on a continuously-translated marquee track, so load eagerly and only vary priority
+                        loading="eager"
+                        fetchPriority={highPriority ? 'high' : 'low'}
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow">
+                        {card.type === 'blog' ? t.blogPill : t.newsPill}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      {card.date && (
+                        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          <Calendar className="h-3 w-3" aria-hidden="true" />
+                          {new Date(card.date).toLocaleDateString(locale)}
+                        </div>
+                      )}
+                      <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-[var(--color-primary)]">
+                        {card.title}
+                      </h3>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
