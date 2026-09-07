@@ -15,12 +15,14 @@ interface CarouselCard {
   id: string;
   type: 'blog' | 'news';
   title: string;
+  excerpt: string;
   image: string;
   date: string | null;
 }
 
 const MIN_FILL_CARDS = 8; // enough slots to cover the screen before looping
 const MAX_CARDS = 20;
+const SKELETON_COUNT = 4;
 
 // Constant pixel speed (not a fixed loop duration) so the crawl reads the
 // same regardless of how many posts there are, and a spring-like lerp
@@ -38,6 +40,7 @@ const copy = {
     blogPill: 'Bloq',
     newsPill: 'Xəbər',
     viewAll: 'Hamısına bax',
+    readMore: 'Davamını oxu',
   },
   en: {
     eyebrow: 'Blog & News',
@@ -45,6 +48,7 @@ const copy = {
     blogPill: 'Blog',
     newsPill: 'News',
     viewAll: 'View all',
+    readMore: 'Read More',
   },
   ru: {
     eyebrow: 'Блог и новости',
@@ -52,6 +56,7 @@ const copy = {
     blogPill: 'Блог',
     newsPill: 'Новости',
     viewAll: 'Смотреть все',
+    readMore: 'Читать далее',
   },
   tr: {
     eyebrow: 'Blog ve Haberler',
@@ -59,6 +64,7 @@ const copy = {
     blogPill: 'Blog',
     newsPill: 'Haber',
     viewAll: 'Hepsini gör',
+    readMore: 'Devamını Oku',
   },
 } as const;
 
@@ -71,16 +77,83 @@ const localeByLanguage: Record<Language, string> = {
 
 const langCodeByLang: Record<Language, number> = { az: 1, en: 2, ru: 3, tr: 4 };
 
-const SkeletonCard: React.FC = () => (
-  <div className="w-[260px] flex-none animate-pulse overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white md:w-[300px]" aria-hidden="true">
-    <div className="aspect-video bg-slate-100" />
-    <div className="space-y-2 p-4">
-      <div className="h-2.5 w-1/3 rounded bg-slate-100" />
-      <div className="h-3.5 w-full rounded bg-slate-100" />
-      <div className="h-3.5 w-2/3 rounded bg-slate-100" />
-    </div>
-  </div>
-);
+interface CardTileProps {
+  card?: CarouselCard;
+  pillLabel?: string;
+  readMoreLabel: string;
+  locale: string;
+  highPriority?: boolean;
+  onSelect?: () => void;
+}
+
+// Shared by the loading and loaded states so both render the exact same
+// element structure/spacing — a skeleton that doesn't match the real
+// card's height makes the section jump when the real content swaps in.
+const CardTile: React.FC<CardTileProps> = ({ card, pillLabel, readMoreLabel, locale, highPriority, onSelect }) => {
+  const loading = !card;
+  return (
+    <button
+      onClick={onSelect}
+      disabled={loading}
+      aria-hidden={loading}
+      className={`group w-[280px] flex-none overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg md:w-[340px] ${loading ? 'animate-pulse' : ''}`}
+    >
+      <div className="relative aspect-square overflow-hidden bg-slate-100">
+        {card && (
+          <img
+            src={card.image}
+            alt={card.title}
+            // loading="lazy" never resolves on a continuously-translated marquee track, so load eagerly and only vary priority
+            loading="eager"
+            fetchPriority={highPriority ? 'high' : 'low'}
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
+        <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow">
+          {loading ? <span className="inline-block h-2.5 w-8 rounded bg-white/40" /> : pillLabel}
+        </span>
+      </div>
+      <div className="p-4">
+        <div className="mb-2 flex h-3.5 items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          {loading ? (
+            <span className="h-2.5 w-16 rounded bg-slate-100" />
+          ) : (
+            <>
+              <Calendar className="h-3 w-3" aria-hidden="true" />
+              {card.date ? new Date(card.date).toLocaleDateString(locale) : ''}
+            </>
+          )}
+        </div>
+        <h3 className="mb-2 line-clamp-2 min-h-[38px] text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-[var(--color-primary)]">
+          {loading ? (
+            <span className="block space-y-1.5">
+              <span className="block h-3 w-full rounded bg-slate-100" />
+              <span className="block h-3 w-2/3 rounded bg-slate-100" />
+            </span>
+          ) : card.title}
+        </h3>
+        <p className="mb-3 line-clamp-3 min-h-[58px] text-xs leading-relaxed text-slate-500">
+          {loading ? (
+            <span className="block space-y-1.5">
+              <span className="block h-2.5 w-full rounded bg-slate-100" />
+              <span className="block h-2.5 w-full rounded bg-slate-100" />
+              <span className="block h-2.5 w-4/5 rounded bg-slate-100" />
+            </span>
+          ) : card.excerpt}
+        </p>
+        <span className="theme-more-link">
+          {loading ? <span className="h-3 w-20 rounded bg-slate-200" /> : (
+            <>
+              {readMoreLabel}
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </>
+          )}
+        </span>
+      </div>
+    </button>
+  );
+};
 
 const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', onNavigate }) => {
   const t = copy[lang] || copy.az;
@@ -109,6 +182,7 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
         id: String(post.id),
         type: 'blog' as const,
         title: post.title?.[lang] || post.title?.az || '',
+        excerpt: post.description?.[lang] || post.description?.az || '',
         image: post.image,
         date: post.date || null,
       }));
@@ -122,6 +196,7 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
           id: String(item.id),
           type: 'news' as const,
           title: langItem?.title || '',
+          excerpt: langItem?.description || '',
           image: item.coverImagePath || '',
           date: item.createdAt || null,
         };
@@ -182,7 +257,7 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
   if (bothSettled && cards.length === 0) return null;
 
   return (
-    <section className="bg-white py-12 md:py-20 overflow-hidden">
+    <section className="bg-white py-16 md:py-28 overflow-hidden">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 md:mb-12 md:flex-row md:items-end">
           <div className="text-left">
@@ -209,46 +284,23 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
         >
           {showSkeleton ? (
             <div className="flex gap-4 md:gap-6">
-              {Array.from({ length: MIN_FILL_CARDS / 2 }).map((_, i) => <SkeletonCard key={i} />)}
+              {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <CardTile key={i} readMoreLabel={t.readMore} locale={locale} />
+              ))}
             </div>
           ) : (
             <div ref={trackRef} className="volt-home-carousel-track flex w-max gap-4 will-change-transform md:gap-6">
-              {[...trackItems, ...trackItems].map((card, index) => {
-                const highPriority = index < 4;
-                return (
-                  <button
-                    key={`${card.key}-${index}`}
-                    onClick={() => onNavigate?.(card.type, card.id)}
-                    className="group w-[260px] flex-none overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg md:w-[300px]"
-                  >
-                    <div className="relative aspect-video overflow-hidden bg-slate-100">
-                      <img
-                        src={card.image}
-                        alt={card.title}
-                        // loading="lazy" never resolves on a continuously-translated marquee track, so load eagerly and only vary priority
-                        loading="eager"
-                        fetchPriority={highPriority ? 'high' : 'low'}
-                        decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow">
-                        {card.type === 'blog' ? t.blogPill : t.newsPill}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      {card.date && (
-                        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                          <Calendar className="h-3 w-3" aria-hidden="true" />
-                          {new Date(card.date).toLocaleDateString(locale)}
-                        </div>
-                      )}
-                      <h3 className="line-clamp-2 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-[var(--color-primary)]">
-                        {card.title}
-                      </h3>
-                    </div>
-                  </button>
-                );
-              })}
+              {[...trackItems, ...trackItems].map((card, index) => (
+                <CardTile
+                  key={`${card.key}-${index}`}
+                  card={card}
+                  pillLabel={card.type === 'blog' ? t.blogPill : t.newsPill}
+                  readMoreLabel={t.readMore}
+                  locale={locale}
+                  highPriority={index < 4}
+                  onSelect={() => onNavigate?.(card.type, card.id)}
+                />
+              ))}
             </div>
           )}
         </div>
