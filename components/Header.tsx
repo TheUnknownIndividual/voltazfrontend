@@ -68,6 +68,16 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     }
   };
 
+  const handleLogoClick = () => {
+    // Already home: navigating to 'home' again is a no-op, so scroll up
+    // instead — otherwise clicking the logo gives no feedback at all.
+    if (activePage === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    onNavigate('home');
+  };
+
   useEffect(() => {
     setActiveCategoryId(null);
     void getCategories({ language: currentLang });
@@ -556,7 +566,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
       <div className="header-top-grid mx-auto w-full max-w-[1440px] items-stretch px-2 md:px-4 lg:grid lg:grid-cols-[64px_minmax(0,1fr)] lg:px-8">
         {/* Logo Column - Spans full height of top + main bars on desktop */}
         <div className="header-logo-column hidden lg:flex items-center justify-center overflow-visible">
-          <div onClick={() => onNavigate('home')} className="header-logo-link cursor-pointer">
+          <div onClick={handleLogoClick} className="header-logo-link cursor-pointer">
             {/* <Logo className="scale-100" /> */}
             <img className="header-logo-image object-contain" src={logoSrc} alt="Volt.az" />
           </div>
@@ -567,7 +577,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
           {/* Top Utility Bar */}
           <div className="header-mobile-row flex min-h-[76px] items-center justify-between border-b py-2 lg:hidden">
             {/* Mobile Logo */}
-            <div onClick={() => onNavigate('home')} className="lg:hidden cursor-pointer">
+            <div onClick={handleLogoClick} className="lg:hidden cursor-pointer">
               {/* <Logo className="scale-100 origin-left" /> */}
               <img className="h-[61px] w-[61px] object-contain" src={logoSrc} alt="Volt.az" />
             </div>

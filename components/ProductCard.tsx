@@ -251,7 +251,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
           {productSpecBadge && (
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            <div className="rounded-full border border-[color-mix(in_srgb,var(--primary)_22%,white)] bg-[var(--mint)] px-2.5 py-0.5 text-[7px] font-bold text-[var(--primary)] md:text-[9px]">
+            <div className="rounded-full bg-[var(--primary)] px-2.5 py-0.5 text-[7px] font-bold text-white shadow-sm md:text-[9px]">
               {productSpecBadge}
             </div>
           </div>
@@ -259,7 +259,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProduct, onA
 
           {hasStock && (
             <div className="absolute bottom-3 right-3">
-              <div className="rounded-full bg-[var(--mint)] px-2.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.04em] text-[var(--primary)] md:text-[9px]">
+              <div className="rounded-full bg-[var(--primary)] px-2.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.04em] text-white shadow-sm md:text-[9px]">
                 {firstCount}
               </div>
             </div>
