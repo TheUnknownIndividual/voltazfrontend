@@ -321,7 +321,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
         </svg>
       ),
       label: t.info.address,
-      value: currentLangData?.address
+      value: currentLangData?.address,
+      href: currentLangData?.address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentLangData.address)}`
+        : undefined,
     },
     {
       // ⏰ DÜZƏLDİLDİ (clock icon)
@@ -344,7 +347,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
         </svg>
       ),
       label: t.info.phone,
-      value: contactData?.phoneNumbers?.[0]?.number
+      value: contactData?.phoneNumbers?.[0]?.number,
+      href: contactData?.phoneNumbers?.[0]?.number
+        ? `https://wa.me/${contactData.phoneNumbers[0].number.replace(/\D/g, '')}`
+        : undefined,
     },
     {
       // ✉️ email
@@ -355,7 +361,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
         </svg>
       ),
       label: t.info.email,
-      value: contactData?.emailAddresses?.[0]?.email
+      value: contactData?.emailAddresses?.[0]?.email,
+      href: contactData?.emailAddresses?.[0]?.email
+        ? `mailto:${contactData.emailAddresses[0].email}`
+        : undefined,
     }
   ];
 
@@ -503,9 +512,19 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                         {item.label}
                       </span>
 
-                      <span className="text-sm font-bold text-slate-700 whitespace-pre-line">
-                        {item.value || "-"}
-                      </span>
+                      {item.value && item.href ? (
+                        <a
+                          href={item.href}
+                          {...(item.href.startsWith('mailto:') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                          className="text-sm font-bold text-slate-700 whitespace-pre-line transition-colors hover:text-emerald-600"
+                        >
+                          {item.value}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-bold text-slate-700 whitespace-pre-line">
+                          {item.value || "-"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
