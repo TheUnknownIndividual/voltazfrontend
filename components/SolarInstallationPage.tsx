@@ -410,7 +410,7 @@ const SolarInstallationPage: React.FC<Props> = ({ lang }) => {
                       data-whatsapp-context={analyticsContext}
                       className={`mt-8 inline-flex min-h-[var(--cta-btn-h)] touch-manipulation items-center justify-center gap-3 rounded-xl px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.13em] transition-[background-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
                         item.recommended
-                          ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-accent)] focus-visible:ring-offset-white'
+                          ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-dark)] hover:text-white focus-visible:ring-offset-white'
                           : 'bg-[var(--color-dark)] text-white hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)] focus-visible:ring-offset-white'
                       }`}
                     >

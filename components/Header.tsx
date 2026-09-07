@@ -90,22 +90,64 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
     let scrollDirection: 'up' | 'down' | null = null;
     let navIsHidden = false;
     let ignoreScrollUntil = 0;
+    let idleTimer: number | null = null;
+    let lastActivityArm = 0;
 
     const scrollThreshold = 16;
     const navHideStartY = 160;
     const navTopRevealY = 8;
     const navTransitionDuration = 320;
+    const idleHideDelay = 5000;
 
     setIsDesktopNavHidden(false);
+
+    const clearIdleTimer = () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+
+    // Idle auto-hide is armed on a plain timeout, not on an interval, so it
+    // only ever fires once per period of inactivity instead of re-checking
+    // (and potentially re-triggering) every tick.
+    const armIdleTimer = () => {
+      clearIdleTimer();
+      idleTimer = window.setTimeout(() => {
+        idleTimer = null;
+        if (window.scrollY > navHideStartY) {
+          hideNav();
+        }
+      }, idleHideDelay);
+    };
+
+    const hideNav = () => {
+      if (navIsHidden) return;
+      navIsHidden = true;
+      setIsDesktopNavHidden(true);
+      setActiveDropdown('none');
+      // Collapsing the sticky nav changes the document height, which can
+      // make the browser fire a compensating scroll event. Ignore scroll-
+      // driven activity for the duration of that transition so it isn't
+      // mistaken for the user scrolling/moving and immediately reveal it
+      // again — that feedback loop is what causes the nav to flicker in
+      // and out repeatedly instead of settling.
+      ignoreScrollUntil = performance.now() + navTransitionDuration;
+      clearIdleTimer();
+    };
+
+    const revealNav = () => {
+      if (!navIsHidden) return;
+      navIsHidden = false;
+      setIsDesktopNavHidden(false);
+      ignoreScrollUntil = performance.now() + navTransitionDuration;
+    };
 
     const updateDesktopNav = () => {
       desktopNavScrollFrame.current = 0;
       const currentScrollY = Math.max(0, window.scrollY);
       const delta = currentScrollY - lastScrollY;
 
-      // Collapsing the sticky nav changes the document height. Ignore the
-      // scroll adjustments produced by that transition so they are not
-      // mistaken for the user reversing direction.
       if (performance.now() < ignoreScrollUntil) {
         lastScrollY = currentScrollY;
         accumulatedDistance = 0;
@@ -113,12 +155,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
         return;
       }
 
+      armIdleTimer();
+
       if (currentScrollY <= navTopRevealY) {
-        if (navIsHidden) {
-          navIsHidden = false;
-          setIsDesktopNavHidden(false);
-          ignoreScrollUntil = performance.now() + navTransitionDuration;
-        }
+        revealNav();
         accumulatedDistance = 0;
         scrollDirection = null;
         lastScrollY = currentScrollY;
@@ -140,15 +180,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
       }
 
       if (accumulatedDistance >= scrollThreshold) {
-        if (scrollDirection === 'down' && !navIsHidden && currentScrollY > navHideStartY) {
-          navIsHidden = true;
-          setIsDesktopNavHidden(true);
-          setActiveDropdown('none');
-          ignoreScrollUntil = performance.now() + navTransitionDuration;
-        } else if (scrollDirection === 'up' && navIsHidden) {
-          navIsHidden = false;
-          setIsDesktopNavHidden(false);
-          ignoreScrollUntil = performance.now() + navTransitionDuration;
+        if (scrollDirection === 'down' && currentScrollY > navHideStartY) {
+          hideNav();
+        } else if (scrollDirection === 'up') {
+          revealNav();
         }
         accumulatedDistance = 0;
         scrollDirection = null;
@@ -162,11 +197,34 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
       desktopNavScrollFrame.current = window.requestAnimationFrame(updateDesktopNav);
     };
 
+    // Non-scroll activity (mouse movement, touch, keyboard) also counts as
+    // "the user is here" — it reveals a nav that was hidden by the idle
+    // timer and resets the idle clock, throttled so a stream of mousemove
+    // events doesn't churn clearTimeout/setTimeout on every frame.
+    const handlePointerActivity = () => {
+      const now = performance.now();
+      if (now < ignoreScrollUntil) return;
+      if (navIsHidden) revealNav();
+      if (now - lastActivityArm > 1000) {
+        lastActivityArm = now;
+        armIdleTimer();
+      }
+    };
+
     window.addEventListener('scroll', handleDesktopNavScroll, { passive: true });
+    window.addEventListener('mousemove', handlePointerActivity, { passive: true });
+    window.addEventListener('touchstart', handlePointerActivity, { passive: true });
+    window.addEventListener('keydown', handlePointerActivity);
+    armIdleTimer();
+
     return () => {
       window.removeEventListener('scroll', handleDesktopNavScroll);
+      window.removeEventListener('mousemove', handlePointerActivity);
+      window.removeEventListener('touchstart', handlePointerActivity);
+      window.removeEventListener('keydown', handlePointerActivity);
       window.cancelAnimationFrame(desktopNavScrollFrame.current);
       desktopNavScrollFrame.current = 0;
+      clearIdleTimer();
     };
   }, [activePage]);
 
