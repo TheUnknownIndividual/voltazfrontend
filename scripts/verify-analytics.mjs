@@ -8,6 +8,7 @@ const solarAnalytics = fs.readFileSync(path.join(root, 'api', 'solarAnalytics.ts
 const productCard = fs.readFileSync(path.join(root, 'components', 'ProductCard.tsx'), 'utf8');
 const productDetail = fs.readFileSync(path.join(root, 'components', 'ProductDetail.tsx'), 'utf8');
 const cartPage = fs.readFileSync(path.join(root, 'components', 'CartPage.tsx'), 'utf8');
+const outOfStockAction = fs.readFileSync(path.join(root, 'components', 'OutOfStockWhatsappAction.tsx'), 'utf8');
 
 const checks = [
   ['GA is not loaded statically from index.html', !/googletagmanager\.com\/gtag\/js/i.test(indexHtml)],
@@ -23,7 +24,9 @@ const checks = [
   ['business WhatsApp clicks are persisted server-side', analytics.includes('logPublicWhatsappClick(currentLanguage(target)')],
   ['WhatsApp delivery uses a keepalive request', solarAnalytics.includes('keepalive: true')],
   ['WhatsApp events include pseudonymous device and interaction IDs', ['volt-analytics-device-id', 'interactionId', 'clientOccurredAt'].every((value) => solarAnalytics.includes(value))],
-  ['out-of-stock product demand is tagged at every product entry point', [productCard, productDetail, cartPage].every((source) => source.includes('data-whatsapp-interaction="out_of_stock_check"'))],
+  ['out-of-stock product demand is tagged at every product entry point',
+    outOfStockAction.includes('data-whatsapp-interaction="out_of_stock_check"')
+    && [productCard, productDetail, cartPage].every((source) => source.includes('<OutOfStockWhatsappAction'))],
 ];
 
 let failed = false;

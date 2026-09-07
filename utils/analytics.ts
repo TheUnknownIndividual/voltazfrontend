@@ -126,7 +126,7 @@ export const trackConfirmedLead = (
 };
 
 export const trackWhatsappInteraction = (
-  payload: {
+  whatsappPayload: {
     interactionType: string;
     placement: string;
     product?: { id?: string | number; name?: string; category?: string | number };
@@ -134,15 +134,15 @@ export const trackWhatsappInteraction = (
   },
   language: string,
 ) => {
-  const firstProduct = payload.product || payload.products?.[0];
+  const firstProduct = whatsappPayload.product || whatsappPayload.products?.[0];
   emit('whatsapp_click', {
     link_type: 'whatsapp',
-    placement: payload.placement,
-    interaction_type: payload.interactionType,
+    placement: whatsappPayload.placement,
+    interaction_type: whatsappPayload.interactionType,
     product_id: firstProduct?.id === undefined ? undefined : String(firstProduct.id),
     product_name: firstProduct?.name,
     product_category: firstProduct?.category === undefined ? undefined : String(firstProduct.category),
-    product_count: payload.products?.length || (payload.product ? 1 : 0),
+    product_count: whatsappPayload.products?.length || (whatsappPayload.product ? 1 : 0),
     language,
   });
 };
