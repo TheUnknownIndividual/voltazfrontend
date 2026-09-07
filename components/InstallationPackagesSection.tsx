@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Check, Plug, Wrench } from 'lucide-react';
+import { ArrowRight, Check, MessageCircle, Plug, Wrench } from 'lucide-react';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 
@@ -34,6 +34,13 @@ const copy = {
     panelLabel: (count: number, wattage: number) => `${count} × ${wattage} W panel`,
     serviceText: 'Hər paketə panel, invertor, montaj konstruksiyası və şəbəkəyə qoşulma daxildir; aktiv istehlakçı qeydiyyatı üçün lazım olan sənədləşməni də Volt.az komandası sizin üçün idarə edir.',
     cta: 'Quraşdırma paketlərinə bax',
+    interestCta: 'Paketlə maraqlanıram',
+    whatsappIntro: (capacityKw: number) => `Salam, Volt.az saytındakı ${capacityKw} kW quraşdırılma paketi ilə maraqlanıram.`,
+    whatsappPackage: 'Paket',
+    whatsappPrice: 'Qiymət',
+    whatsappPanels: 'Panellər',
+    whatsappInverter: 'İnverter',
+    whatsappClosing: 'Zəhmət olmasa, paket və növbəti addımlar barədə ətraflı məlumat verin.',
   },
   en: {
     title: 'Choose your capacity. Leave the installation to us.',
@@ -47,6 +54,13 @@ const copy = {
     panelLabel: (count: number, wattage: number) => `${count} × ${wattage} W solar panels`,
     serviceText: 'Every package includes the panels, inverter, mounting, and grid connection; the Volt.az team also handles the documentation needed for your active consumer registration.',
     cta: 'See installation packages',
+    interestCta: 'I am interested',
+    whatsappIntro: (capacityKw: number) => `Hello, I am interested in the ${capacityKw} kW installation package on Volt.az.`,
+    whatsappPackage: 'Package',
+    whatsappPrice: 'Price',
+    whatsappPanels: 'Panels',
+    whatsappInverter: 'Inverter',
+    whatsappClosing: 'Please share more information about this package and the next steps.',
   },
   ru: {
     title: 'Выберите мощность. Монтаж доверьте нам.',
@@ -60,6 +74,13 @@ const copy = {
     panelLabel: (count: number, wattage: number) => `${count} × ${wattage} Вт солнечных панелей`,
     serviceText: 'В каждый пакет входят панели, инвертор, монтаж и подключение к сети; команда Volt.az также берёт на себя оформление документов для регистрации активного потребителя.',
     cta: 'Посмотреть пакеты установки',
+    interestCta: 'Меня интересует пакет',
+    whatsappIntro: (capacityKw: number) => `Здравствуйте, меня интересует пакет установки ${capacityKw} кВт на Volt.az.`,
+    whatsappPackage: 'Пакет',
+    whatsappPrice: 'Цена',
+    whatsappPanels: 'Панели',
+    whatsappInverter: 'Инвертор',
+    whatsappClosing: 'Пожалуйста, расскажите подробнее об этом пакете и следующих шагах.',
   },
   tr: {
     title: 'Gücünüzü seçin. Kurulumu bize bırakın.',
@@ -73,6 +94,13 @@ const copy = {
     panelLabel: (count: number, wattage: number) => `${count} × ${wattage} W güneş paneli`,
     serviceText: 'Her pakete paneller, inverter, montaj ve şebeke bağlantısı dahildir; Volt.az ekibi aktif tüketici kaydınız için gerekli belgeleri de sizin için yönetir.',
     cta: 'Kurulum paketlerine bakın',
+    interestCta: 'Paketle ilgileniyorum',
+    whatsappIntro: (capacityKw: number) => `Merhaba, Volt.az sitesindeki ${capacityKw} kW kurulum paketiyle ilgileniyorum.`,
+    whatsappPackage: 'Paket',
+    whatsappPrice: 'Fiyat',
+    whatsappPanels: 'Paneller',
+    whatsappInverter: 'İnverter',
+    whatsappClosing: 'Lütfen bu paket ve sonraki adımlar hakkında ayrıntılı bilgi paylaşın.',
   },
 } as const;
 
@@ -80,65 +108,109 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
   const t = copy[lang] || copy.az;
   const locale = localeByLanguage[lang] || localeByLanguage.az;
 
+  const buildWhatsappMessage = (pkg: typeof installationPackages[number]) => [
+    t.whatsappIntro(pkg.capacityKw),
+    '',
+    `${t.whatsappPackage}: ${pkg.capacityKw} kW`,
+    `${t.whatsappPrice}: ${pkg.priceAzn.toLocaleString(locale)} AZN`,
+    `${t.whatsappPanels}: ${pkg.panelCount} × ${pkg.panelWattage} W`,
+    `${t.whatsappInverter}: ${pkg.inverterModels.join(' / ')}`,
+    '',
+    t.whatsappClosing,
+  ].join('\n');
+
   return (
     <section className="bg-white py-12 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="mb-8 text-left md:mb-12">
-          <h3 className="max-w-2xl text-2xl font-black leading-tight tracking-tight text-[#081510] md:text-4xl">{t.title}</h3>
+          <h3 className="text-2xl font-black leading-tight tracking-tight text-[#081510] md:text-4xl md:whitespace-nowrap">{t.title}</h3>
           <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 md:mt-4 md:text-base md:leading-7">{t.intro}</p>
         </div>
 
-        <ul className="grid items-stretch gap-4 text-left sm:grid-cols-3">
-              {installationPackages.map(pkg => {
-                const futurePriceAzn = Math.round(pkg.priceAzn * 1.12);
-                return (
-                <li
-                  key={pkg.capacityKw}
-                  className={`relative flex flex-col overflow-hidden rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${pkg.recommended ? 'border-[color-mix(in_srgb,var(--color-primary)_48%,#cbd5e1)] bg-[color-mix(in_srgb,var(--color-primary)_4%,white)]' : 'border-[var(--border-light)] hover:border-[var(--color-primary)]'}`}
-                >
-                  {pkg.recommended && (
-                    <span className="absolute right-4 top-4 rounded-full border border-[color-mix(in_srgb,var(--color-primary)_35%,#cbd5e1)] bg-white px-2 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-slate-700">
-                      {t.recommendedLabel}
-                    </span>
-                  )}
-                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{t.packageLabel}</span>
+        <ul className="grid items-stretch gap-5 text-left lg:grid-cols-3 lg:gap-6">
+          {installationPackages.map(pkg => {
+            const futurePriceAzn = Math.round(pkg.priceAzn * 1.12);
+            const whatsappMessage = buildWhatsappMessage(pkg);
+            const whatsappHref = `https://wa.me/994504180001?text=${encodeURIComponent(whatsappMessage)}`;
+            const analyticsContext = JSON.stringify({
+              source: 'home_installation_packages',
+              package: {
+                capacityKw: pkg.capacityKw,
+                priceAzn: pkg.priceAzn,
+                futurePriceAzn,
+                panelCount: pkg.panelCount,
+                panelWattage: pkg.panelWattage,
+                inverterModels: pkg.inverterModels,
+              },
+            });
+            return (
+              <li
+                key={pkg.capacityKw}
+                className={`relative flex min-w-0 flex-col overflow-hidden rounded-[1.75rem] border p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:p-8 ${pkg.recommended ? 'border-[color-mix(in_srgb,var(--color-primary)_48%,#cbd5e1)] bg-[color-mix(in_srgb,var(--color-primary)_4%,white)]' : 'border-[var(--border-light)] hover:border-[var(--color-primary)]'}`}
+              >
+                {pkg.recommended && (
+                  <span className="absolute right-5 top-5 rounded-full border border-[color-mix(in_srgb,var(--color-primary)_35%,#cbd5e1)] bg-white px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-slate-700 sm:right-7 sm:top-7">
+                    {t.recommendedLabel}
+                  </span>
+                )}
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{t.packageLabel}</span>
 
-                  <div className="mt-3 flex items-end justify-between gap-2 border-b border-[var(--border-light)] pb-4">
-                    <span className="text-2xl font-black tracking-tight text-[#081510]">{pkg.capacityKw}&nbsp;kW</span>
-                    <div className="text-right">
-                      <del className="block text-xs font-bold tabular-nums text-slate-400 decoration-red-500">
-                        {futurePriceAzn.toLocaleString(locale)}&nbsp;AZN
-                      </del>
-                      <span className="text-lg font-black tabular-nums text-[#081510]">
-                        {pkg.priceAzn.toLocaleString(locale)} <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">AZN</span>
+                <div className="mt-7 flex items-end justify-between gap-4 border-b border-[var(--border-light)] pb-7">
+                  <span className="shrink-0 text-3xl font-black tracking-[-0.03em] tabular-nums text-[#081510]">{pkg.capacityKw}&nbsp;kW</span>
+                  <div className="min-w-0 text-right">
+                    <del className="text-base font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
+                      {futurePriceAzn.toLocaleString(locale)}&nbsp;AZN
+                    </del>
+                    <div className="mt-1 flex items-end justify-end gap-1.5">
+                      <span className="text-3xl font-black tracking-[-0.04em] tabular-nums text-[#081510] sm:text-4xl">
+                        {pkg.priceAzn.toLocaleString(locale)}
                       </span>
+                      <span className="whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">AZN</span>
                     </div>
                   </div>
+                </div>
 
-                  <p className="mb-3 mt-4 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">{t.includedLabel}</p>
-                  <ul className="space-y-2.5 text-xs leading-5 text-slate-600">
-                    <li className="flex gap-2.5">
-                      <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-md bg-[var(--color-primary)] text-white"><Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" /></span>
+                <div className="flex flex-1 flex-col pt-7">
+                  <p className="mb-4 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{t.includedLabel}</p>
+                  <ul className="space-y-3.5">
+                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /></span>
                       {t.panelLabel(pkg.panelCount, pkg.panelWattage)}
                     </li>
-                    <li className="flex gap-2.5">
-                      <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-md bg-[var(--color-primary)] text-white"><Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" /></span>
+                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /></span>
                       <span className="min-w-0">
-                        <span className="block text-[9px] font-black uppercase tracking-wide text-slate-500">{t.inverterLabel}</span>
+                        <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">{t.inverterLabel}</span>
                         {pkg.inverterModels.map(model => <span key={model} className="block break-words" translate="no">{model}</span>)}
                       </span>
                     </li>
-                    <li className="flex gap-2.5">
-                      <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-md bg-[var(--color-primary)] text-white"><Wrench className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden="true" /></span>
+                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Wrench className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /></span>
                       {t.mountingLabel}
                     </li>
-                    <li className="flex gap-2.5">
-                      <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-md bg-[var(--color-primary)] text-white"><Plug className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden="true" /></span>
+                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Plug className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /></span>
                       {t.gridLabel}
                     </li>
                   </ul>
-                </li>
-              );})}
+
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-analytics-placement="home_installation_packages"
+                    data-whatsapp-interaction="installation_package_quote"
+                    data-whatsapp-language={lang}
+                    data-whatsapp-context={analyticsContext}
+                    className={`mt-8 inline-flex min-h-[var(--cta-btn-h)] touch-manipulation items-center justify-center gap-3 rounded-xl px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.13em] transition-colors ${pkg.recommended ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-dark)] hover:text-white' : 'bg-[var(--color-dark)] text-white hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)]'}`}
+                  >
+                    <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                    {t.interestCta}
+                  </a>
+                </div>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="mt-6 flex flex-col items-center gap-4 border-t border-[var(--border-light)] pt-6 md:flex-row md:justify-between md:gap-10">
