@@ -218,11 +218,11 @@ button.bg-slate-900,a.bg-slate-900,button.hover\:bg-slate-900:hover,a.hover\:bg-
 }
 .mobile-utility-button{ height:44px; padding:0 9px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; white-space:nowrap; font-size:11px; line-height:1; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease }
 .mobile-utility-button--primary:active{ background:var(--primary-active); border-color:var(--primary-active) }
-.mobile-utility-button--secondary:active{ background:var(--mint-hover); border-color:var(--mint-hover) }
+.mobile-utility-button--secondary:active{ background:#ddffe914; border-color:var(--accent-on-dark) }
 .mobile-utility-button--primary{ color:var(--text-inverse); background:var(--primary); border:1.9px solid var(--primary); box-shadow:none }
-.mobile-utility-button--secondary{ color:var(--header-bg); background:var(--mint); border:1.9px solid var(--mint) }
+.mobile-utility-button--secondary{ color:var(--text-inverse); background:transparent; border:1.9px solid var(--border-dark) }
 .mobile-utility-button--primary:hover{ color:var(--text-inverse); background:var(--primary-hover); border-color:var(--primary-hover) }
-.mobile-utility-button--secondary:hover{ color:var(--header-bg); background:var(--mint-hover); border-color:var(--mint-hover) }
+.mobile-utility-button--secondary:hover{ color:var(--accent-on-dark); background:#ddffe914; border-color:var(--accent-on-dark) }
 section.bg-emerald-950{ background:var(--color-dark); border-color:color-mix(in srgb,var(--color-primary) 16%,transparent) }
 section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button.text-emerald-100\/60{ color:var(--color-primary) }
 .theme-more-link{ display:inline-flex; align-items:center; gap:8px; width:-moz-fit-content; width:fit-content; padding:8px 11px; border:1px solid color-mix(in srgb,var(--color-primary) 48%,white); border-radius:8px; background:var(--mint); color:var(--color-dark); font-size:12px; line-height:1; font-weight:650; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease }
@@ -298,8 +298,8 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
 .site-header-theme .header-primary-action{ background:var(--primary); border-color:var(--primary); color:var(--text-inverse) }
 .site-header-theme .header-primary-action:hover{ background:var(--primary-hover); border-color:var(--primary-hover) }
 .site-header-theme .header-primary-action:active{ background:var(--primary-active); border-color:var(--primary-active) }
-.site-header-theme .header-secondary-action{ background:var(--mint); border-color:var(--mint); color:var(--header-bg) }
-.site-header-theme .header-secondary-action:hover{ background:var(--mint-hover); border-color:var(--mint-hover) }
+.site-header-theme .header-secondary-action{ background:transparent; border-color:var(--border-dark); color:var(--text-inverse) }
+.site-header-theme .header-secondary-action:hover{ background:#ddffe914; border-color:var(--accent-on-dark); color:var(--accent-on-dark) }
 .site-header-theme .header-action-label{ font-size:12.5px; font-weight:700; letter-spacing:.04em; line-height:1 }
 .site-header-theme .header-login-action,.site-header-theme .header-language-action{ background:transparent; color:var(--text-inverse) }
 .site-header-theme .header-profile-action{ background:#ddffe91a; color:var(--accent-on-dark) }

@@ -541,12 +541,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 className="mobile-utility-button mobile-utility-button--primary group"
               >
                 <div className="flex items-center gap-2">
-                  <span>{t.calculate}</span>
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
+                  <span>{t.calculate}</span>
                 </div>
               </button>
 
@@ -556,12 +556,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 className="mobile-utility-button mobile-utility-button--secondary group"
               >
                 <div className="flex items-center gap-2">
-                  <span>{t.contact}</span>
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
+                  <span>{t.contact}</span>
                 </div>
               </button>
 
@@ -628,9 +628,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <p className="relative m-0 pl-7 text-left">
                 <span className="header-verse-icon absolute left-0 top-0.5 flex h-5 w-5 items-center justify-center" aria-hidden="true">
                   <span className="header-verse-icon-halo absolute h-3.5 w-3.5 rounded-full"></span>
-                  <svg className="relative h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="3.25" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <svg className="relative h-[18px] w-[18px]" viewBox="0 0 1200 1200" fill="currentColor" aria-hidden="true">
+                    <path d="M681.526,1094.657c212.643-14.942,518.306-48.892,518.474-465.344v-523.97H725.496v560.61h157.559c9.98,149.693-113.285,188.346-247.329,218.017L681.526,1094.657z M45.802,1094.657c212.644-14.942,518.307-48.894,518.474-465.344v-523.97H89.77v560.61h157.559C257.311,815.647,134.044,854.3,0,883.971L45.802,1094.657L45.802,1094.657z" />
                   </svg>
                 </span>
                 <span className="header-verse-text block text-sm font-bold leading-5">
@@ -653,14 +652,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 className="header-primary-action flex items-center justify-center rounded-lg border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="header-action-label uppercase">
-                    {t.calculate}
-                  </span>
                   <div className="header-primary-icon flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
+                  <span className="header-action-label uppercase">
+                    {t.calculate}
+                  </span>
                 </div>
               </button>
 
@@ -670,14 +669,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                 className="header-secondary-action flex items-center justify-center rounded-lg border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="header-action-label uppercase">
-                    {t.contact}
-                  </span>
                   <div className="header-secondary-icon flex h-5 w-5 items-center justify-center">
                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
+                  <span className="header-action-label uppercase">
+                    {t.contact}
+                  </span>
                 </div>
               </button>
 
