@@ -23,6 +23,7 @@ const localeByLanguage: Record<Language, string> = {
 
 const copy = {
   az: {
+    eyebrow: 'Quraşdırılma paketləri',
     title: 'Gücünüzü seçin. Quraşdırmanı bizə həvalə edin.',
     intro: 'Eviniz və ya obyektiniz üçün panel, Growatt inverter, montaj konstruksiyası və şəbəkəyə qoşulmanı bir paketdə təqdim edirik.',
     recommendedLabel: 'Tövsiyə olunan',
@@ -43,6 +44,7 @@ const copy = {
     whatsappClosing: 'Zəhmət olmasa, paket və növbəti addımlar barədə ətraflı məlumat verin.',
   },
   en: {
+    eyebrow: 'Installation packages',
     title: 'Choose your capacity. Leave the installation to us.',
     intro: 'Get solar panels, a Growatt inverter, mounting structure, and grid connection together in one package for your home or property.',
     recommendedLabel: 'Recommended',
@@ -63,6 +65,7 @@ const copy = {
     whatsappClosing: 'Please share more information about this package and the next steps.',
   },
   ru: {
+    eyebrow: 'Пакеты установки',
     title: 'Выберите мощность. Монтаж доверьте нам.',
     intro: 'Солнечные панели, инвертор Growatt, монтажная конструкция и подключение к сети — в одном пакете для вашего дома или объекта.',
     recommendedLabel: 'Рекомендуемый',
@@ -83,6 +86,7 @@ const copy = {
     whatsappClosing: 'Пожалуйста, расскажите подробнее об этом пакете и следующих шагах.',
   },
   tr: {
+    eyebrow: 'Kurulum paketleri',
     title: 'Gücünüzü seçin. Kurulumu bize bırakın.',
     intro: 'Eviniz veya tesisiniz için güneş panelleri, Growatt inverter, montaj konstrüksiyonu ve şebeke bağlantısını tek pakette sunuyoruz.',
     recommendedLabel: 'Önerilen',
@@ -123,6 +127,7 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
     <section className="bg-white py-12 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
         <div className="mb-8 text-left md:mb-12">
+          <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.eyebrow}</span>
           <h3 className="text-2xl font-black leading-tight tracking-tight text-[#081510] md:text-4xl md:whitespace-nowrap">{t.title}</h3>
           <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 md:mt-4 md:text-base md:leading-7">{t.intro}</p>
         </div>
