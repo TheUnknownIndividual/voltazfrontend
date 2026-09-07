@@ -320,11 +320,11 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
 
       {/* Main Content */}
       <section className="py-16 md:py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 md:px-12">
-          {selectedNews ? (
+        {selectedNews ? (
+          <div className="mx-auto max-w-[1440px] px-4 md:px-12">
             <article className="mx-auto w-full bg-white">
               {selectedNews.image && (
-                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-100 md:rounded-[2rem]">
                   <img
                     src={selectedNews.image}
                     alt={selectedNews.title || ''}
@@ -361,8 +361,9 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                 )}
               </div>
             </article>
-          ) : (
-            <>
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-4 md:px-12">
           <div className="mb-16 text-center space-y-4">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">{t.title[currentLang]}</h2>
             <p className="text-slate-500 max-w-2xl mx-auto text-sm md:text-base font-medium opacity-80">{t.subtitle[currentLang]}</p>
@@ -449,9 +450,8 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
               Heç bir xəbər tapılmadı
             </div>
           )}
-          </>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Newsletter / Info Footer Section */}

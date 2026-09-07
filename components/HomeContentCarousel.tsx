@@ -28,32 +28,28 @@ const copy = {
     title: 'Ən son yazılarımız və xəbərlərimiz',
     blogPill: 'Bloq',
     newsPill: 'Xəbər',
-    viewBlog: 'Bloqa bax',
-    viewNews: 'Xəbərlərə bax',
+    viewAll: 'Hamısına bax',
   },
   en: {
     eyebrow: 'Blog & News',
     title: 'Our latest articles and news',
     blogPill: 'Blog',
     newsPill: 'News',
-    viewBlog: 'View blog',
-    viewNews: 'View news',
+    viewAll: 'View all',
   },
   ru: {
     eyebrow: 'Блог и новости',
     title: 'Наши последние статьи и новости',
     blogPill: 'Блог',
     newsPill: 'Новости',
-    viewBlog: 'Смотреть блог',
-    viewNews: 'Смотреть новости',
+    viewAll: 'Смотреть все',
   },
   tr: {
     eyebrow: 'Blog ve Haberler',
     title: 'En son yazılarımız ve haberlerimiz',
     blogPill: 'Blog',
     newsPill: 'Haber',
-    viewBlog: 'Bloga git',
-    viewNews: 'Haberlere git',
+    viewAll: 'Hepsini gör',
   },
 } as const;
 
@@ -151,20 +147,13 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
             <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.eyebrow}</span>
             <h2 className="text-2xl font-black leading-tight tracking-tight text-slate-900 md:text-4xl">{t.title}</h2>
           </div>
-          <div className="flex flex-none flex-wrap gap-3">
+          <div className="flex flex-none">
             <button
               onClick={() => onNavigate?.('blog')}
-              className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-2 rounded-xl border border-[var(--border-light)] px-4 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-700 transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-2 rounded-xl bg-[var(--header-bg)] px-6 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-8 md:py-4"
             >
-              {t.viewBlog}
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-            </button>
-            <button
-              onClick={() => onNavigate?.('news')}
-              className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-2 rounded-xl border border-[var(--border-light)] px-4 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-700 transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-            >
-              {t.viewNews}
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              {t.viewAll}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -178,7 +167,7 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
         ) : (
           <div
             className="volt-home-carousel-track flex w-max gap-4 md:gap-6"
-            style={{ ['--volt-marquee-duration' as any]: `${Math.max(uniqueCount, 4) * 5}s` }}
+            style={{ ['--volt-marquee-duration' as any]: `${Math.max(uniqueCount, 4) * 5 * 1.125}s` }}
           >
             {[...trackItems, ...trackItems].map((card, index) => {
               const highPriority = index < 4;
