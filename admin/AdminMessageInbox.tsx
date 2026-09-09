@@ -306,14 +306,59 @@ const AdminMessageInbox: React.FC<{ lang?: AdminLanguage }> = ({ lang = 'az' }) 
 
 const Avatar = ({ conversation }: { conversation: MetaInboxConversation }) => <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-500">{conversation.participantAvatarUrl ? <img src={conversation.participantAvatarUrl} alt="" className="h-full w-full object-cover"/> : <UserRound size={19}/>}<span className={`absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full text-white ${conversation.channel === 'instagram' ? 'bg-fuchsia-500' : conversation.channel === 'whatsapp' ? 'bg-[#25D366]' : 'bg-blue-600'}`}>{conversation.channel === 'instagram' ? <Camera size={9}/> : conversation.channel === 'whatsapp' ? <Phone size={9}/> : <MessageCircle size={9}/>}</span></div>;
 
+const AttachmentView = ({ attachment, outgoing, en }: { attachment: { type: string; url?: string | null; title?: string | null }; outgoing: boolean; en: boolean }) => {
+  if (!attachment.url) {
+    // No permanent URL was mirrored for this attachment (e.g. media the
+    // server couldn't resolve) — nothing to link to or play.
+    return <span className="mt-2 block text-xs">[{attachment.title || attachment.type}]</span>;
+  }
+  if (attachment.type === 'image') {
+    return (
+      <a href={attachment.url} target="_blank" rel="noreferrer">
+        <img src={attachment.url} alt={attachment.title || 'Attachment'} className="mt-2 max-h-64 rounded-xl object-cover" />
+      </a>
+    );
+  }
+  if (attachment.type === 'audio') {
+    return <audio controls preload="none" src={attachment.url} className="mt-2 h-10 w-full max-w-xs" />;
+  }
+  if (attachment.type === 'video') {
+    return <video controls preload="none" src={attachment.url} className="mt-2 max-h-64 max-w-full rounded-xl" />;
+  }
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noreferrer"
+      download
+      className={`mt-2 block text-xs underline ${outgoing ? 'text-emerald-50' : 'text-blue-600'}`}
+    >
+      {attachment.title || `${attachment.type} ${en ? 'file' : 'faylı'}`}
+    </a>
+  );
+};
+
 const MessageBubble = ({ message, lang }: { message: MetaInboxMessage; lang: AdminLanguage }) => {
   const en = lang === 'en';
+  const outgoing = message.direction === 'outgoing';
   const delivery = message.deliveryStatus === 'read' ? (en ? 'Read' : 'Oxunub')
     : message.deliveryStatus === 'delivered' ? (en ? 'Delivered' : 'Çatdırılıb')
     : message.deliveryStatus === 'failed' ? (en ? 'Failed' : 'Göndərilmədi')
     : message.deliveryStatus === 'deleted' ? (en ? 'Deleted' : 'Silinib')
     : (en ? 'Sent' : 'Göndərilib');
-  return <div className={`flex ${message.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${message.direction === 'outgoing' ? 'rounded-br-md bg-emerald-600 text-white' : 'rounded-bl-md border border-slate-100 bg-white text-slate-700'}`}>{message.text && <p className="whitespace-pre-wrap text-sm">{message.text}</p>}{message.attachments.map((attachment, index) => attachment.url ? attachment.type === 'image' ? <a key={index} href={attachment.url} target="_blank" rel="noreferrer"><img src={attachment.url} alt={attachment.title || 'Attachment'} className="mt-2 max-h-64 rounded-xl object-cover"/></a> : <a key={index} href={attachment.url} target="_blank" rel="noreferrer" className={`mt-2 block text-xs underline ${message.direction === 'outgoing' ? 'text-emerald-50' : 'text-blue-600'}`}>{attachment.title || `${attachment.type} ${en ? 'file' : 'faylı'}`}</a> : <span key={index} className="mt-2 block text-xs">[{attachment.title || attachment.type}]</span>)}<div className={`mt-1.5 flex items-center justify-end gap-2 text-[9px] ${message.direction === 'outgoing' ? 'text-emerald-100' : 'text-slate-400'}`}>{message.sentByAdminDisplayName && <span>{message.sentByAdminDisplayName}</span>}{message.direction === 'outgoing' && <span>{delivery}</span>}<span>{time(message.createdAt, lang)}</span></div></div></div>;
+  return (
+    <div className={`flex ${outgoing ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${outgoing ? 'rounded-br-md bg-emerald-600 text-white' : 'rounded-bl-md border border-slate-100 bg-white text-slate-700'}`}>
+        {message.text && <p className="whitespace-pre-wrap text-sm">{message.text}</p>}
+        {message.attachments.map((attachment, index) => <AttachmentView key={index} attachment={attachment} outgoing={outgoing} en={en} />)}
+        <div className={`mt-1.5 flex items-center justify-end gap-2 text-[9px] ${outgoing ? 'text-emerald-100' : 'text-slate-400'}`}>
+          {message.sentByAdminDisplayName && <span>{message.sentByAdminDisplayName}</span>}
+          {outgoing && <span>{delivery}</span>}
+          <span>{time(message.createdAt, lang)}</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const WebhookMonitor = ({ diagnostics, lang }: { diagnostics: MetaInboxWebhookDiagnostics; lang: AdminLanguage }) => {
