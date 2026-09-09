@@ -67,6 +67,8 @@ interface CalculationResult {
   boqAdditionsCost: number;
   vatAzn: number;
   totalPriceAzn: number;
+  computedTotalPriceAzn: number;
+  isPriceOverridden: boolean;
   annualSavings: number;
   paybackYears: number;
   inverter: InverterRecommendation | null;
@@ -206,11 +208,17 @@ const ui: Record<Lang, Record<string, string>> = {
     inverterCount: 'İnverter sayı',
     boqDetails: 'BOQ məhsul məlumatları',
     boqAdditions: 'BOQ əlavələri',
-    includesAdv: 'ƏDV (18%) əlavə et',
-    advIncludedNote: 'ƏDV qiymətə və özünü ödəmə müddətinə daxildir.',
-    advExcludedNote: 'ƏDV qiymətə və özünü ödəmə müddətinə daxil deyil.',
+    includesAdv: 'ƏDV (18%) daxil qiymət göstər',
+    advIncludedNote: 'Baza qiymətlər (850/1105 AZN/kW) artıq ƏDV daxildir; qiymət və özünü ödəmə müddəti dəyişmir, sadəcə ƏDV ayrıca göstərilir.',
+    advExcludedNote: 'ƏDV çıxılıb — qiymət və özünü ödəmə müddəti ƏDV-siz (aşağı) göstərilir.',
     vatAmount: 'ƏDV (18%)',
+    vatIncludedLabel: 'o cümlədən ƏDV',
     totalPrice: 'Yekun qiymət',
+    priceOverride: 'Qiymət override (AZN)',
+    priceOverridePlaceholder: 'Hesablanmış qiymətdən istifadə et',
+    priceOverrideNote: 'Endirim və ya fərqli razılaşdırılmış qiymət olduqda yekun qiyməti burada daxil edin — hesablama bunu istifadə edəcək.',
+    priceOverrideActive: 'Əl ilə qiymət aktivdir',
+    priceOverrideComputed: 'Hesablanmış qiymət',
     boqItemName: 'Məhsul / xidmət adı',
     boqItemSpec: 'Xüsusiyyət / qeyd',
     boqItemUnit: 'Ölçü vahidi',
@@ -307,10 +315,16 @@ const ui: Record<Lang, Record<string, string>> = {
     inverterCount: 'Inverter count',
     boqDetails: 'BOQ product details',
     boqAdditions: 'BOQ additions',
-    includesAdv: 'Add VAT (18%)',
-    advIncludedNote: 'VAT is included in the price and payback period.',
-    advExcludedNote: 'VAT is excluded from the price and payback period.',
+    includesAdv: 'Show price with VAT (18%)',
+    advIncludedNote: 'Base prices (850/1105 AZN/kW) already include VAT; the price and payback period stay the same, VAT is just broken out separately.',
+    advExcludedNote: 'VAT removed — price and payback period are shown VAT-excluded (lower).',
     vatAmount: 'VAT (18%)',
+    vatIncludedLabel: 'incl. VAT',
+    priceOverride: 'Price override (AZN)',
+    priceOverridePlaceholder: 'Use the calculated price',
+    priceOverrideNote: 'For a discount or a different agreed price, enter the final price here — the calculation will use it instead.',
+    priceOverrideActive: 'Manual price active',
+    priceOverrideComputed: 'Calculated price',
     totalPrice: 'Total price',
     boqItemName: 'Product / service name',
     boqItemSpec: 'Specification / note',
@@ -408,10 +422,16 @@ const ui: Record<Lang, Record<string, string>> = {
     inverterCount: 'Количество инверторов',
     boqDetails: 'Данные BOQ',
     boqAdditions: 'Дополнения BOQ',
-    includesAdv: 'Добавить НДС (18%)',
-    advIncludedNote: 'НДС включён в цену и срок окупаемости.',
-    advExcludedNote: 'НДС не включён в цену и срок окупаемости.',
+    includesAdv: 'Показать цену с НДС (18%)',
+    advIncludedNote: 'Базовые цены (850/1105 AZN/кВт) уже включают НДС; цена и срок окупаемости не меняются, НДС просто показывается отдельно.',
+    advExcludedNote: 'НДС вычтен — цена и срок окупаемости показаны без НДС (ниже).',
     vatAmount: 'НДС (18%)',
+    vatIncludedLabel: 'в т.ч. НДС',
+    priceOverride: 'Переопределение цены (AZN)',
+    priceOverridePlaceholder: 'Использовать расчётную цену',
+    priceOverrideNote: 'При скидке или иной согласованной цене введите итоговую цену здесь — расчёт будет использовать её.',
+    priceOverrideActive: 'Ручная цена активна',
+    priceOverrideComputed: 'Расчётная цена',
     totalPrice: 'Итоговая цена',
     boqItemName: 'Товар / услуга',
     boqItemSpec: 'Характеристика / примечание',
@@ -509,10 +529,16 @@ const ui: Record<Lang, Record<string, string>> = {
     inverterCount: 'İnverter adedi',
     boqDetails: 'BOQ ürün bilgileri',
     boqAdditions: 'BOQ eklemeleri',
-    includesAdv: 'KDV (%18) ekle',
-    advIncludedNote: 'KDV fiyata ve geri ödeme süresine dahildir.',
-    advExcludedNote: 'KDV fiyata ve geri ödeme süresine dahil değildir.',
+    includesAdv: 'KDV dahil fiyatı göster (%18)',
+    advIncludedNote: 'Baz fiyatlar (850/1105 AZN/kW) zaten KDV dahildir; fiyat ve geri ödeme süresi değişmez, KDV sadece ayrı gösterilir.',
+    advExcludedNote: 'KDV çıkarıldı — fiyat ve geri ödeme süresi KDV hariç (daha düşük) gösterilir.',
     vatAmount: 'KDV (%18)',
+    vatIncludedLabel: 'KDV dahil',
+    priceOverride: 'Fiyat override (AZN)',
+    priceOverridePlaceholder: 'Hesaplanan fiyatı kullan',
+    priceOverrideNote: 'İndirim veya farklı anlaşılan bir fiyat olduğunda son fiyatı buraya girin — hesaplama bunu kullanacak.',
+    priceOverrideActive: 'Manuel fiyat aktif',
+    priceOverrideComputed: 'Hesaplanan fiyat',
     totalPrice: 'Toplam fiyat',
     boqItemName: 'Ürün / hizmet adı',
     boqItemSpec: 'Özellik / not',
@@ -895,6 +921,7 @@ const readSolarCalculatorDraft = () => {
       documentCode: string;
       adminTrackedProjectId: string;
       includesAdv: boolean;
+      priceOverride: string;
       customBoqItems: CustomBoqItem[];
     }> : {};
   } catch {
@@ -1046,6 +1073,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
   const [documentCode, setDocumentCode] = useState<string>(draft.documentCode || 'CP');
   const [adminTrackedProjectId, setAdminTrackedProjectId] = useState<string>('');
   const [includesAdv, setIncludesAdv] = useState<boolean>(draft.includesAdv ?? true);
+  const [priceOverride, setPriceOverride] = useState<string>(draft.priceOverride || '');
   const [trackedProjects, setTrackedProjects] = useState<TrackedProject[]>([]);
   const [projectOptions, setProjectOptions] = useState<SolarProjectOption[]>([]);
   const [isProjectSearchOpen, setIsProjectSearchOpen] = useState(false);
@@ -1097,9 +1125,10 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       documentCode,
       adminTrackedProjectId: '',
       includesAdv,
+      priceOverride,
       customBoqItems
     }));
-  }, [address, adminTrackedProjectId, annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, documentCode, includesAdv, installationDays, inverterCount, inverterModel, inverterSelectionMode, inverterSpec, method, monthlyBill, mountType, panelModel, panelSpec, panelWattage, projectName, proposalStatus, recipient, systemKwInput, systemType, targetOffset, tariff]);
+  }, [address, adminTrackedProjectId, annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, documentCode, includesAdv, installationDays, inverterCount, inverterModel, inverterSelectionMode, inverterSpec, method, monthlyBill, mountType, panelModel, panelSpec, panelWattage, priceOverride, projectName, proposalStatus, recipient, systemKwInput, systemType, targetOffset, tariff]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1290,16 +1319,32 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
     const panelCount = requiredKw > 0 ? Math.max(1, Math.ceil(requiredKw / panelKw)) : 0;
     const systemKw = panelCount > 0 ? panelCount * panelKw : 0;
     const yearlyProduction = systemKw * city.specificYield;
+    // pricePerKw (850/1105) and admin-entered BOQ line prices are real,
+    // VAT-inclusive retail prices, not net prices with VAT to be added on
+    // top. So the "Add VAT" toggle doesn't add 18% to this figure — it
+    // decomposes it into net + VAT for display, and turning it off shows
+    // the net (VAT-excluded) price, which is *lower* than the gross figure.
     const baseSystemCost = systemKw * pricePerKw;
     const boqAdditionsCost = customBoqItems.reduce((sum, item) => {
       const quantity = Math.max(1, Math.round(toPositiveNumber(item.quantity) || 1));
       return sum + (quantity * toPositiveNumber(item.priceAzn));
     }, 0);
-    const estimatedCost = baseSystemCost + boqAdditionsCost;
+    const grossCost = baseSystemCost + boqAdditionsCost;
+    const netCost = grossCost / (1 + VAT_RATE);
+    const computedTotalPriceAzn = includesAdv ? grossCost : netCost;
+
+    // Manual override: an admin-entered final price (discount, custom quote,
+    // etc.) replaces the computed total outright; VAT/net figures are then
+    // derived from the override so an exported "base + VAT = total" line
+    // still holds together, instead of only overriding the headline number.
+    const overrideAmount = toPositiveNumber(priceOverride);
+    const isPriceOverridden = overrideAmount > 0;
+    const totalPriceAzn = isPriceOverridden ? overrideAmount : computedTotalPriceAzn;
+    const estimatedCost = includesAdv ? totalPriceAzn / (1 + VAT_RATE) : totalPriceAzn;
+    const vatAzn = includesAdv ? totalPriceAzn - estimatedCost : 0;
+
     const calculatedAnnualSavings = yearlyProduction * enteredTariff;
     const annualSavingsValue = toPositiveNumber(annualSavings) || calculatedAnnualSavings;
-    const vatAzn = includesAdv ? estimatedCost * VAT_RATE : 0;
-    const totalPriceAzn = estimatedCost + vatAzn;
     const inverterRecommendations = recommendInverters(
       systemKw,
       panelCount,
@@ -1331,13 +1376,15 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       boqAdditionsCost,
       vatAzn,
       totalPriceAzn,
+      computedTotalPriceAzn,
+      isPriceOverridden,
       annualSavings: annualSavingsValue,
       paybackYears: annualSavingsValue > 0 ? totalPriceAzn / annualSavingsValue : 0,
       inverter: inverterRecommendations.best,
       secondBestInverter: inverterRecommendations.secondBest,
       connectionPhase
     };
-  }, [annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, panelWattage, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
+  }, [annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, panelWattage, priceOverride, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
 
   const selectedCatalogInverter =
     inverterSelectionMode === 'second'
@@ -1461,11 +1508,19 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
     return lines;
   }, [consumptionPeriod, customerType, lang, method, periods, result.baseSystemCost, result.boqAdditionsCost, result.city.specificYield, result.panelKw, result.pricePerKw, result.requiredKw, result.tariff]);
 
-  const estimatedPriceFormula = [
+  const grossPriceParts = [
     formatMoney(result.baseSystemCost),
-    result.boqAdditionsCost > 0 ? formatMoney(result.boqAdditionsCost) : null,
-    includesAdv ? `${t.vatAmount}: ${formatMoney(result.vatAzn)}` : t.advExcludedNote
+    result.boqAdditionsCost > 0 ? formatMoney(result.boqAdditionsCost) : null
   ].filter(Boolean).join(' + ');
+
+  // baseSystemCost/boqAdditionsCost are VAT-inclusive retail prices, so
+  // "Add VAT" doesn't stack another 18% on top — it decomposes the same
+  // total into net + VAT. Only price-override changes the actual total.
+  const estimatedPriceFormula = result.isPriceOverridden
+    ? `${t.priceOverrideActive}: ${formatMoney(result.totalPriceAzn)} AZN (${t.priceOverrideComputed}: ${formatMoney(result.computedTotalPriceAzn)} AZN)`
+    : includesAdv
+      ? `${grossPriceParts} AZN (${t.vatIncludedLabel}: ${formatMoney(result.vatAzn)} AZN)`
+      : `${grossPriceParts} AZN → ${formatMoney(result.totalPriceAzn)} AZN (${t.advExcludedNote})`;
 
   const buildAnalyticsPayload = (exportType: 'pdf' | 'docx', issuedDocumentNumber?: string) => ({
     exportType,
@@ -2132,6 +2187,22 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
                   className="h-5 w-5 shrink-0 accent-emerald-600"
                 />
               </label>
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.priceOverride}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={priceOverride}
+                  placeholder={t.priceOverridePlaceholder}
+                  onChange={(event) => setPriceOverride(event.target.value)}
+                  className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 ${result.isPriceOverridden ? 'border-amber-400' : 'border-slate-100'}`}
+                />
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  {result.isPriceOverridden
+                    ? `${t.priceOverrideActive} · ${t.priceOverrideComputed}: ${formatMoney(result.computedTotalPriceAzn)} AZN`
+                    : t.priceOverrideNote}
+                </p>
+              </div>
             </div>
             <details className="group">
               <summary className="cursor-pointer list-none rounded-2xl bg-white px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-emerald-600">
