@@ -352,7 +352,14 @@ const MessageBubble = ({ message, lang }: { message: MetaInboxMessage; lang: Adm
         {message.text && <p className="whitespace-pre-wrap text-sm">{message.text}</p>}
         {message.attachments.map((attachment, index) => <AttachmentView key={index} attachment={attachment} outgoing={outgoing} en={en} />)}
         <div className={`mt-1.5 flex items-center justify-end gap-2 text-[9px] ${outgoing ? 'text-emerald-100' : 'text-slate-400'}`}>
-          {message.sentByAdminDisplayName && <span>{message.sentByAdminDisplayName}</span>}
+          {message.sentByAdminDisplayName
+            ? <span>{message.sentByAdminDisplayName}</span>
+            // Outgoing with no admin attribution can only mean it came in through
+            // the WhatsApp Business App echo, not our own send endpoints — those
+            // always stamp SentByAdminUserId. Meta's echo payload carries no
+            // device/user identity, so "who" beyond "not this dashboard" isn't
+            // knowable; flag it so it isn't mistaken for an admin-sent reply.
+            : outgoing && <span className="italic opacity-80">{en ? 'via WhatsApp App' : 'WhatsApp Tətbiqi ilə'}</span>}
           {outgoing && <span>{delivery}</span>}
           <span>{time(message.createdAt, lang)}</span>
         </div>
