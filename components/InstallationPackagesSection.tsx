@@ -158,20 +158,20 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
                     {t.recommendedLabel}
                   </span>
                 )}
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{t.packageLabel}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{t.packageLabel}</span>
+                  <del className="text-[11px] font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
+                    {futurePriceAzn.toLocaleString(locale)}&nbsp;AZN
+                  </del>
+                </div>
 
-                <div className="mt-5 flex items-end justify-between gap-4 border-b border-[var(--border-light)] pb-5">
+                <div className="mt-2 flex items-end justify-between gap-4 border-b border-[var(--border-light)] pb-5">
                   <span className="shrink-0 text-2xl font-black tracking-[-0.03em] tabular-nums text-[#081510]">{pkg.capacityKw}&nbsp;kW</span>
-                  <div className="min-w-0 text-right">
-                    <del className="text-sm font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
-                      {futurePriceAzn.toLocaleString(locale)}&nbsp;AZN
-                    </del>
-                    <div className="mt-1 flex items-end justify-end gap-1.5">
-                      <span className="text-2xl font-black tracking-[-0.04em] tabular-nums text-[#081510] sm:text-3xl">
-                        {pkg.priceAzn.toLocaleString(locale)}
-                      </span>
-                      <span className="whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">AZN</span>
-                    </div>
+                  <div className="flex items-end gap-1.5">
+                    <span className="text-2xl font-black tracking-[-0.04em] tabular-nums text-[#081510] sm:text-3xl">
+                      {pkg.priceAzn.toLocaleString(locale)}
+                    </span>
+                    <span className="whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">AZN</span>
                   </div>
                 </div>
 

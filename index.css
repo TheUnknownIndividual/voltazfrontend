@@ -216,13 +216,14 @@ button.bg-slate-900,a.bg-slate-900,button.hover\:bg-slate-900:hover,a.hover\:bg-
 @media(prefers-reduced-motion:reduce){ .volt-verse-line,.volt-verse-line:after{ animation:none }
   .volt-verse-line:after{ opacity:0 }
 }
-.mobile-utility-button{ height:36px; padding:0 9px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; white-space:nowrap; font-size:11px; line-height:1; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease }
+.mobile-utility-button{ height:38px; min-width:116px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; white-space:nowrap; font-size:11px; line-height:1; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease }
 .mobile-utility-button--primary:active{ background:var(--primary-active); border-color:var(--primary-active) }
 .mobile-utility-button--secondary:active{ background:#ddffe914; border-color:#54936c }
 .mobile-utility-button--primary{ color:var(--text-inverse); background:var(--primary); border:1.9px solid var(--primary); box-shadow:none }
 .mobile-utility-button--secondary{ color:var(--text-inverse); background:transparent; border:1.9px solid var(--border-dark) }
 .mobile-utility-button--primary:hover{ color:var(--text-inverse); background:var(--primary-hover); border-color:var(--primary-hover) }
 .mobile-utility-button--secondary:hover{ color:#54936c; background:#ddffe914; border-color:#54936c }
+.mobile-utility-button--is-active{ box-shadow:0 0 0 2px var(--header-bg,#081510),0 0 0 4px #54936c }
 section.bg-emerald-950{ background:var(--color-dark); border-color:color-mix(in srgb,var(--color-primary) 16%,transparent) }
 section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button.text-emerald-100\/60{ color:var(--color-primary) }
 .theme-more-link{ display:inline-flex; align-items:center; gap:8px; width:-moz-fit-content; width:fit-content; padding:8px 11px; border:1.5px solid color-mix(in srgb,#54936c 65%,white); border-radius:8px; background:color-mix(in srgb,#54936c 22%,white); color:#54936c; font-size:12px; line-height:1; font-weight:650; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease }

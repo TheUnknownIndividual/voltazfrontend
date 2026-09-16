@@ -555,7 +555,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
-                className={`mobile-utility-button min-w-[104px] group ${activePage === 'calculator' ? 'mobile-utility-button--primary' : 'mobile-utility-button--secondary'}`}
+                className={`mobile-utility-button mobile-utility-button--secondary group${activePage === 'calculator' ? ' mobile-utility-button--is-active' : ''}`}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
@@ -570,7 +570,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Contact Button */}
               <button
                 onClick={() => handleItemClick('contact')}
-                className={`mobile-utility-button min-w-[104px] group ${activePage === 'contact' ? 'mobile-utility-button--primary' : 'mobile-utility-button--secondary'}`}
+                className={`mobile-utility-button mobile-utility-button--primary group${activePage === 'contact' ? ' mobile-utility-button--is-active' : ''}`}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
