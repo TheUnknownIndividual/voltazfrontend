@@ -216,7 +216,7 @@ button.bg-slate-900,a.bg-slate-900,button.hover\:bg-slate-900:hover,a.hover\:bg-
 @media(prefers-reduced-motion:reduce){ .volt-verse-line,.volt-verse-line:after{ animation:none }
   .volt-verse-line:after{ opacity:0 }
 }
-.mobile-utility-button{ height:38px; min-width:116px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; white-space:nowrap; font-size:11px; line-height:1; font-weight:700; letter-spacing:.04em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease }
+.mobile-utility-button{ height:36px; min-width:92px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; white-space:nowrap; font-size:10px; line-height:1; font-weight:700; letter-spacing:.03em; text-transform:uppercase; transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease }
 .mobile-utility-button--primary:active{ background:var(--primary-active); border-color:var(--primary-active) }
 .mobile-utility-button--secondary:active{ background:#ddffe914; border-color:#54936c }
 .mobile-utility-button--primary{ color:var(--text-inverse); background:var(--primary); border:1.9px solid var(--primary); box-shadow:none }
