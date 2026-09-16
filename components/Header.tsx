@@ -52,6 +52,8 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
   const [modalType, setModalType] = useState<'none' | 'register' | 'login'>('none');
   const [activeDropdown, setActiveDropdown] = useState<'none' | 'profile' | 'products' | 'usefulInfo' | 'lang' | 'volt'>('none');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
@@ -85,13 +87,28 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
   useEffect(() => {
     if (!isMobileMenuOpen) return;
-    let lastY = window.scrollY;
+    // Any page scroll while the menu is open — not just scrolling down —
+    // should close it; it's an overlay on top of content the user is now
+    // trying to move past.
+    const startY = window.scrollY;
     const handleScroll = () => {
-      if (window.scrollY > lastY) setIsMobileMenuOpen(false);
-      lastY = window.scrollY;
+      if (Math.abs(window.scrollY - startY) > 4) setIsMobileMenuOpen(false);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (mobileMenuRef.current?.contains(target)) return;
+      if (mobileMenuButtonRef.current?.contains(target)) return;
+      setIsMobileMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [isMobileMenuOpen]);
 
   useEffect(() => {
@@ -538,7 +555,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Calculator Button */}
               <button
                 onClick={() => handleItemClick('calculator')}
-                className="mobile-utility-button mobile-utility-button--primary group"
+                className="mobile-utility-button mobile-utility-button--secondary group"
               >
                 <div className="flex items-center gap-2">
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
@@ -553,7 +570,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               {/* Contact Button */}
               <button
                 onClick={() => handleItemClick('contact')}
-                className="mobile-utility-button mobile-utility-button--secondary group"
+                className="mobile-utility-button mobile-utility-button--primary group"
               >
                 <div className="flex items-center gap-2">
                   <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform group-hover:scale-105">
@@ -589,7 +606,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
               {/* Mobile Menu Button */}
               <div className="border-l border-slate-200 pl-1 lg:hidden">
-                <button aria-label={isMobileMenuOpen ? t.closeMenu : t.menu} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-white/5 hover:text-white">
+                <button ref={mobileMenuButtonRef} aria-label={isMobileMenuOpen ? t.closeMenu : t.menu} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-white/5 hover:text-white">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
                   </svg>
@@ -775,7 +792,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="header-mobile-menu absolute left-0 top-full z-[60] flex max-h-[calc(100vh-80px)] w-full flex-col gap-2 overflow-y-auto overscroll-contain border-b px-6 py-4 lg:hidden">
+        <div ref={mobileMenuRef} className="header-mobile-menu absolute left-0 top-full z-[60] flex max-h-[calc(100vh-80px)] w-full flex-col gap-2 overflow-y-auto overscroll-contain border-b px-6 py-4 lg:hidden">
           <button onClick={() => handleItemClick('home')} className="header-mobile-link border-b border-gray-50">{t.home}</button>
 
           <button onClick={() => handleItemClick('about')} className="header-mobile-link border-b border-gray-50">{t.about}</button>

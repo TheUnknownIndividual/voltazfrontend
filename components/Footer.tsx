@@ -265,7 +265,7 @@ designROI:
 };
 
   return (
-    <footer data-nosnippet className="site-footer-theme bg-gray-50 pt-16 pb-12 border-t border-gray-200">
+    <footer data-nosnippet className="site-footer-theme bg-gray-50 pt-8 pb-12 border-t border-gray-200 md:pt-16">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="lg:col-span-1">
@@ -294,6 +294,7 @@ designROI:
 </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-6 md:contents">
           <div>
             <h5 className="font-black text-slate-900 mb-8 uppercase text-xs tracking-widest">{t.quickLinks}</h5>
             <ul className="space-y-4 text-sm font-medium">
@@ -319,6 +320,7 @@ designROI:
               <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('installation'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.installation}</a></li>
               <li><a href="#" onClick={(e) => handleNav(e, 'services', serviceNav('design-roi'))} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.designROI}</a></li>
             </ul>
+          </div>
           </div>
 
           <div>

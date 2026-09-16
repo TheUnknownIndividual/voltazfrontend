@@ -165,6 +165,7 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
   const [newsLoaded, setNewsLoaded] = useState(false);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const hoveredRef = useRef(false);
+  const dragMovedRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -224,34 +225,86 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
   useEffect(() => {
     const track = trackRef.current;
     if (!track || trackItems.length === 0) return undefined;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let x = 0;
     let speed = BASE_SPEED_PX_S;
     let lastTime: number | null = null;
     let frameId = 0;
+    let isDragging = false;
+    let dragPointerId: number | null = null;
+    let dragStartClientX = 0;
+    let dragStartX = 0;
+
+    const getLoopWidth = () => track.scrollWidth / 2;
+
+    // Cards are duplicated once for the seamless auto-scroll loop, so any
+    // absolute x (auto-advance or manual drag) wraps back into the single
+    // [-loopWidth, 0] range instead of running off the end of the track.
+    const wrapX = (value: number, loopWidth: number) => {
+      if (loopWidth <= 0) return value;
+      let wrapped = value % loopWidth;
+      if (wrapped > 0) wrapped -= loopWidth;
+      return wrapped;
+    };
 
     const step = (time: number) => {
-      const loopWidth = track.scrollWidth / 2;
+      const loopWidth = getLoopWidth();
       if (lastTime === null) lastTime = time;
       const dt = Math.min(0.1, (time - lastTime) / 1000);
       lastTime = time;
 
-      const target = hoveredRef.current ? HOVER_SPEED_PX_S : BASE_SPEED_PX_S;
-      const lerp = dt > 0 ? 1 - Math.exp(-dt / SPEED_TIME_CONSTANT) : 0;
-      speed += (target - speed) * lerp;
-
-      if (loopWidth > 0) {
-        x -= speed * dt;
-        if (x <= -loopWidth) x += loopWidth;
-        track.style.transform = `translateX(${x}px)`;
+      if (!isDragging && !reduceMotion) {
+        const target = hoveredRef.current ? HOVER_SPEED_PX_S : BASE_SPEED_PX_S;
+        const lerp = dt > 0 ? 1 - Math.exp(-dt / SPEED_TIME_CONSTANT) : 0;
+        speed += (target - speed) * lerp;
+        if (loopWidth > 0) x = wrapX(x - speed * dt, loopWidth);
       }
+      track.style.transform = `translateX(${x}px)`;
 
       frameId = requestAnimationFrame(step);
     };
 
+    // Pointer Events unify mouse + touch: dragging pauses the auto-scroll
+    // (by short-circuiting the branch in step()) and moves the track 1:1
+    // with the pointer; auto-scroll resumes from wherever the drag ended.
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      isDragging = true;
+      dragPointerId = event.pointerId;
+      dragStartClientX = event.clientX;
+      dragStartX = x;
+      dragMovedRef.current = 0;
+      track.setPointerCapture(event.pointerId);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!isDragging || event.pointerId !== dragPointerId) return;
+      const delta = event.clientX - dragStartClientX;
+      dragMovedRef.current = Math.max(dragMovedRef.current, Math.abs(delta));
+      x = wrapX(dragStartX + delta, getLoopWidth());
+    };
+
+    const endDrag = (event: PointerEvent) => {
+      if (!isDragging || event.pointerId !== dragPointerId) return;
+      isDragging = false;
+      dragPointerId = null;
+      if (track.hasPointerCapture(event.pointerId)) track.releasePointerCapture(event.pointerId);
+    };
+
+    track.addEventListener('pointerdown', handlePointerDown);
+    track.addEventListener('pointermove', handlePointerMove);
+    track.addEventListener('pointerup', endDrag);
+    track.addEventListener('pointercancel', endDrag);
+
     frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      track.removeEventListener('pointerdown', handlePointerDown);
+      track.removeEventListener('pointermove', handlePointerMove);
+      track.removeEventListener('pointerup', endDrag);
+      track.removeEventListener('pointercancel', endDrag);
+    };
   }, [trackItems]);
 
   if (bothSettled && cards.length === 0) return null;
@@ -289,7 +342,18 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
               ))}
             </div>
           ) : (
-            <div ref={trackRef} className="volt-home-carousel-track flex w-max gap-4 will-change-transform md:gap-6">
+            <div
+              ref={trackRef}
+              onClickCapture={(event) => {
+                // A drag that moved more than a few px shouldn't also fire
+                // the card's onClick — this only suppresses that one click.
+                if (dragMovedRef.current > 6) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
+              }}
+              className="volt-home-carousel-track flex w-max gap-4 will-change-transform md:gap-6"
+            >
               {[...trackItems, ...trackItems].map((card, index) => (
                 <CardTile
                   key={`${card.key}-${index}`}
