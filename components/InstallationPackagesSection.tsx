@@ -132,7 +132,7 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
           <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 md:mt-4 md:text-base md:leading-7">{t.intro}</p>
         </div>
 
-        <ul className="grid items-stretch gap-5 text-left lg:grid-cols-3 lg:gap-6">
+        <ul className="grid items-stretch gap-4 text-left md:grid-cols-3 md:gap-5">
           {installationPackages.map(pkg => {
             const futurePriceAzn = Math.round(pkg.priceAzn * 1.12);
             const whatsappMessage = buildWhatsappMessage(pkg);
@@ -151,23 +151,23 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
             return (
               <li
                 key={pkg.capacityKw}
-                className={`relative flex min-w-0 flex-col overflow-hidden rounded-[1.75rem] border p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:p-8 ${pkg.recommended ? 'border-[color-mix(in_srgb,var(--color-primary)_48%,#cbd5e1)] bg-[color-mix(in_srgb,var(--color-primary)_4%,white)]' : 'border-[var(--border-light)] hover:border-[var(--color-primary)]'}`}
+                className={`relative flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${pkg.recommended ? 'border-[color-mix(in_srgb,var(--color-primary)_48%,#cbd5e1)] bg-[color-mix(in_srgb,var(--color-primary)_4%,white)]' : 'border-[var(--border-light)] hover:border-[var(--color-primary)]'}`}
               >
                 {pkg.recommended && (
-                  <span className="absolute right-5 top-5 rounded-full border border-[color-mix(in_srgb,var(--color-primary)_35%,#cbd5e1)] bg-white px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-slate-700 sm:right-7 sm:top-7">
+                  <span className="absolute right-4 top-4 rounded-full border border-[color-mix(in_srgb,var(--color-primary)_35%,#cbd5e1)] bg-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-slate-700 sm:right-5 sm:top-5">
                     {t.recommendedLabel}
                   </span>
                 )}
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{t.packageLabel}</span>
 
-                <div className="mt-7 flex items-end justify-between gap-4 border-b border-[var(--border-light)] pb-7">
-                  <span className="shrink-0 text-3xl font-black tracking-[-0.03em] tabular-nums text-[#081510]">{pkg.capacityKw}&nbsp;kW</span>
+                <div className="mt-5 flex items-end justify-between gap-4 border-b border-[var(--border-light)] pb-5">
+                  <span className="shrink-0 text-2xl font-black tracking-[-0.03em] tabular-nums text-[#081510]">{pkg.capacityKw}&nbsp;kW</span>
                   <div className="min-w-0 text-right">
-                    <del className="text-base font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
+                    <del className="text-sm font-bold tabular-nums text-slate-400 decoration-red-500 decoration-2">
                       {futurePriceAzn.toLocaleString(locale)}&nbsp;AZN
                     </del>
                     <div className="mt-1 flex items-end justify-end gap-1.5">
-                      <span className="text-3xl font-black tracking-[-0.04em] tabular-nums text-[#081510] sm:text-4xl">
+                      <span className="text-2xl font-black tracking-[-0.04em] tabular-nums text-[#081510] sm:text-3xl">
                         {pkg.priceAzn.toLocaleString(locale)}
                       </span>
                       <span className="whitespace-nowrap pb-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">AZN</span>
@@ -175,26 +175,26 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
                   </div>
                 </div>
 
-                <div className="flex flex-1 flex-col pt-7">
-                  <p className="mb-4 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{t.includedLabel}</p>
-                  <ul className="space-y-3.5">
-                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
-                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /></span>
+                <div className="flex flex-1 flex-col pt-5">
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{t.includedLabel}</p>
+                  <ul className="space-y-2.5">
+                    <li className="flex gap-2.5 text-[13px] font-semibold leading-5 text-slate-600">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" /></span>
                       {t.panelLabel(pkg.panelCount, pkg.panelWattage)}
                     </li>
-                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
-                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /></span>
+                    <li className="flex gap-2.5 text-[13px] font-semibold leading-5 text-slate-600">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-dark)]"><Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" /></span>
                       <span className="min-w-0">
                         <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">{t.inverterLabel}</span>
                         {pkg.inverterModels.map(model => <span key={model} className="block break-words" translate="no">{model}</span>)}
                       </span>
                     </li>
-                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
-                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Wrench className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /></span>
+                    <li className="flex gap-2.5 text-[13px] font-semibold leading-5 text-slate-600">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-dark)]"><Wrench className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden="true" /></span>
                       {t.mountingLabel}
                     </li>
-                    <li className="flex gap-3 text-sm font-semibold leading-6 text-slate-600">
-                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-dark)]"><Plug className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" /></span>
+                    <li className="flex gap-2.5 text-[13px] font-semibold leading-5 text-slate-600">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-dark)]"><Plug className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden="true" /></span>
                       {t.gridLabel}
                     </li>
                   </ul>
@@ -207,9 +207,9 @@ const InstallationPackagesSection: React.FC<InstallationPackagesSectionProps> = 
                     data-whatsapp-interaction="installation_package_quote"
                     data-whatsapp-language={lang}
                     data-whatsapp-context={analyticsContext}
-                    className={`mt-8 inline-flex min-h-[var(--cta-btn-h)] touch-manipulation items-center justify-center gap-3 rounded-xl px-5 py-4 text-center text-[10px] font-black uppercase tracking-[0.13em] transition-colors ${pkg.recommended ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-dark)] hover:text-white' : 'bg-[var(--color-dark)] text-white hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)]'}`}
+                    className={`mt-6 inline-flex min-h-[var(--cta-btn-h)] touch-manipulation items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.13em] transition-colors ${pkg.recommended ? 'bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-dark)] hover:text-white' : 'bg-[var(--color-dark)] text-white hover:bg-[var(--color-primary)] hover:text-[var(--color-dark)]'}`}
                   >
-                    <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+                    <MessageCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
                     {t.interestCta}
                   </a>
                 </div>

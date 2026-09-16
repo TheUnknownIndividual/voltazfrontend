@@ -302,7 +302,7 @@ designROI:
               <li><a href="#" onClick={(e) => handleNav(e, 'about')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.about}</a></li>
               <li><a href="#" onClick={(e) => handleNav(e, 'services')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.services}</a></li>
               <li><a href={localizePath('/solar-installation', lang || 'az')} onClick={(e) => handleNav(e, 'solar-installation')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.installation}</a></li>
-              {/* <li><a href="#" onClick={(e) => handleNav(e, 'projects')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.projects}</a></li> */}
+              <li><a href="#" onClick={(e) => handleNav(e, 'projects')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.projects}</a></li>
               <li><a href="#" onClick={(e) => handleNav(e, 'products')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.products}</a></li>
               {/* <li><a href="#" onClick={(e) => handleNav(e, 'partnership')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.partnership}</a></li> */}
               {/* <li><a href="#" onClick={(e) => handleNav(e, 'pro-club')} className="text-slate-500 hover:text-emerald-600 transition-colors">{t.proClub}</a></li> */}
