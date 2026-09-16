@@ -312,18 +312,18 @@ const HomeContentCarousel: React.FC<HomeContentCarouselProps> = ({ lang = 'az', 
   return (
     <section className="bg-white py-16 md:py-28 overflow-hidden">
       <div className="mx-auto max-w-[1440px] px-4 md:px-12">
-        <div className="mb-8 flex flex-col items-start justify-between gap-4 md:mb-12 md:flex-row md:items-end">
-          <div className="text-left">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.eyebrow}</span>
-            <h2 className="text-2xl font-black leading-tight tracking-tight text-slate-900 md:text-4xl">{t.title}</h2>
+        <div className="mb-8 flex flex-row items-center justify-between gap-3 md:mb-12 md:items-end">
+          <div className="min-w-0 flex-1 text-left">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] md:mb-3">{t.eyebrow}</span>
+            <h2 className="text-xl font-black leading-tight tracking-tight text-slate-900 md:text-4xl">{t.title}</h2>
           </div>
           <div className="flex flex-none">
             <button
               onClick={() => onNavigate?.('blog')}
-              className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-2 rounded-xl bg-[var(--header-bg)] px-6 py-3 text-xs font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:px-8 md:py-4"
+              className="group inline-flex min-h-[var(--cta-btn-h)] items-center gap-1.5 whitespace-nowrap rounded-xl bg-[var(--header-bg)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-[var(--primary)] md:gap-2 md:px-8 md:py-4 md:text-xs"
             >
               {t.viewAll}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" aria-hidden="true" />
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1.5 md:h-4 md:w-4" aria-hidden="true" />
             </button>
           </div>
         </div>

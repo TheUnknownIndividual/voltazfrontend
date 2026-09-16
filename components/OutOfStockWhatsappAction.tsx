@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { logPublicWhatsappClick } from '../api/solarAnalytics';
 import { STORAGE_KEYS } from '../utils/constants';
 import { trackWhatsappInteraction } from '../utils/analytics';
@@ -81,7 +82,7 @@ const isSignedIn = () => {
  */
 const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, product, products, className, children }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+994 ');
   const [error, setError] = useState('');
   const labels = copy[lang];
   const normalizedProducts = useMemo(() => products?.slice(0, 20), [products]);
@@ -148,7 +149,7 @@ const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, prod
       <button type="button" onClick={() => setIsOpen(true)} className={className}>
         {children}
       </button>
-      {isOpen && (
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/50 p-4"
           role="presentation"
@@ -182,7 +183,8 @@ const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, prod
               <button type="button" onClick={submitGuestRequest} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-700">{labels.continue}</button>
             </div>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
