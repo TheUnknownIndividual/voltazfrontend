@@ -6,6 +6,8 @@ import { useUpload } from "../contexts/UploadContext";
 import { Archive, ArchiveRestore, ImagePlus } from 'lucide-react';
 import SliderImageCropper from '../components/SliderImageCropper';
 import RichTextEditor from './RichTextEditor';
+import ContentAiGenerateModal from './ContentAiGenerateModal';
+import type { ContentAiDraft } from '../api/contentAi';
 
 interface BlogsItem {
   id: string;
@@ -56,6 +58,7 @@ const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
   const [cropRequest, setCropRequest] = useState<CropRequest | null>(null);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showAiModal, setShowAiModal] = useState(false);
 
   useEffect(() => {
     void getAdminBlogs().catch(() => showNotification('Blog siyahısı yüklənmədi', 'error'));
@@ -92,6 +95,28 @@ const AdminBlogs: React.FC<AdminBlogsProps> = ({ onBack }) => {
     setIsEditing(false);
     setPendingCoverFile(null);
     setCropRequest(null);
+  };
+
+  const applyAiDraft = (draft: ContentAiDraft) => {
+    const byCode: Record<LangCode, ContentAiDraft['languages'][number] | undefined> = {
+      az: undefined, en: undefined, ru: undefined, tr: undefined,
+    };
+    draft.languages.forEach((language) => {
+      const code: LangCode = language.languageCode === 2 ? 'en' : language.languageCode === 3 ? 'ru' : language.languageCode === 4 ? 'tr' : 'az';
+      byCode[code] = language;
+    });
+    setFormData((current) => ({
+      ...current,
+      title: { az: byCode.az?.title ?? current.title.az, en: byCode.en?.title ?? current.title.en, ru: byCode.ru?.title ?? current.title.ru, tr: byCode.tr?.title ?? current.title.tr },
+      description: { az: byCode.az?.description ?? current.description.az, en: byCode.en?.description ?? current.description.en, ru: byCode.ru?.description ?? current.description.ru, tr: byCode.tr?.description ?? current.description.tr },
+      content: { az: byCode.az?.content ?? current.content.az, en: byCode.en?.content ?? current.content.en, ru: byCode.ru?.content ?? current.content.ru, tr: byCode.tr?.content ?? current.content.tr },
+      seoTitle: { az: byCode.az?.seoTitle ?? current.seoTitle.az, en: byCode.en?.seoTitle ?? current.seoTitle.en, ru: byCode.ru?.seoTitle ?? current.seoTitle.ru, tr: byCode.tr?.seoTitle ?? current.seoTitle.tr },
+      seoDescription: { az: byCode.az?.seoDescription ?? current.seoDescription.az, en: byCode.en?.seoDescription ?? current.seoDescription.en, ru: byCode.ru?.seoDescription ?? current.seoDescription.ru, tr: byCode.tr?.seoDescription ?? current.seoDescription.tr },
+      seoKeywords: { az: byCode.az?.seoKeywords ?? current.seoKeywords.az, en: byCode.en?.seoKeywords ?? current.seoKeywords.en, ru: byCode.ru?.seoKeywords ?? current.seoKeywords.ru, tr: byCode.tr?.seoKeywords ?? current.seoKeywords.tr },
+    }));
+    setIsEditing(true);
+    setShowAiModal(false);
+    showNotification('AI qaralaması formaya tətbiq edildi. Yadda saxlamağı unutmayın.', 'success');
   };
 
 const handleEdit = async (id: string) => {
@@ -274,6 +299,14 @@ const handleEdit = async (id: string) => {
           </button>
           {!isEditing && (
             <button
+              onClick={() => setShowAiModal(true)}
+              className="px-6 py-3 rounded-lg bg-white border-2 border-[var(--color-primary)] text-[var(--color-primary)] font-black hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,white)] transition-all text-xs uppercase tracking-widest"
+            >
+              AI ilə yaz
+            </button>
+          )}
+          {!isEditing && (
+            <button
               onClick={() => setIsEditing(true)}
               className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 text-xs uppercase tracking-widest"
             >
@@ -282,6 +315,15 @@ const handleEdit = async (id: string) => {
           )}
         </div>
       </div>
+
+      {showAiModal && (
+        <ContentAiGenerateModal
+          contentType="blog"
+          title="AI ilə blog yaz"
+          onApply={applyAiDraft}
+          onClose={() => setShowAiModal(false)}
+        />
+      )}
 
       {isEditing && (
         <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-8 md:p-12 mb-12 animate-in slide-in-from-top-4 duration-300">

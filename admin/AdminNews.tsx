@@ -5,6 +5,8 @@ import { useNews } from "../contexts/NewsContext";
 import { useUpload } from "../contexts/UploadContext";
 import NewsImageCropEditor from './NewsImageCropEditor';
 import RichTextEditor from './RichTextEditor';
+import ContentAiGenerateModal from './ContentAiGenerateModal';
+import type { ContentAiDraft } from '../api/contentAi';
 
 interface NewsItem {
   id: string;
@@ -113,6 +115,7 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Omit<NewsItem, 'id'>>({
@@ -216,6 +219,28 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
     setEditingId(null);
     setIsEditing(false);
     setIsCreating(false);
+  };
+
+  const applyAiDraft = (draft: ContentAiDraft) => {
+    const byCode: Record<LangCode, ContentAiDraft['languages'][number] | undefined> = {
+      az: undefined, en: undefined, ru: undefined, tr: undefined,
+    };
+    draft.languages.forEach((language) => {
+      const code: LangCode = language.languageCode === 2 ? 'en' : language.languageCode === 3 ? 'ru' : language.languageCode === 4 ? 'tr' : 'az';
+      byCode[code] = language;
+    });
+    setFormData((current) => ({
+      ...current,
+      title: { az: byCode.az?.title ?? current.title.az, en: byCode.en?.title ?? current.title.en, ru: byCode.ru?.title ?? current.title.ru, tr: byCode.tr?.title ?? current.title.tr },
+      category: { az: byCode.az?.description ?? current.category.az, en: byCode.en?.description ?? current.category.en, ru: byCode.ru?.description ?? current.category.ru, tr: byCode.tr?.description ?? current.category.tr },
+      summary: { az: byCode.az?.content ?? current.summary.az, en: byCode.en?.content ?? current.summary.en, ru: byCode.ru?.content ?? current.summary.ru, tr: byCode.tr?.content ?? current.summary.tr },
+      seoTitle: { az: byCode.az?.seoTitle ?? current.seoTitle.az, en: byCode.en?.seoTitle ?? current.seoTitle.en, ru: byCode.ru?.seoTitle ?? current.seoTitle.ru, tr: byCode.tr?.seoTitle ?? current.seoTitle.tr },
+      seoDescription: { az: byCode.az?.seoDescription ?? current.seoDescription.az, en: byCode.en?.seoDescription ?? current.seoDescription.en, ru: byCode.ru?.seoDescription ?? current.seoDescription.ru, tr: byCode.tr?.seoDescription ?? current.seoDescription.tr },
+      seoKeywords: { az: byCode.az?.seoKeywords ?? current.seoKeywords.az, en: byCode.en?.seoKeywords ?? current.seoKeywords.en, ru: byCode.ru?.seoKeywords ?? current.seoKeywords.ru, tr: byCode.tr?.seoKeywords ?? current.seoKeywords.tr },
+    }));
+    setIsEditing(true);
+    setShowAiModal(false);
+    showNotification('AI qaralaması formaya tətbiq edildi. Yadda saxlamağı unutmayın.', 'success');
   };
 
   const handleEdit = async (item: NewsItem) => {
@@ -390,6 +415,14 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
           </button>
           {!isEditing && (
             <button
+              onClick={() => setShowAiModal(true)}
+              className="px-6 py-3 rounded-lg bg-white border-2 border-[var(--color-primary)] text-[var(--color-primary)] font-black hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,white)] transition-all text-xs uppercase tracking-widest"
+            >
+              AI ilə yaz
+            </button>
+          )}
+          {!isEditing && (
+            <button
               onClick={() => (
                 setIsCreating(true),
                 setIsEditing(true))}
@@ -400,6 +433,15 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
           )}
         </div>
       </div>
+
+      {showAiModal && (
+        <ContentAiGenerateModal
+          contentType="news"
+          title="AI ilə xəbər yaz"
+          onApply={applyAiDraft}
+          onClose={() => setShowAiModal(false)}
+        />
+      )}
 
       {isEditing && (
         <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-8 md:p-12 mb-12 animate-in slide-in-from-top-4 duration-300">
