@@ -49,6 +49,17 @@ const getLangValue = (langs: any[], lang: keyof typeof languageMap, key: string)
   return langs?.find(l => l.languageCode === languageMap[lang])?.[key] || "";
 };
 
+const SCRAPED_AI_SOURCE_HOSTS = ['minenergy.gov.az', 'area.gov.az'];
+const isScrapedAiSourceLink = (link?: string) => {
+  if (!link) return false;
+  try {
+    const host = new URL(link).hostname.replace(/^www\./, '');
+    return SCRAPED_AI_SOURCE_HOSTS.includes(host);
+  } catch {
+    return false;
+  }
+};
+
 const mapApiNewsItem = (item: any): NewsItem => ({
   id: item.id,
   image: item.coverImagePath,
@@ -672,6 +683,11 @@ const AdminNews: React.FC<AdminNewsProps> = ({ onBack }) => {
                 <div className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[8px] font-black text-slate-900 uppercase tracking-widest">
                   {item.date}
                 </div>
+                {isScrapedAiSourceLink(item.link) && (
+                  <div className="bg-amber-500/90 backdrop-blur px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest" title="Avtomatik AI tərəfindən yaradılıb">
+                    AI
+                  </div>
+                )}
               </div>
               <div className="absolute bottom-4 left-4">
                 <div className="bg-emerald-100/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-emerald-900 uppercase tracking-widest border border-emerald-200">
