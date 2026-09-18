@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getExampleNumber, type CountryCode } from 'libphonenumber-js';
 import mobileNumberExamples from 'libphonenumber-js/examples.mobile.json';
+import { formatAzLocalNumber } from '../utils/phoneFormat';
 
 export interface CountryCallingCode {
   iso2: string;
@@ -231,7 +232,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   return (
     <div ref={wrapperRef} className={`relative ${className}`}>
       <div
-        className={`flex items-stretch overflow-hidden rounded-xl border transition-colors focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 ${containerClassName || 'border-slate-200 bg-white'}`}
+        className={`flex items-stretch overflow-hidden rounded-lg border transition-colors focus-within:border-[var(--color-primary)] focus-within:ring-4 focus-within:ring-[var(--focus-ring)] ${containerClassName || 'border-slate-200 bg-white'}`}
       >
         <button
           type="button"
@@ -251,7 +252,10 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           type="tel"
           required={required}
           value={localNumber}
-          onChange={(e) => onLocalNumberChange(e.target.value.replace(/[^\d\s]/g, ''))}
+          onChange={(e) => {
+            const stripped = e.target.value.replace(/[^\d\s]/g, '');
+            onLocalNumberChange(selectedCountry.iso2 === 'AZ' ? formatAzLocalNumber(stripped) : stripped);
+          }}
           placeholder={countryPlaceholder}
           className={`min-w-0 flex-1 bg-transparent outline-none ${inputClassName}`}
         />
@@ -286,7 +290,7 @@ const CountryOption = ({ country, selected, onSelect }: { country: CountryCallin
     aria-selected={selected}
     onClick={onSelect}
     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors ${
-      selected ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+      selected ? 'bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-[var(--color-primary)]' : 'text-slate-600 hover:bg-slate-50'
     }`}
   >
     <CountryFlag iso2={country.iso2} />

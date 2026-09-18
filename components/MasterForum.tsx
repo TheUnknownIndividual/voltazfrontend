@@ -258,7 +258,7 @@ const MasterForum: React.FC<MasterForumProps> = ({ masters = [] }) => {
                 value={newMessage}
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="Şərh əlavə edin..."
-                className={`w-full border border-slate-200 p-3 text-[13px] outline-none focus:border-emerald-400 transition-all min-h-[80px] resize-none ${replyTo ? 'rounded-b-lg' : 'rounded-lg'}`}
+                className={`w-full border border-slate-200 p-3 text-[13px] outline-none focus:border-[var(--color-primary)] transition-all min-h-[80px] resize-none ${replyTo ? 'rounded-b-lg' : 'rounded-lg'}`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

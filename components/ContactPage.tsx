@@ -546,7 +546,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                         required
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all appearance-none cursor-pointer"
                       >
                         <option value="">{lang === 'az' ? 'Müraciət tipini seçin' : 'Select request type'}</option>
                         {applicationTypes.map(type => (
@@ -568,18 +568,18 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.labels.firstName}</label>
-                      <input required name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.firstName} />
+                      <input required name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.firstName} />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.labels.lastName}</label>
-                      <input required name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.lastName} />
+                      <input required name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.lastName} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.labels.email}</label>
-                      <input required name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.email} />
+                      <input required name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder={t.placeholders.email} />
                     </div>
 
                     <div className="space-y-2">
@@ -607,12 +607,12 @@ const ContactPage: React.FC<ContactPageProps> = ({ lang, onBack, initialService,
                       rows={4}
                       value={message}
                       onChange={handleMessageChange}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all resize-none font-bold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all resize-none font-bold text-slate-700"
                       placeholder={t.placeholders.message}
                     ></textarea>
                   </div>
 
-                  <button type="submit" disabled={isSubmitting} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-600">
+                  <button type="submit" disabled={isSubmitting} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-lg font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sky-600">
                     {isSubmitting && (
                       <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" /><path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 00-9 9h3a6 6 0 016-6V3z" /></svg>
                     )}

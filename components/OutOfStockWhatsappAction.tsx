@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { logPublicWhatsappClick } from '../api/solarAnalytics';
 import { STORAGE_KEYS } from '../utils/constants';
 import { trackWhatsappInteraction } from '../utils/analytics';
+import { formatAzLocalNumber } from '../utils/phoneFormat';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 
@@ -26,8 +27,6 @@ type Props = {
   className?: string;
   children: React.ReactNode;
 };
-
-const isAzerbaijanPhone = (value: string) => /^(\+994\d{9}|0\d{9})$/.test(value.replace(/[\s()-]/g, ''));
 
 const appendPhoneToWhatsappLink = (href: string, phone: string) => {
   const url = new URL(href, window.location.href);
@@ -82,7 +81,7 @@ const isSignedIn = () => {
  */
 const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, product, products, className, children }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [phone, setPhone] = useState('+994 ');
+  const [localNumber, setLocalNumber] = useState('');
   const [error, setError] = useState('');
   const labels = copy[lang];
   const normalizedProducts = useMemo(() => products?.slice(0, 20), [products]);
@@ -93,12 +92,13 @@ const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, prod
   };
 
   const submitGuestRequest = () => {
-    const normalizedPhone = phone.replace(/[\s()-]/g, '');
-    if (!isAzerbaijanPhone(normalizedPhone)) {
+    const localDigits = localNumber.replace(/\D/g, '');
+    if (localDigits.length !== 9) {
       setError(labels.invalid);
       return;
     }
 
+    const normalizedPhone = `+994${localDigits}`;
     const targetHref = appendPhoneToWhatsappLink(href, normalizedPhone);
     const payload = {
       schemaVersion: 1,
@@ -167,20 +167,23 @@ const OutOfStockWhatsappAction: React.FC<Props> = ({ href, lang, placement, prod
             <label className="mt-5 block text-xs font-black uppercase tracking-wider text-slate-500" htmlFor="out-of-stock-phone">
               {labels.phone}
             </label>
-            <input
-              id="out-of-stock-phone"
-              value={phone}
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="+994 50 123 45 67"
-              onChange={(event) => { setPhone(event.target.value); setError(''); }}
-              onKeyDown={(event) => { if (event.key === 'Enter') submitGuestRequest(); }}
-              className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 font-bold text-slate-900 outline-none transition focus:ring-4 focus:ring-emerald-500/10 ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-emerald-500'}`}
-            />
+            <div className={`mt-2 flex items-stretch overflow-hidden rounded-lg border bg-white transition focus-within:ring-4 focus-within:ring-[var(--focus-ring)] ${error ? 'border-red-500 focus-within:border-red-500' : 'border-slate-200 focus-within:border-[var(--color-primary)]'}`}>
+              <span className="flex shrink-0 select-none items-center border-r border-slate-200 px-3 font-bold text-slate-500">+994</span>
+              <input
+                id="out-of-stock-phone"
+                value={localNumber}
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="50 123 45 67"
+                onChange={(event) => { setLocalNumber(formatAzLocalNumber(event.target.value)); setError(''); }}
+                onKeyDown={(event) => { if (event.key === 'Enter') submitGuestRequest(); }}
+                className="min-w-0 flex-1 bg-transparent px-4 py-3 font-bold text-slate-900 outline-none"
+              />
+            </div>
             {error && <p className="mt-2 text-xs font-bold text-red-600">{error}</p>}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={close} className="rounded-xl px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-100">{labels.cancel}</button>
-              <button type="button" onClick={submitGuestRequest} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-700">{labels.continue}</button>
+              <button type="button" onClick={close} className="rounded-lg px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-100">{labels.cancel}</button>
+              <button type="button" onClick={submitGuestRequest} className="rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white hover:bg-[var(--primary-hover)]">{labels.continue}</button>
             </div>
           </section>
         </div>,

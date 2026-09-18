@@ -160,7 +160,7 @@ const ProClubDashboard: React.FC<ProClubDashboardProps> = ({ user, lang, onBack,
               <div className="flex justify-between items-center mb-12">
                 <h3 className="text-2xl font-black text-slate-900">{t.tabs.profile}</h3>
                 {!isEditing && (
-                  <button onClick={() => setIsEditing(true)} className="px-6 py-2.5 rounded-xl border-2 border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-600 transition-all text-[10px] font-black uppercase tracking-widest">
+                  <button onClick={() => setIsEditing(true)} className="px-6 py-2.5 rounded-lg border-2 border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-600 transition-all text-[10px] font-black uppercase tracking-widest">
                     {t.edit}
                   </button>
                 )}
@@ -170,7 +170,7 @@ const ProClubDashboard: React.FC<ProClubDashboardProps> = ({ user, lang, onBack,
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ad Soyad</label>
-                    <input disabled={!isEditing} type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
+                    <input disabled={!isEditing} type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Ünvanı</label>
@@ -180,7 +180,7 @@ const ProClubDashboard: React.FC<ProClubDashboardProps> = ({ user, lang, onBack,
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Əlaqə Nömrəsi</label>
-                    <input disabled={!isEditing} type="tel" value={profileData.phone || ''} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
+                    <input disabled={!isEditing} type="tel" value={profileData.phone || ''} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şəhər</label>
@@ -191,10 +191,10 @@ const ProClubDashboard: React.FC<ProClubDashboardProps> = ({ user, lang, onBack,
 
               {isEditing && (
                 <div className="flex gap-4 mt-12 pt-12 border-t border-slate-50">
-                  <button onClick={handleSaveProfile} className="px-10 py-4 rounded-2xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20">
+                  <button onClick={handleSaveProfile} className="px-10 py-4 rounded-lg bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20">
                     {t.save}
                   </button>
-                  <button onClick={() => { setIsEditing(false); setProfileData({...currentUser}); }} className="px-10 py-4 rounded-2xl bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">
+                  <button onClick={() => { setIsEditing(false); setProfileData({...currentUser}); }} className="px-10 py-4 rounded-lg bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">
                     {t.cancel}
                   </button>
                 </div>

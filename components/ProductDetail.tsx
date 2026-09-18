@@ -1379,7 +1379,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, onBack, onOrde
                   type="number" 
                   value={downPayment}
                   onChange={(e) => setDownPayment(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all"
                   placeholder="0"
                 />
               </div>

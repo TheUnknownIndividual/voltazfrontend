@@ -60,7 +60,6 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     lastName: user?.name?.split(' ').slice(1).join(' ') || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    bankCard: user?.bankCard || { number: '', expiry: '', cvv: '' },
     addresses: user?.addresses || [
       { id: '1', title: 'Əsas Ünvan', details: user?.address || '', isPrimary: true }
     ]
@@ -134,7 +133,6 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
       name: `${profileData.firstName} ${profileData.lastName}`.trim(),
       email: profileData.email,
       phone: profileData.phone,
-      bankCard: profileData.bankCard,
       addresses: profileData.addresses,
       address: profileData.addresses.find(a => a.isPrimary)?.details || ''
     };
@@ -389,7 +387,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                 <div className="flex justify-between items-center mb-12">
                   <h3 className="text-2xl font-black text-slate-900">{t.profile}</h3>
                   {!isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="px-6 py-2.5 rounded-xl border-2 border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-600 transition-all text-[10px] font-black uppercase tracking-widest">
+                    <button onClick={() => setIsEditing(true)} className="px-6 py-2.5 rounded-lg border-2 border-slate-100 text-slate-400 hover:text-emerald-600 hover:border-emerald-600 transition-all text-[10px] font-black uppercase tracking-widest">
                       {t.edit}
                     </button>
                   )}
@@ -399,11 +397,11 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.firstName}</label>
-                      <input disabled={!isEditing} type="text" value={profileData.firstName} onChange={e => setProfileData({...profileData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
+                      <input disabled={!isEditing} type="text" value={profileData.firstName} onChange={e => setProfileData({...profileData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.lastName}</label>
-                      <input disabled={!isEditing} type="text" value={profileData.lastName} onChange={e => setProfileData({...profileData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
+                      <input disabled={!isEditing} type="text" value={profileData.lastName} onChange={e => setProfileData({...profileData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.email}</label>
@@ -413,28 +411,14 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.phone}</label>
-                      <input disabled={!isEditing} type="tel" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.bankCard}</label>
-                      <input disabled={!isEditing} type="text" placeholder="**** **** **** ****" value={profileData.bankCard.number} onChange={e => setProfileData({...profileData, bankCard: {...profileData.bankCard, number: e.target.value}})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.expiry}</label>
-                        <input disabled={!isEditing} type="text" placeholder="MM/YY" value={profileData.bankCard.expiry} onChange={e => setProfileData({...profileData, bankCard: {...profileData.bankCard, expiry: e.target.value}})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CVV</label>
-                        <input disabled={!isEditing} type="password" placeholder="***" value={profileData.bankCard.cvv} onChange={e => setProfileData({...profileData, bankCard: {...profileData.bankCard, cvv: e.target.value}})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                      </div>
+                      <input disabled={!isEditing} type="tel" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none disabled:opacity-60 focus:ring-4 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
                     </div>
                   </div>
                 </div>
 
                 {isEditing && (
                   <div className="flex gap-4 mt-12 pt-12 border-t border-slate-50">
-                    <button onClick={handleSaveProfile} className="px-10 py-4 rounded-2xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20">
+                    <button onClick={handleSaveProfile} className="px-10 py-4 rounded-lg bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20">
                       {t.save}
                     </button>
                     <button onClick={() => { setIsEditing(false); setProfileData({
@@ -442,7 +426,6 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                       lastName: user?.name?.split(' ').slice(1).join(' ') || '',
                       email: user?.email || '',
                       phone: user?.phone || '',
-                      bankCard: user?.bankCard || { number: '', expiry: '', cvv: '' },
                       addresses: user?.addresses || [{ id: '1', title: 'Əsas Ünvan', details: user?.address || '', isPrimary: true }]
                     }); }} className="px-10 py-4 rounded-2xl bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">
                       {t.cancel}
@@ -472,18 +455,18 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                         placeholder={t.addressTitle}
                         value={newAddress.title}
                         onChange={e => setNewAddress({...newAddress, title: e.target.value})}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                       />
                       <input 
                         type="text" 
                         placeholder={t.fullAddress}
                         value={newAddress.details}
                         onChange={e => setNewAddress({...newAddress, details: e.target.value})}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                       />
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={handleAddAddress} className="bg-emerald-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all">{t.add}</button>
+                      <button onClick={handleAddAddress} className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all">{t.add}</button>
                       <button onClick={() => setShowAddressForm(false)} className="text-slate-400 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:text-slate-600">{t.cancel}</button>
                     </div>
                   </div>
@@ -582,7 +565,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                         <span className="font-black text-emerald-600 text-lg">{subtotal.toFixed(2)} AZN</span>
                       </div>
                     </div>
-                    <button onClick={handleCheckoutAction} disabled={hasStockIssue} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+                    <button onClick={handleCheckoutAction} disabled={hasStockIssue} className="w-full bg-emerald-600 text-white py-4 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
                       {t.checkout}
                     </button>
                   </div>

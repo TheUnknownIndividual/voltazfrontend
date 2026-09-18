@@ -20,8 +20,13 @@ const AUTH_ICONS = {
   passkey: '/auth-icons/passkey.png',
 };
 
+// Falls back to the current origin so this matches whichever domain the app is
+// actually running on (test.volt.az vs volt.az) instead of a single hardcoded
+// test-domain URL. This must be registered as a Return URL on the Apple
+// Service ID for EVERY domain the site runs on -- see SocialAuthButtons.tsx
+// notes / ask the developer for the exact Apple Developer setup steps.
 const getAppleRedirectUri = () =>
-  import.meta.env.VITE_APPLE_REDIRECT_URI || 'https://test.volt.az/api/auth/callback/apple';
+  import.meta.env.VITE_APPLE_REDIRECT_URI || `${window.location.origin}/api/auth/callback/apple`;
 
 const copy = {
   az: {
@@ -165,7 +170,7 @@ const serializeCredential = (credential: PublicKeyCredential) => {
   };
 };
 
-const buttonClass = 'flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+const buttonClass = 'flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition-all hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 const iconClass = 'h-5 w-5 object-contain';
 
 const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ mode, lang = 'az', getProfile, onSuccess }) => {
@@ -218,6 +223,11 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ mode, lang = 'az'
 
       google.accounts.id.prompt((notification: any) => {
         if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          // Google's One Tap prompt frequently can't display on mobile (blocked
+          // third-party cookies, embedded WebViews, no FedCM support, etc.) and
+          // fails silently by design -- surface that instead of leaving the
+          // button spinner just stop with no explanation.
+          setError(t.unavailable);
           setBusy(null);
         }
       });

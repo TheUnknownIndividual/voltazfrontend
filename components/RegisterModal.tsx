@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import SocialAuthButtons from './SocialAuthButtons';
 import { useAuth } from '../contexts/AuthContext';
+import { formatAzSevenDigits } from '../utils/phoneFormat';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
       return;
     }
 
-    const fullPhone = `${formData.phonePrefix}${formData.phone}`;
+    const fullPhone = `${formData.phonePrefix}${formData.phone.replace(/\s/g, '')}`;
     const nextUser = await register({
       firstName: formData.firstName,
       lastName: formData.lastName,
@@ -90,7 +91,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
             getProfile={() => ({
               name: `${formData.firstName} ${formData.lastName}`.trim(),
               email: formData.email.trim(),
-              phone: `${formData.phonePrefix}${formData.phone}`,
+              phone: `${formData.phonePrefix}${formData.phone.replace(/\s/g, '')}`,
               address: formData.address,
             })}
             onSuccess={(nextUser) => {
@@ -111,11 +112,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.firstName} *</label>
-              <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder={copy.firstPlaceholder} />
+              <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder={copy.firstPlaceholder} />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.lastName} *</label>
-              <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder={copy.lastPlaceholder} />
+              <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder={copy.lastPlaceholder} />
             </div>
           </div>
 
@@ -126,38 +127,38 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, lang = '
                 <select 
                   value={formData.phonePrefix} 
                   onChange={e => setFormData({...formData, phonePrefix: e.target.value})}
-                  className="w-24 bg-slate-50 border border-slate-100 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none appearance-none font-bold text-slate-700"
+                  className="w-24 bg-slate-50 border border-slate-100 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none appearance-none font-bold text-slate-700"
                 >
                   {['050', '051', '055', '099', '077', '070'].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 7)})} className="flex-grow bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700" placeholder="1234567" />
+                <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: formatAzSevenDigits(e.target.value)})} className="flex-grow bg-slate-50 border border-slate-100 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none font-bold text-slate-700" placeholder="123 45 67" />
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email *</label>
-              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="email@example.com" />
+              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="email@example.com" />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.address}</label>
-            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder={copy.addressPlaceholder} />
+            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder={copy.addressPlaceholder} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.password} *</label>
-              <input required type="password" minLength={6} autoComplete="new-password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+              <input required type="password" minLength={6} autoComplete="new-password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="••••••••" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{copy.confirmPassword} *</label>
-              <input required type="password" minLength={6} autoComplete="new-password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+              <input required type="password" minLength={6} autoComplete="new-password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="••••••••" />
             </div>
           </div>
 
           {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-          <button type="submit" disabled={loading} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-2 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={loading} className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 active:scale-95 mt-2 disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? copy.submitting : copy.submit}
           </button>
         </form>

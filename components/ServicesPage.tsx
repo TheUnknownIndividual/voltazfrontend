@@ -845,7 +845,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="serviceType"
                       value={formData.serviceType}
                       onChange={handleChange}
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900 appearance-none cursor-pointer"
+                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all text-sm font-bold text-slate-900 appearance-none cursor-pointer"
                     >
                       <option value="" disabled>{t.selectService[lang]}</option>
                       {safeServices.map(s => (
@@ -871,7 +871,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
+                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
                       placeholder="..."
                     />
                   </div>
@@ -883,7 +883,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
+                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
                       placeholder="..."
                     />
                   </div>
@@ -898,7 +898,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
+                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all text-sm font-bold text-slate-900"
                       placeholder="example@mail.com"
                     />
                   </div>
@@ -928,7 +928,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     value={formData.message}
                     onChange={handleChange}
                     rows={4}
-                    className="w-full p-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-bold text-slate-900 resize-none"
+                    className="w-full p-6 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-[var(--color-primary)] focus:bg-white outline-none transition-all text-sm font-bold text-slate-900 resize-none"
                     placeholder="..."
                   ></textarea>
                 </div>

@@ -941,7 +941,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                           value={companyName}
                           onChange={(e) => setCompanyName(e.target.value)}
                           placeholder={getText(translations.placeholders.company, lang)}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-[var(--color-primary)] focus:outline-none"
                         />
                       </div>
 
@@ -955,7 +955,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                           value={contactPerson}
                           onChange={(e) => setContactPerson(e.target.value)}
                           placeholder={getText(translations.placeholders.person, lang)}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-[var(--color-primary)] focus:outline-none"
                         />
                       </div>
 
@@ -984,7 +984,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder={getText(translations.placeholders.email, lang)}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-[var(--color-primary)] focus:outline-none"
                         />
                       </div>
                     </div>
@@ -997,7 +997,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                       <select
                         value={partnerType}
                         onChange={(e) => setPartnerType(e.target.value)}
-                        className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                        className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-[var(--color-primary)] focus:outline-none"
                       >
                         <option value="">
                           Seçin
@@ -1020,7 +1020,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder={getText(translations.placeholders.message, lang)}
-                        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-emerald-500 focus:outline-none"
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-900 transition-colors focus:border-[var(--color-primary)] focus:outline-none"
                       />
                     </div>
 

@@ -79,7 +79,7 @@ const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, 
             <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Ad Soyad</label>
-                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Ad və Soyadınız" />
+                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" placeholder="Ad və Soyadınız" />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -97,7 +97,7 @@ const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, 
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Yaşayış ünvanı</label>
-                  <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Şəhər və ya Rayon" />
+                  <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" placeholder="Şəhər və ya Rayon" />
                 </div>
               </div>
               
@@ -114,10 +114,10 @@ const UstalarKlubuModal: React.FC<UstalarKlubuModalProps> = ({ isOpen, onClose, 
               
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Şifrə</label>
-                <input type="password" title="password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                <input type="password" title="password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--color-primary)] transition-all" />
               </div>
               
-              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 mt-4">
+              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-4 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/10 mt-4">
                 Klubun Üzvü Ol
               </button>
             </form>

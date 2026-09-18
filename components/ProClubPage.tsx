@@ -288,18 +288,18 @@ const ProClubPage: React.FC<ProClubPageProps> = ({ lang = 'az', onBack, onRegist
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ad *</label>
-                  <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="Əli" />
+                  <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="Əli" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Soyad *</label>
-                  <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="Məmmədov" />
+                  <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="Məmmədov" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şəhər *</label>
-                  <select required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none appearance-none">
+                  <select required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none appearance-none">
                     {cities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -309,34 +309,34 @@ const ProClubPage: React.FC<ProClubPageProps> = ({ lang = 'az', onBack, onRegist
                     <select 
                       value={formData.phonePrefix} 
                       onChange={e => setFormData({...formData, phonePrefix: e.target.value})}
-                      className="w-24 bg-slate-50 border border-slate-100 rounded-xl px-3 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none appearance-none font-bold text-slate-700"
+                      className="w-24 bg-slate-50 border border-slate-100 rounded-xl px-3 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none appearance-none font-bold text-slate-700"
                     >
                       {['050', '051', '055', '099', '077', '070'].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 7)})} className="flex-grow bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-700" placeholder="1234567" />
+                    <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 7)})} className="flex-grow bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none font-bold text-slate-700" placeholder="1234567" />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email ünvanı *</label>
-                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="email@example.com" />
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="email@example.com" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Şifrə *</label>
-                  <input required type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+                  <input required type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="••••••••" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Yeni Şifrə *</label>
-                  <input required type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="••••••••" />
+                  <input required type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none" placeholder="••••••••" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ustalığın tipi *</label>
-                <select required value={formData.masterType} onChange={e => setFormData({...formData, masterType: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none appearance-none">
+                <select required value={formData.masterType} onChange={e => setFormData({...formData, masterType: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 text-sm focus:ring-2 focus:ring-[var(--focus-ring)] outline-none appearance-none">
                   {masterTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -363,7 +363,7 @@ const ProClubPage: React.FC<ProClubPageProps> = ({ lang = 'az', onBack, onRegist
 
               {error && <p className="text-red-500 text-[10px] font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
 
-              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+              <button type="submit" className="flex w-full min-h-[var(--cta-btn-h)] items-center justify-center bg-emerald-600 text-white py-5 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-slate-900 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                 Usta Hesabını Yarat
               </button>
             </form>

@@ -21,6 +21,14 @@ interface HeaderProps {
   onLogin?: (userData: any) => void;
 }
 
+const getUserInitials = (name?: string) => {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  const first = parts[0]?.[0] || '';
+  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || '' : '';
+  return (first + last).toUpperCase();
+};
+
 const DropdownItem = ({ label, onClick, icon }: { label: string; onClick: () => void; icon?: React.ReactNode }) => (
   <button
     onClick={onClick}
@@ -908,8 +916,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
             {isSignedIn ? (
               <div className="relative" onMouseEnter={() => setActiveDropdown('profile')} onMouseLeave={() => setActiveDropdown('none')}>
                 <button className="header-mobile-account-action flex min-h-11 items-center gap-1.5 pr-2">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-dark)] text-[11px] font-black text-white shadow-sm ring-2 ring-white">
+                    {getUserInitials(user?.name) || (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    )}
                   </div>
                 </button>
               {activeDropdown === 'profile' && (

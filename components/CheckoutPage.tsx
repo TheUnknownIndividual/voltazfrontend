@@ -4,6 +4,7 @@ import axiosInstance from '../api/axiosInstance';
 import { useProduct } from '../contexts/ProductContext';
 import { API_ENDPOINTS } from '../utils/constants';
 import { getStockWarning } from '../utils/productInventory';
+import { formatAzNationalNumber } from '../utils/phoneFormat';
 
 type Language = 'az' | 'en' | 'ru' | 'tr';
 type StepKey = 'contact' | 'delivery' | 'payment' | 'review' | 'confirmation';
@@ -44,7 +45,7 @@ const SAVED_CONTACT_KEY = 'volt_checkout_contact_v1';
 const CHECKOUT_CONTACTS_BY_EMAIL_KEY = 'volt_checkout_contacts_by_email_v1';
 const PICKUP_LOCATION = 'Volt.az pickup point, Baku';
 
-const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base md:text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
+const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base md:text-sm font-bold text-slate-900 outline-none transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--focus-ring)]';
 
 const checkoutCopy = {
   az: {
@@ -63,6 +64,8 @@ const checkoutCopy = {
     contactSaved: 'Əlaqə məlumatlarınız saxlanılıb. İstəsəniz açıb redaktə edə bilərsiniz.',
     contactPrefill: 'Profil məlumatlarınız əvvəlcədən doldurulub. Dəyişikliklər yalnız bu sifariş üçün istifadə olunur.',
     name: 'Ad və soyad',
+    namePlaceholder: 'Məs: Əli Məmmədov',
+    emailPlaceholder: 'email@nümunə.az',
     phone: 'Telefon',
     email: 'Email',
     saveProfile: 'Növbəti sifarişlər üçün yadda saxla',
@@ -152,6 +155,8 @@ const checkoutCopy = {
     contactSaved: 'Your contact details are saved. You can open and edit them if needed.',
     contactPrefill: 'Your profile details are prefilled. Edits are used for this order only.',
     name: 'Full name',
+    namePlaceholder: 'E.g. Ali Mammadov',
+    emailPlaceholder: 'email@example.com',
     phone: 'Phone',
     email: 'Email',
     saveProfile: 'Save for next orders',
@@ -241,6 +246,8 @@ const checkoutCopy = {
     contactSaved: 'Ваши контакты сохранены. При необходимости их можно открыть и изменить.',
     contactPrefill: 'Данные профиля заполнены заранее. Изменения используются только для этого заказа.',
     name: 'Имя и фамилия',
+    namePlaceholder: 'Например: Али Мамедов',
+    emailPlaceholder: 'email@example.com',
     phone: 'Телефон',
     email: 'Email',
     saveProfile: 'Сохранить для следующих заказов',
@@ -330,6 +337,8 @@ const checkoutCopy = {
     contactSaved: 'İletişim bilgileriniz kayıtlı. Gerekirse açıp düzenleyebilirsiniz.',
     contactPrefill: 'Profil bilgileriniz dolduruldu. Değişiklikler yalnızca bu sipariş için kullanılır.',
     name: 'Ad soyad',
+    namePlaceholder: 'Örn: Ali Memmedov',
+    emailPlaceholder: 'email@ornek.com',
     phone: 'Telefon',
     email: 'Email',
     saveProfile: 'Sonraki siparişler için kaydet',
@@ -848,7 +857,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
         <div className="mx-auto max-w-xl px-4 py-20 text-center">
           <ShoppingCart className="mx-auto mb-4 h-12 w-12 text-slate-300" />
           <h1 className="text-2xl font-black text-slate-900">{loadError || copy.noItems}</h1>
-          <button onClick={loadError ? () => window.location.reload() : onContinueShopping} className="mt-6 rounded-xl bg-emerald-600 px-6 py-3 text-xs font-black uppercase tracking-widest text-white">
+          <button onClick={loadError ? () => window.location.reload() : onContinueShopping} className="mt-6 rounded-lg bg-emerald-600 px-6 py-3 text-xs font-black uppercase tracking-widest text-white">
             {loadError ? copy.retry : copy.continueShopping}
           </button>
         </div>
@@ -878,9 +887,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {copy.quoteNext}
               </p>
               <div className="relative z-10 mt-8 grid gap-3 sm:grid-cols-3">
-                <button onClick={onContinueShopping} className="rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98]">{copy.continue}</button>
-                <button onClick={onViewOrders} className="rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">{copy.myOrders}</button>
-                <button onClick={() => onNavigate?.('contact')} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{copy.contactUs}</button>
+                <button onClick={onContinueShopping} className="rounded-lg bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98]">{copy.continue}</button>
+                <button onClick={onViewOrders} className="rounded-lg bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">{copy.myOrders}</button>
+                <button onClick={() => onNavigate?.('contact')} className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{copy.contactUs}</button>
               </div>
             </div>
           </main>
@@ -966,9 +975,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </section>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <button onClick={onViewOrders} className="rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">{copy.myOrders}</button>
-                <button onClick={onContinueShopping} className="rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98]">{copy.continue}</button>
-                <button onClick={() => window.print()} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{copy.print}</button>
+                <button onClick={onViewOrders} className="rounded-lg bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">{copy.myOrders}</button>
+                <button onClick={onContinueShopping} className="rounded-lg bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-lg active:scale-[0.98]">{copy.continue}</button>
+                <button onClick={() => window.print()} className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 transition-all hover:-translate-y-0.5 hover:border-emerald-500 hover:text-emerald-600 active:scale-[0.98]">{copy.print}</button>
               </div>
             </div>
           </div>
@@ -1002,9 +1011,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
             <div className="checkout-step-panel border-t border-slate-100 p-5">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} className={inputClass} /></Field>
-                <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="050 123 45 67" className={inputClass} /></Field>
-                <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} className={inputClass} /></Field>
+                <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} placeholder={copy.namePlaceholder} className={inputClass} /></Field>
+                <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', formatAzNationalNumber(e.target.value))} inputMode="tel" placeholder="050 123 45 67" className={inputClass} /></Field>
+                <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} placeholder={copy.emailPlaceholder} className={inputClass} /></Field>
               </div>
               {renderErrors('contact')}
               {submitError && <div className="mt-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">{submitError}</div>}
@@ -1025,7 +1034,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       <main className="mx-auto grid max-w-7xl gap-8 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:px-8">
         <div className="space-y-4">
-          <button type="button" onClick={() => setSummaryOpen((value) => !value)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left lg:hidden">
+          <button type="button" onClick={() => setSummaryOpen((value) => !value)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white p-4 text-left lg:hidden">
             <span className="text-sm font-black text-slate-900">{copy.summary}</span>
             <span className="flex items-center gap-2 text-sm font-black text-emerald-600">{total.toFixed(2)} AZN <ChevronDown className={`h-4 w-4 transition ${summaryOpen ? 'rotate-180' : ''}`} /></span>
           </button>
@@ -1038,9 +1047,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {getSavedContact() && <div className="mb-4 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700">{copy.contactSaved}</div>}
                 {user && <div className="mb-4 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700">{copy.contactPrefill}</div>}
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} className={inputClass} /></Field>
-                  <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', e.target.value)} placeholder="050 123 45 67" className={inputClass} /></Field>
-                  <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} className={inputClass} /></Field>
+                  <Field label={copy.name}><input value={form.contact.fullName} onChange={(e) => updateContact('fullName', e.target.value)} placeholder={copy.namePlaceholder} className={inputClass} /></Field>
+                  <Field label={copy.phone}><input value={form.contact.phone} onChange={(e) => updateContact('phone', formatAzNationalNumber(e.target.value))} inputMode="tel" placeholder="050 123 45 67" className={inputClass} /></Field>
+                  <Field label={copy.email}><input value={form.contact.email} onChange={(e) => updateContact('email', e.target.value)} placeholder={copy.emailPlaceholder} className={inputClass} /></Field>
                 </div>
                 <label className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={form.contact.saveToProfile} onChange={(e) => updateContact('saveToProfile', e.target.checked)} /> {copy.saveProfile}</label>
                 {renderErrors('contact')}
@@ -1160,7 +1169,7 @@ const CheckoutHeader = ({ lang, onLangChange, onBackToCart, onGoHome, compact = 
       <div className="hidden items-center gap-2 text-sm font-black text-slate-700 sm:flex"><ShieldCheck className="h-4 w-4 text-emerald-600" /> {(checkoutCopy[lang] || checkoutCopy.az).secure}</div>
       <div className="flex items-center gap-2">
         {onLangChange && (
-          <select value={lang} onChange={(e) => onLangChange(e.target.value as Language)} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-base md:text-xs font-black text-slate-700 transition-all hover:border-emerald-500 focus:border-emerald-500 focus:outline-none">
+          <select value={lang} onChange={(e) => onLangChange(e.target.value as Language)} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-base md:text-xs font-black text-slate-700 transition-all hover:border-emerald-500 focus:border-[var(--color-primary)] focus:outline-none">
             <option value="az">AZ</option>
             <option value="en">EN</option>
             <option value="ru">RU</option>
@@ -1185,7 +1194,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 const RadioCard = ({ active, icon: Icon, title, detail, onClick }: { active: boolean; icon: any; title: string; detail: string; onClick: () => void }) => (
-  <button type="button" onClick={onClick} className={`min-h-32 rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] ${active ? 'border-emerald-500 bg-emerald-50 shadow-emerald-600/10' : 'border-slate-200 bg-white hover:border-emerald-300'}`}>
+  <button type="button" onClick={onClick} className={`min-h-32 rounded-lg border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] ${active ? 'border-emerald-500 bg-emerald-50 shadow-emerald-600/10' : 'border-slate-200 bg-white hover:border-emerald-300'}`}>
     <Icon className={`mb-3 h-5 w-5 ${active ? 'text-emerald-600' : 'text-slate-400'}`} />
     <div className="text-sm font-black text-slate-900">{title}</div>
     <div className="mt-1 text-xs font-semibold leading-relaxed text-slate-500">{detail}</div>
@@ -1193,7 +1202,7 @@ const RadioCard = ({ active, icon: Icon, title, detail, onClick }: { active: boo
 );
 
 const StepAction = ({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
-  <button disabled={disabled} onClick={onClick} className="mt-6 inline-flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:px-8">
+  <button disabled={disabled} onClick={onClick} className="mt-6 inline-flex w-full min-h-[var(--cta-btn-h)] items-center justify-center rounded-lg bg-emerald-600 py-4 text-xs font-black uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-slate-900 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:px-8">
     {children}
   </button>
 );
