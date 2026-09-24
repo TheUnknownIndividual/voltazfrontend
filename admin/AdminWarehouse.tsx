@@ -18,6 +18,7 @@ import {
   type ProductAiJob,
   type ProductDatasheetSource,
 } from '../api/productAiImport';
+import { prepareLalafoListing, buildLalafoPostUrl } from '../api/lalafo';
 
 interface WarehouseProduct {
   id: number;
@@ -296,6 +297,7 @@ const AdminWarehouse: React.FC = () => {
   const [aiJob, setAiJob] = useState<ProductAiJob | null>(null);
   const [aiDraft, setAiDraft] = useState<ProductAiDraft | null>(null);
   const [isAiStarting, setIsAiStarting] = useState(false);
+  const [lalafoPreparingId, setLalafoPreparingId] = useState<number | string | null>(null);
   const [aiInvalidFields, setAiInvalidFields] = useState<Set<AiRequiredField>>(() => new Set());
   const sessionDatasheetUploads = useRef<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -714,6 +716,20 @@ const getProductValue = (product: any) =>
     setContentVariantIndex(0);
   };
 
+
+const handlePostToLalafo = async (id: number | string) => {
+  setLalafoPreparingId(id);
+  try {
+    const prepared = await prepareLalafoListing(Number(id));
+    window.open(buildLalafoPostUrl(prepared.code), '_blank', 'noopener');
+    showNotification("Elan hazırlandı. Lalafo səhifəsində köməkçi genişlənmə davam edəcək.", "success");
+  } catch (error) {
+    console.error("LALAFO PREPARE ERROR:", error);
+    showNotification("Lalafo elanı hazırlanmadı", "error");
+  } finally {
+    setLalafoPreparingId(null);
+  }
+};
 
 const handleDelete = async (id: number | string) => {
   if (!(await confirm("Bu məhsulu silmək istədiyinizə əminsiniz?"))) return;
@@ -1309,6 +1325,19 @@ const applyAiDraft = async () => {
                         title="Redaktə et"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+
+                      <button
+                        onClick={() => handlePostToLalafo(product.id)}
+                        disabled={lalafoPreparingId !== null}
+                        className="p-2 bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Lalafo-da yerləşdir"
+                      >
+                        {lalafoPreparingId === product.id ? (
+                          <span className="block w-4 h-4 rounded-full border-2 border-slate-300 border-t-emerald-600 animate-spin" />
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        )}
                       </button>
 
                       <button
