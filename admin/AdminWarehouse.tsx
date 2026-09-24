@@ -19,7 +19,7 @@ import {
   type ProductDatasheetSource,
 } from '../api/productAiImport';
 import {
-  prepareMarketplaceListing,
+  prepareMarketplaceBatch,
   buildMarketplacePostUrl,
   getMarketplaceListings,
   MARKETPLACE_LABELS,
@@ -306,6 +306,8 @@ const AdminWarehouse: React.FC = () => {
   const [isAiStarting, setIsAiStarting] = useState(false);
   const [marketplacePreparing, setMarketplacePreparing] = useState<{ id: number | string; marketplace: MarketplaceName } | null>(null);
   const [listingsByProduct, setListingsByProduct] = useState<Record<number, MarketplaceListing[]>>({});
+  const [autoPostTargets, setAutoPostTargets] = useState<Record<MarketplaceName, boolean>>({ lalafo: false, tapaz: false });
+  const [postReady, setPostReady] = useState<{ productId: number; productName: string; marketplaces: MarketplaceName[] } | null>(null);
   const [aiInvalidFields, setAiInvalidFields] = useState<Set<AiRequiredField>>(() => new Set());
   const sessionDatasheetUploads = useRef<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -588,12 +590,19 @@ const getProductValue = (product: any) =>
 
       // CREATE
       else {
-        await createProduct(payload);
+        const created = await createProduct(payload);
 
         showNotification(
           "Məhsul uğurla yaradıldı",
           "success"
         );
+
+        const createdId = Number(created?.data?.id ?? created?.data?.data?.id ?? created?.id);
+        const selectedMarketplaces = (Object.keys(autoPostTargets) as MarketplaceName[]).filter((m) => autoPostTargets[m]);
+        if (Number.isFinite(createdId) && createdId > 0 && selectedMarketplaces.length > 0) {
+          setPostReady({ productId: createdId, productName: newProduct.name, marketplaces: selectedMarketplaces });
+        }
+        setAutoPostTargets({ lalafo: false, tapaz: false });
       }
 
       await getProducts(selectedCategoryId, undefined, page, pageSize, debouncedSearch, stockFilter);
@@ -753,22 +762,49 @@ const getProductValue = (product: any) =>
   };
 
 
-const handlePostToMarketplace = async (id: number | string, marketplace: MarketplaceName) => {
+// Prepares one listing per variant and opens a single marketplace tab that works through them one by one.
+// The blank tab is opened first, inside the click, so the browser does not treat it as an unwanted popup.
+const postToMarketplace = async (
+  id: number | string,
+  marketplace: MarketplaceName,
+  options: { auto: boolean; force?: boolean },
+) => {
+  const label = MARKETPLACE_LABELS[marketplace];
+  const tab = window.open('about:blank', '_blank');
   setMarketplacePreparing({ id, marketplace });
   try {
-    const prepared = await prepareMarketplaceListing(Number(id), marketplace);
-    window.open(buildMarketplacePostUrl(marketplace, prepared.code), '_blank', 'noopener');
+    const batch = await prepareMarketplaceBatch(Number(id), marketplace, { force: options.force });
+    if (batch.skipped.length > 0) {
+      showNotification(`${batch.skipped.length} variant ${label}-da artıq var və ya hazırlanmadı, keçildi`, "info");
+    }
+    if (batch.items.length === 0) {
+      tab?.close();
+      showNotification(`${label} üçün paylaşılacaq yeni variant yoxdur`, "info");
+      return;
+    }
+    const url = buildMarketplacePostUrl(marketplace, batch.items.map((item) => item.code), options.auto);
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else {
+      showNotification("Brauzer yeni pəncərəni blokladı. Pop-up icazəsi verin və yenidən cəhd edin.", "error");
+      return;
+    }
     showNotification(
-      `Elan hazırlandı. ${MARKETPLACE_LABELS[marketplace]} səhifəsində köməkçi genişlənmə davam edəcək.`,
+      `${batch.items.length} elan hazırlandı. ${label} səhifəsində köməkçi genişlənmə davam edəcək.`,
       "success",
     );
   } catch (error) {
     console.error("MARKETPLACE PREPARE ERROR:", error);
-    showNotification(`${MARKETPLACE_LABELS[marketplace]} elanı hazırlanmadı`, "error");
+    tab?.close();
+    showNotification(`${label} elanı hazırlanmadı`, "error");
   } finally {
     setMarketplacePreparing(null);
   }
 };
+
+const handlePostToMarketplace = (id: number | string, marketplace: MarketplaceName, force = false) =>
+  postToMarketplace(id, marketplace, { auto: false, force });
 
 const handleDelete = async (id: number | string) => {
   if (!(await confirm("Bu məhsulu silmək istədiyinizə əminsiniz?"))) return;
@@ -1306,6 +1342,7 @@ const applyAiDraft = async () => {
                             const rows = (listingsByProduct[Number(product.id)] ?? []).filter((l) => l.marketplace === marketplace);
                             if (rows.length === 0) return null;
                             const best = rows.find((l) => l.status === 'published') ?? rows.find((l) => l.status === 'pending') ?? rows[0];
+                            const postedVariants = new Set(rows.filter((l) => l.status !== 'draft').map((l) => l.variantId ?? 0)).size;
                             const label = best.status === 'published' ? 'Paylaşılıb' : best.status === 'pending' ? 'Moderasiyada' : 'Qaralama';
                             const color = best.status === 'published'
                               ? 'bg-emerald-50 text-emerald-700'
@@ -1315,10 +1352,10 @@ const applyAiDraft = async () => {
                             const badge = `px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${color}`;
                             return best.url ? (
                               <a key={marketplace} href={best.url} target="_blank" rel="noopener noreferrer" className={badge}>
-                                {MARKETPLACE_LABELS[marketplace]} · {label}
+                                {MARKETPLACE_LABELS[marketplace]} · {label}{postedVariants > 1 ? ` (${postedVariants})` : ''}
                               </a>
                             ) : (
-                              <span key={marketplace} className={badge}>{MARKETPLACE_LABELS[marketplace]} · {label}</span>
+                              <span key={marketplace} className={badge}>{MARKETPLACE_LABELS[marketplace]} · {label}{postedVariants > 1 ? ` (${postedVariants})` : ''}</span>
                             );
                           })}
                         </div>
@@ -1390,10 +1427,10 @@ const applyAiDraft = async () => {
                       {(['lalafo', 'tapaz'] as MarketplaceName[]).map((marketplace) => (
                         <button
                           key={marketplace}
-                          onClick={() => handlePostToMarketplace(product.id, marketplace)}
+                          onClick={(event) => handlePostToMarketplace(product.id, marketplace, event.altKey)}
                           disabled={marketplacePreparing !== null}
                           className="px-2 py-2 bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-[9px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={`${MARKETPLACE_LABELS[marketplace]}-da yerləşdir`}
+                          title={`${MARKETPLACE_LABELS[marketplace]}-da yerləşdir (hər variant ayrıca elan; artıq paylaşılanlar keçilir, Alt basılı klik yenidən paylaşır)`}
                         >
                           {marketplacePreparing?.id === product.id && marketplacePreparing.marketplace === marketplace ? (
                             <span className="block w-4 h-4 rounded-full border-2 border-slate-300 border-t-emerald-600 animate-spin" />
@@ -2116,6 +2153,23 @@ const applyAiDraft = async () => {
                 </div>
               </div>
 
+              {!editingProduct && (
+                <div className="flex flex-wrap items-center gap-4 rounded-xl bg-slate-50 p-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Yaradıldıqdan sonra avtomatik paylaş:</span>
+                  {(['lalafo', 'tapaz'] as MarketplaceName[]).map((marketplace) => (
+                    <label key={marketplace} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoPostTargets[marketplace]}
+                        onChange={(e) => setAutoPostTargets({ ...autoPostTargets, [marketplace]: e.target.checked })}
+                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      {MARKETPLACE_LABELS[marketplace]}
+                    </label>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-4 pt-4">
                 <button
                   type="button"
@@ -2132,6 +2186,48 @@ const applyAiDraft = async () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {postReady && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setPostReady(null); }}
+        >
+          <div
+            className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl md:p-8"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-xl font-black text-slate-900">Paylaşmağa hazırdır</h3>
+            <p className="mt-2 text-xs text-slate-500">
+              “{postReady.productName}” yaradıldı. Hər variant üçün ayrıca elan hazırlanacaq və seçilmiş saytda ardıcıl, avtomatik dərc olunacaq.
+              Brauzerdə həmin saytda hesabınıza daxil olmalısınız.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              {postReady.marketplaces.map((marketplace) => (
+                <button
+                  key={marketplace}
+                  disabled={marketplacePreparing !== null}
+                  onClick={async () => {
+                    await postToMarketplace(postReady.productId, marketplace, { auto: true });
+                    setPostReady((current) => {
+                      if (!current) return null;
+                      const rest = current.marketplaces.filter((m) => m !== marketplace);
+                      return rest.length > 0 ? { ...current, marketplaces: rest } : null;
+                    });
+                  }}
+                  className="rounded-xl bg-emerald-600 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {marketplacePreparing?.marketplace === marketplace ? 'Hazırlanır...' : `${MARKETPLACE_LABELS[marketplace]}-da avtomatik paylaş`}
+                </button>
+              ))}
+              <button
+                onClick={() => setPostReady(null)}
+                className="rounded-xl bg-slate-100 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-200"
+              >
+                İndi yox
+              </button>
+            </div>
           </div>
         </div>
       )}
