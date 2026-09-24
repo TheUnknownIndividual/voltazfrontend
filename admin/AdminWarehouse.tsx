@@ -18,7 +18,14 @@ import {
   type ProductAiJob,
   type ProductDatasheetSource,
 } from '../api/productAiImport';
-import { prepareLalafoListing, buildLalafoPostUrl } from '../api/lalafo';
+import {
+  prepareMarketplaceListing,
+  buildMarketplacePostUrl,
+  getMarketplaceListings,
+  MARKETPLACE_LABELS,
+  type MarketplaceName,
+  type MarketplaceListing,
+} from '../api/marketplace';
 
 interface WarehouseProduct {
   id: number;
@@ -297,7 +304,8 @@ const AdminWarehouse: React.FC = () => {
   const [aiJob, setAiJob] = useState<ProductAiJob | null>(null);
   const [aiDraft, setAiDraft] = useState<ProductAiDraft | null>(null);
   const [isAiStarting, setIsAiStarting] = useState(false);
-  const [lalafoPreparingId, setLalafoPreparingId] = useState<number | string | null>(null);
+  const [marketplacePreparing, setMarketplacePreparing] = useState<{ id: number | string; marketplace: MarketplaceName } | null>(null);
+  const [listingsByProduct, setListingsByProduct] = useState<Record<number, MarketplaceListing[]>>({});
   const [aiInvalidFields, setAiInvalidFields] = useState<Set<AiRequiredField>>(() => new Set());
   const sessionDatasheetUploads = useRef<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -470,6 +478,34 @@ const getProductValue = (product: any) =>
 
   // Load from localStorage
   const [products, setProducts] = useState<WarehouseProduct[]>([]);
+
+  useEffect(() => {
+    const ids = products.map((product) => Number(product.id)).filter((id) => Number.isFinite(id) && id > 0);
+    if (ids.length === 0) return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const listings = await getMarketplaceListings(ids);
+        if (cancelled) return;
+        const grouped: Record<number, MarketplaceListing[]> = {};
+        for (const listing of listings) {
+          (grouped[listing.productId] ??= []).push(listing);
+        }
+        setListingsByProduct(grouped);
+      } catch {
+        // Badges are informational only; the list keeps working without them.
+      }
+    };
+
+    void load();
+    // The helper extension records a posting after this tab lost focus, so refresh when it regains it.
+    window.addEventListener('focus', load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', load);
+    };
+  }, [products]);
 
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -717,17 +753,20 @@ const getProductValue = (product: any) =>
   };
 
 
-const handlePostToLalafo = async (id: number | string) => {
-  setLalafoPreparingId(id);
+const handlePostToMarketplace = async (id: number | string, marketplace: MarketplaceName) => {
+  setMarketplacePreparing({ id, marketplace });
   try {
-    const prepared = await prepareLalafoListing(Number(id));
-    window.open(buildLalafoPostUrl(prepared.code), '_blank', 'noopener');
-    showNotification("Elan hazırlandı. Lalafo səhifəsində köməkçi genişlənmə davam edəcək.", "success");
+    const prepared = await prepareMarketplaceListing(Number(id), marketplace);
+    window.open(buildMarketplacePostUrl(marketplace, prepared.code), '_blank', 'noopener');
+    showNotification(
+      `Elan hazırlandı. ${MARKETPLACE_LABELS[marketplace]} səhifəsində köməkçi genişlənmə davam edəcək.`,
+      "success",
+    );
   } catch (error) {
-    console.error("LALAFO PREPARE ERROR:", error);
-    showNotification("Lalafo elanı hazırlanmadı", "error");
+    console.error("MARKETPLACE PREPARE ERROR:", error);
+    showNotification(`${MARKETPLACE_LABELS[marketplace]} elanı hazırlanmadı`, "error");
   } finally {
-    setLalafoPreparingId(null);
+    setMarketplacePreparing(null);
   }
 };
 
@@ -1262,6 +1301,27 @@ const applyAiDraft = async () => {
                       <div>
                         <div className="text-sm font-black text-slate-900">{product.productName}</div>
                         <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">ID: #W-{product.id}</div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(['lalafo', 'tapaz'] as MarketplaceName[]).map((marketplace) => {
+                            const rows = (listingsByProduct[Number(product.id)] ?? []).filter((l) => l.marketplace === marketplace);
+                            if (rows.length === 0) return null;
+                            const best = rows.find((l) => l.status === 'published') ?? rows.find((l) => l.status === 'pending') ?? rows[0];
+                            const label = best.status === 'published' ? 'Paylaşılıb' : best.status === 'pending' ? 'Moderasiyada' : 'Qaralama';
+                            const color = best.status === 'published'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : best.status === 'pending'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-slate-100 text-slate-500';
+                            const badge = `px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${color}`;
+                            return best.url ? (
+                              <a key={marketplace} href={best.url} target="_blank" rel="noopener noreferrer" className={badge}>
+                                {MARKETPLACE_LABELS[marketplace]} · {label}
+                              </a>
+                            ) : (
+                              <span key={marketplace} className={badge}>{MARKETPLACE_LABELS[marketplace]} · {label}</span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -1327,18 +1387,21 @@ const applyAiDraft = async () => {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
 
-                      <button
-                        onClick={() => handlePostToLalafo(product.id)}
-                        disabled={lalafoPreparingId !== null}
-                        className="p-2 bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Lalafo-da yerləşdir"
-                      >
-                        {lalafoPreparingId === product.id ? (
-                          <span className="block w-4 h-4 rounded-full border-2 border-slate-300 border-t-emerald-600 animate-spin" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        )}
-                      </button>
+                      {(['lalafo', 'tapaz'] as MarketplaceName[]).map((marketplace) => (
+                        <button
+                          key={marketplace}
+                          onClick={() => handlePostToMarketplace(product.id, marketplace)}
+                          disabled={marketplacePreparing !== null}
+                          className="px-2 py-2 bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-[9px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={`${MARKETPLACE_LABELS[marketplace]}-da yerləşdir`}
+                        >
+                          {marketplacePreparing?.id === product.id && marketplacePreparing.marketplace === marketplace ? (
+                            <span className="block w-4 h-4 rounded-full border-2 border-slate-300 border-t-emerald-600 animate-spin" />
+                          ) : (
+                            MARKETPLACE_LABELS[marketplace]
+                          )}
+                        </button>
+                      ))}
 
                       <button
                         onClick={() => handleDelete(product.id)}
