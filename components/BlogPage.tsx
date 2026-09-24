@@ -410,7 +410,7 @@ const transformBlog = (item: any) => {
                 {/* <div className="aspect-video w-full overflow-hidden">
                   <img src={selectedPost.image} alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']} className="w-full h-full object-contain" />
                 </div> */}
-                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                <div className="relative aspect-video max-h-[420px] w-full overflow-hidden bg-slate-100">
   <img
     src={selectedPost.image}
     alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']}

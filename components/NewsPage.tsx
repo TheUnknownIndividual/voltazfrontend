@@ -324,7 +324,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
           <div className="mx-auto max-w-[1440px] px-4 md:px-12">
             <article className="mx-auto w-full bg-white">
               {selectedNews.image && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-100 md:rounded-[2rem]">
+                <div className="relative aspect-video max-h-[420px] w-full overflow-hidden rounded-2xl bg-slate-100 md:rounded-[2rem]">
                   <img
                     src={selectedNews.image}
                     alt={selectedNews.title || ''}
@@ -349,16 +349,6 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                   </div>
                 )}
                 <div className="news-rich-content mt-10 text-slate-600" dangerouslySetInnerHTML={{ __html: selectedNewsHtml }} />
-                {selectedNews.link && (
-                  <a
-                    href={selectedNews.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-10 inline-flex min-h-[var(--cta-btn-h)] items-center rounded-2xl bg-slate-900 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-emerald-600"
-                  >
-                    {t.readMore[currentLang]}
-                  </a>
-                )}
               </div>
             </article>
           </div>
@@ -412,34 +402,6 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                     {plainNewsText(item.summary || '')}
                   </p>
 
-                  <div className="pt-6 border-t border-slate-50 flex items-center justify-between mt-auto">
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                      Mənbə: {item.source}
-                    </span>
-
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(event) => event.stopPropagation()}
-                      className="theme-more-link group/link"
-                    >
-                      {t.readMore[currentLang]}
-                      <svg
-                        className="w-3.5 h-3.5 transform group-hover/link:translate-x-1 transition-transform"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="3"
-                          d="M17 8l4 4m0 0l-4 4m4-4H3"
-                        />
-                      </svg>
-                    </a>
-                  </div>
                 </div>
               </div>
             ))}

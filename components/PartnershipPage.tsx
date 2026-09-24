@@ -1027,7 +1027,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`partnership-submit-button relative flex w-full min-h-[var(--cta-btn-h)] cursor-pointer items-center justify-center overflow-hidden rounded-xl py-4 text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed ${submitStage === 'success'
+                      className={`partnership-submit-button relative flex h-11 w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed ${submitStage === 'success'
                           ? 'partnership-submit-success bg-emerald-600'
                           : hasSubmitAnimation
                             ? 'bg-sky-600 partnership-submit-flight'
@@ -1086,7 +1086,7 @@ const PartnershipPage: React.FC<PartnershipPageProps> = (props) => {
           <button
             type="button"
             onClick={handlePartnerCtaClick}
-            className="flex min-h-[var(--cta-btn-h)] items-center justify-center rounded-xl bg-emerald-600 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-600/30 transition-all hover:bg-emerald-700 active:scale-95 md:px-8 md:py-4"
+            className="flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-5 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-600/30 transition-all hover:bg-emerald-700 active:scale-95 md:px-6"
             aria-label={getText(translations.floatingCta, lang)}
           >
             {getText(translations.floatingCta, lang)}
