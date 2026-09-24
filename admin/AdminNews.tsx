@@ -49,7 +49,7 @@ const getLangValue = (langs: any[], lang: keyof typeof languageMap, key: string)
   return langs?.find(l => l.languageCode === languageMap[lang])?.[key] || "";
 };
 
-const SCRAPED_AI_SOURCE_HOSTS = ['minenergy.gov.az', 'area.gov.az'];
+const SCRAPED_AI_SOURCE_HOSTS = ['minenergy.gov.az', 'area.gov.az', 'renewables.az'];
 const isScrapedAiSourceLink = (link?: string) => {
   if (!link) return false;
   try {
