@@ -309,6 +309,7 @@ section.bg-emerald-950 button.text-emerald-300\/60,section.bg-emerald-950 button
 .site-header-theme .header-mobile-menu .text-slate-400,.site-header-theme .header-mobile-menu .text-slate-500,.site-header-theme .header-mobile-menu .text-slate-600{ color:var(--text-muted-dark) }
 .site-header-theme .header-mobile-menu .text-slate-700{ color:var(--text-inverse) }
 .site-header-theme .header-mobile-menu .border-gray-50,.site-header-theme .header-mobile-menu .border-slate-100{ border-color:var(--border-dark) }
+.site-header-theme .header-mobile-menu .divide-slate-100>:not([hidden])~:not([hidden]){ border-color:var(--border-dark) }
 .site-header-theme .header-mobile-menu .bg-white .text-slate-400,.site-header-theme .header-mobile-menu .bg-white .text-slate-500,.site-header-theme .header-mobile-menu .bg-white .text-slate-600,.site-header-theme .header-mobile-menu .bg-white .text-slate-700{ color:var(--text-primary) }
 .site-header-theme .header-search-results{ background:var(--surface); border-color:var(--border-light); color:var(--text-primary) }
 .site-header-theme .header-dropdown-panel{ border-color:var(--border-light); border-radius:8px; box-shadow:0 10px 28px #01181338 }

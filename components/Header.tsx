@@ -819,7 +819,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <svg className={`w-4 h-4 transition-transform ${openMobileSubMenu === 'volt' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {openMobileSubMenu === 'volt' && (
-              <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
+              <div className="mb-3 ml-1 flex flex-col divide-y divide-slate-100 border-l border-slate-100 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {/* <button onClick={() => handleItemClick('projects')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.projects}</button> */}
                 <button onClick={() => handleItemClick('news')} className="header-mobile-sub-link">{t.news}</button>
                 {/* <button onClick={() => handleItemClick('reels')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.reels}</button> */}
@@ -838,9 +838,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <svg className={`w-4 h-4 text-slate-400 transition-transform ${openMobileSubMenu === 'products' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {openMobileSubMenu === 'products' && (
-              <div className="flex flex-col gap-4 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
+              <div className="mb-3 ml-1 flex flex-col divide-y divide-slate-100 border-l border-slate-100 pl-4 animate-in slide-in-from-top-1 duration-200">
                 {categories.map((category: any) => (
-                  <div key={category.id} className="flex flex-col gap-2">
+                  <div key={category.id} className="flex flex-col py-1">
                     <div className="relative flex items-center justify-between gap-2">
                       <button
                         onClick={() => handleItemClick("products", undefined, { category: category.id })}
@@ -863,7 +863,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
                     </div>
 
                     {activeCategoryId === category.id && (
-                      <div className="flex flex-col gap-1.5 pl-3 border-l border-slate-100">
+                      <div className="mb-1 ml-1 flex flex-col divide-y divide-slate-100 border-l border-slate-100 pl-3">
                         {subcategories.map((sub: any) => (
                           <button
                             key={sub.id}
@@ -896,7 +896,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activePage, currentLang, on
               <svg className={`w-4 h-4 transition-transform ${openMobileSubMenu === 'usefulInfo' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
             </button>
             {openMobileSubMenu === 'usefulInfo' && (
-              <div className="flex flex-col gap-3 pb-4 pl-4 animate-in slide-in-from-top-1 duration-200">
+              <div className="mb-3 ml-1 flex flex-col divide-y divide-slate-100 border-l border-slate-100 pl-4 animate-in slide-in-from-top-1 duration-200">
                 <button onClick={() => handleItemClick('how-to-start')} className="header-mobile-sub-link">{t.howToStart}</button>
                 {/* <button onClick={() => handleItemClick('pro-club')} className="text-left text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.mastersClubInfo}</button> */}
                 <button onClick={() => handleItemClick('necessary-documents')} className="header-mobile-sub-link">{t.necessaryDocuments}</button>

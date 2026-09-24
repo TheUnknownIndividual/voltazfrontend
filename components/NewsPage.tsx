@@ -310,11 +310,11 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
       {/* Page Header */}
       <section className="bg-emerald-950 py-4 border-b border-emerald-900/50 sticky z-40">
         <div className="max-w-7xl mx-auto px-4 md:px-12 flex items-center justify-between">
-          <button onClick={handleBackClick} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
+          <button onClick={handleBackClick} className="flex shrink-0 items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             {t.back[currentLang]}
           </button>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest">{selectedNews?.title || t.title[currentLang]}</h1>
+          <h1 className="ml-4 min-w-0 truncate text-right text-sm font-black text-white uppercase tracking-widest" title={selectedNews?.title || undefined}>{selectedNews?.title || t.title[currentLang]}</h1>
         </div>
       </section>
 
@@ -324,7 +324,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
           <div className="mx-auto max-w-[1440px] px-4 md:px-12">
             <article className="mx-auto w-full bg-white">
               {selectedNews.image && (
-                <div className="relative aspect-video max-h-[420px] w-full overflow-hidden rounded-2xl bg-slate-100 md:rounded-[2rem]">
+                <div className="relative aspect-video max-h-[420px] w-full overflow-hidden rounded-2xl bg-slate-100">
                   <img
                     src={selectedNews.image}
                     alt={selectedNews.title || ''}
@@ -367,7 +367,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack, lang, initialId, onNavigate
                   setSelectedNews(item);
                   onNavigate?.('news', item.id);
                 }}
-                className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
+                className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
               >
                 {/* Image Wrap */}
                 <div className="relative aspect-video overflow-hidden bg-slate-100">

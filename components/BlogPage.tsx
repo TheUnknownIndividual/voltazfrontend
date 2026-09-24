@@ -334,11 +334,11 @@ const transformBlog = (item: any) => {
       {/* Page Header */}
       <section className="bg-emerald-950 py-4 border-b border-emerald-900/50 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-12 flex items-center justify-between relative z-10">
-          <button onClick={handleBackClick} className="flex items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
+          <button onClick={handleBackClick} className="flex shrink-0 items-center gap-1.5 text-emerald-300/60 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             {t.back[lang]}
           </button>
-          <h1 className="text-sm font-black text-white uppercase tracking-widest">
+          <h1 className="ml-4 min-w-0 truncate text-right text-sm font-black text-white uppercase tracking-widest">
             {selectedPost ? selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az'] : t.title[lang]}
           </h1>
         </div>
@@ -354,7 +354,7 @@ const transformBlog = (item: any) => {
                   key={post.id} 
                   // onClick={() => setSelectedPost(post)}
                   onClick={() => handleReadMore(post.id)}
-                  className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
+                  className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group flex flex-col cursor-pointer"
                 >
                   {/* Image Wrap */}
                   {/* <div className="relative aspect-[4/3] overflow-hidden">
@@ -406,7 +406,7 @@ const transformBlog = (item: any) => {
             </div>
           ) : (
             <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-              <div className="bg-white rounded-[3rem] overflow-hidden border border-slate-100 shadow-2xl">
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-2xl">
                 {/* <div className="aspect-video w-full overflow-hidden">
                   <img src={selectedPost.image} alt={selectedPost.title?.[selectedPost.title?.[lang] ? lang : 'az']} className="w-full h-full object-contain" />
                 </div> */}

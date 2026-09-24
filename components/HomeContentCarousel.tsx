@@ -98,7 +98,7 @@ const CardTile: React.FC<CardTileProps> = ({ card, pillLabel, readMoreLabel, loc
       aria-hidden={loading}
       className={`group w-[280px] flex-none overflow-hidden rounded-2xl border border-[var(--border-light)] bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg md:w-[340px] ${loading ? 'animate-pulse' : ''}`}
     >
-      <div className="relative aspect-square overflow-hidden bg-slate-100">
+      <div className="relative aspect-[5/4] overflow-hidden bg-slate-100">
         {card && (
           <img
             src={card.image}
