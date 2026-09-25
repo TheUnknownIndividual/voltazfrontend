@@ -24,6 +24,7 @@ import AdminAccounting from './AdminAccounting';
 import AdminHumanResources from './AdminHumanResources';
 import AdminTelegramProfile from './AdminTelegramProfile';
 import AdminNews from './AdminNews';
+import AdminSocialPosts from './AdminSocialPosts';
 import AdminAbout from './AdminAbout';
 import AdminContact from './AdminContact';
 import AdminEmail from './AdminEmail';
@@ -73,7 +74,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
   const [adminSession, setAdminSession] = useState<AdminUser | null>(null);
   const [adminSessionLoaded, setAdminSessionLoaded] = useState(false);
   const [activityUserId, setActivityUserId] = useState<number | null>(null);
-  const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership' | 'whatsapp'>(isWhatsAppSetupPath ? 'whatsapp' : 'main');
+  const [settingsView, setSettingsView] = useState<'main' | 'sliders' | 'categories' | 'projects' | 'news' | 'about' | 'blogs' | 'service' | 'contact' | 'promotion' | 'email' | 'partnership' | 'whatsapp' | 'social'>(isWhatsAppSetupPath ? 'whatsapp' : 'main');
   const canManageWhatsApp = Boolean(adminSession &&
     (adminSession.isSuperAdmin || adminSession.allowedPages.includes(AdminPage.WhatsAppOnboarding)));
 
@@ -762,6 +763,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                   </button>
 
                   <button
+                    onClick={() => setSettingsView('social')}
+                    className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-emerald-600 transition-all duration-500"
+                  >
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                    </div>
+                    <h4 className="text-lg font-black text-slate-900 group-hover:text-white mb-2">Sosial Şəbəkə Paylaşımları</h4>
+                    <p className="text-xs text-slate-500 group-hover:text-emerald-100 leading-relaxed">Facebook və Instagram avtomatik paylaşımlarına nəzarət edin.</p>
+                  </button>
+
+                  <button
                     onClick={() => setSettingsView('about')}
                     className="group p-8 bg-slate-50 rounded-[2rem] border border-slate-100 text-left hover:bg-emerald-600 transition-all duration-500"
                   >
@@ -899,6 +911,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, lang = 'az' }) 
                 <NewsProvider>
                   <AdminNews onBack={() => setSettingsView('main')} />
                 </NewsProvider>
+              </div>
+            ) : settingsView === 'social' ? (
+              <div className="space-y-6">
+                <AdminSocialPosts onBack={() => setSettingsView('main')} />
               </div>
             ) : settingsView === 'promotion' ? (
               <div className="space-y-6">
