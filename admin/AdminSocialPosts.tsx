@@ -29,6 +29,12 @@ const STATUS_STYLES: Record<string, string> = {
   candidate: 'bg-slate-100 text-slate-600',
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  news: 'xəbər',
+  product: 'məhsul',
+  education: 'təhsil',
+};
+
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleString('az-AZ') : '-');
 
 const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
@@ -144,7 +150,7 @@ const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold text-slate-400">
-                      {post.platform} · {post.sourceType} #{post.sourceId} · {formatDate(post.createdAt)}
+                      {post.platform} · {SOURCE_LABELS[post.sourceType] ?? post.sourceType} #{post.sourceId} · {formatDate(post.createdAt)}
                       {post.qualityScore != null ? ` · ${post.qualityScore}/100` : ''}
                     </span>
                     <span className="block text-sm text-slate-800 line-clamp-2">{post.caption || post.rejectReason || '-'}</span>
@@ -169,7 +175,7 @@ const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
           >
             <div className="flex items-start justify-between gap-4">
               <h4 className="text-lg font-black text-slate-900">
-                {selected.platform} · {selected.sourceType} #{selected.sourceId}
+                {selected.platform} · {SOURCE_LABELS[selected.sourceType] ?? selected.sourceType} #{selected.sourceId}
               </h4>
               <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700 text-xl leading-none" aria-label="Bağla">
                 &times;

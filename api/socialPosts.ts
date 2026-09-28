@@ -2,7 +2,7 @@ import axiosInstance from './axiosInstance';
 
 export interface SocialPost {
   id: number;
-  sourceType: 'news' | 'product';
+  sourceType: 'news' | 'product' | 'education';
   sourceId: number;
   platform: 'facebook' | 'instagram';
   status: 'candidate' | 'rejected' | 'dryrun' | 'publishing' | 'published' | 'failed';
