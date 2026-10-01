@@ -4,7 +4,7 @@ export interface SocialPost {
   id: number;
   sourceType: 'news' | 'product' | 'education';
   sourceId: number;
-  platform: 'facebook' | 'instagram';
+  platform: 'facebook' | 'instagram' | 'linkedin';
   status: 'candidate' | 'rejected' | 'dryrun' | 'publishing' | 'published' | 'failed';
   caption?: string | null;
   imageUrl?: string | null;
@@ -45,3 +45,17 @@ export const getSocialPosts = async (status?: string) =>
 
 export const setSocialPostingPaused = async (paused: boolean) =>
   unwrap<boolean>(await axiosInstance.post('SocialPosts/pause', { paused }));
+
+export interface LinkedInStatus {
+  appConfigured: boolean;
+  connected: boolean;
+  organizationUrn?: string | null;
+  accessTokenAgeDays?: number | null;
+  needsReconnect: boolean;
+}
+
+export const getLinkedInStatus = async () =>
+  unwrap<LinkedInStatus>(await axiosInstance.get('SocialPosts/linkedin/status'));
+
+export const getLinkedInAuthorizeUrl = async () =>
+  unwrap<{ url: string }>(await axiosInstance.get('SocialPosts/linkedin/authorize-url'));

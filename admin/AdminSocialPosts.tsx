@@ -4,8 +4,11 @@ import {
   getSocialPosts,
   getSocialPostingStatus,
   setSocialPostingPaused,
+  getLinkedInStatus,
+  getLinkedInAuthorizeUrl,
   type SocialPost,
   type SocialPostingStatus,
+  type LinkedInStatus,
 } from '../api/socialPosts';
 
 interface AdminSocialPostsProps {
@@ -40,18 +43,25 @@ const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleS
 const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
   const { showNotification } = useNotification();
   const [status, setStatus] = useState<SocialPostingStatus | null>(null);
+  const [linkedIn, setLinkedIn] = useState<LinkedInStatus | null>(null);
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [selected, setSelected] = useState<SocialPost | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [nextStatus, nextPosts] = await Promise.all([getSocialPostingStatus(), getSocialPosts(filter)]);
+      const [nextStatus, nextPosts, nextLinkedIn] = await Promise.all([
+        getSocialPostingStatus(),
+        getSocialPosts(filter),
+        getLinkedInStatus().catch(() => null),
+      ]);
       setStatus(nextStatus);
       setPosts(nextPosts);
+      setLinkedIn(nextLinkedIn);
     } catch {
       showNotification('Sosial paylaşımları yükləmək mümkün olmadı.', 'error');
     } finally {
@@ -74,6 +84,20 @@ const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
       showNotification('Əməliyyat alınmadı.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const connectLinkedIn = async () => {
+    if (connecting) return;
+    setConnecting(true);
+    try {
+      const { url } = await getLinkedInAuthorizeUrl();
+      window.open(url, '_blank', 'noopener,noreferrer');
+      showNotification('LinkedIn pəncərəsində təsdiqlədikdən sonra bu səhifəni yeniləyin.', 'info');
+    } catch {
+      showNotification('LinkedIn bağlantı keçidi alınmadı.', 'error');
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -107,19 +131,40 @@ const AdminSocialPosts: React.FC<AdminSocialPostsProps> = ({ onBack }) => {
             <span className={`px-3 py-1.5 rounded-full ${status.instagramConfigured ? 'bg-white text-slate-600 border border-slate-200' : 'bg-red-100 text-red-700'}`}>
               Instagram: {status.instagramConfigured ? 'qoşulub' : 'qoşulmayıb'}
             </span>
+            {linkedIn && (
+              <span className={`px-3 py-1.5 rounded-full ${linkedIn.connected && !linkedIn.needsReconnect ? 'bg-white text-slate-600 border border-slate-200' : 'bg-red-100 text-red-700'}`}>
+                LinkedIn: {linkedIn.connected && !linkedIn.needsReconnect ? 'qoşulub' : linkedIn.appConfigured ? 'qoşulmayıb' : 'quraşdırılmayıb'}
+              </span>
+            )}
           </div>
           {status.instagramTokenNearExpiry && (
             <p className="text-xs font-bold text-amber-700">
               Instagram tokeninin yaşı {status.instagramTokenAgeDays} gündür. 60 gün dolmamış yenisini yaradın.
             </p>
           )}
-          <button
-            onClick={togglePause}
-            disabled={saving}
-            className={`px-5 py-2.5 rounded-xl text-sm font-black text-white transition-colors disabled:opacity-50 ${status.paused ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
-          >
-            {status.paused ? 'Davam etdir' : 'Dayandır'}
-          </button>
+          {linkedIn?.needsReconnect && (
+            <p className="text-xs font-bold text-amber-700">
+              LinkedIn bağlantısının müddəti bitib. Yenidən qoşulun.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={togglePause}
+              disabled={saving}
+              className={`px-5 py-2.5 rounded-xl text-sm font-black text-white transition-colors disabled:opacity-50 ${status.paused ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+            >
+              {status.paused ? 'Davam etdir' : 'Dayandır'}
+            </button>
+            {linkedIn?.appConfigured && (!linkedIn.connected || linkedIn.needsReconnect) && (
+              <button
+                onClick={connectLinkedIn}
+                disabled={connecting}
+                className="px-5 py-2.5 rounded-xl text-sm font-black text-white bg-[#0a66c2] hover:bg-[#004182] transition-colors disabled:opacity-50"
+              >
+                LinkedIn qoşulsun
+              </button>
+            )}
+          </div>
         </div>
       )}
 
