@@ -25,8 +25,8 @@ interface AdminProjectTrackerProps {
 }
 
 const NOTE_LIMIT = 140;
-const ROOF_PRICE_PER_KW = 850;
-const GROUND_PRICE_PER_KW = 1100;
+const ROOF_PRICE_PER_KW = 1000;
+const GROUND_PRICE_PER_KW = 1301;
 const VAT_RATE = 0.18;
 
 const statusOptions = [

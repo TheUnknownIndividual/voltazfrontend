@@ -27,7 +27,7 @@ const DESIGN_BUFFER = 1.05;
 const VAT_RATE = 0.18;
 // The public calculator uses roof mounting by default, matching the admin
 // calculator's default "Dam montajı" price.
-const ROOF_MOUNT_PRICE_PER_KW = 850;
+const ROOF_MOUNT_PRICE_PER_KW = 1000;
 const OFF_GRID_PRICE_PREMIUM_PER_KW = 850;
 
 // Enables the ABIF and EBRD banners, financing actions, and related calculator UI.

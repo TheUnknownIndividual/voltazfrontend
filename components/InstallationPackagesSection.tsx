@@ -9,9 +9,9 @@ interface InstallationPackagesSectionProps {
 }
 
 const installationPackages = [
-  { capacityKw: 5, priceAzn: 4250, panelCount: 9, panelWattage: 650, inverterModels: ['Growatt MIN 5000TL-X2'] },
-  { capacityKw: 10, priceAzn: 8500, panelCount: 17, panelWattage: 650, inverterModels: ['Growatt MIN 10000TL-X2', 'Growatt MOD10KTL3-X2'], recommended: true },
-  { capacityKw: 15, priceAzn: 12750, panelCount: 26, panelWattage: 650, inverterModels: ['Growatt MOD15KTL3-X2'] },
+  { capacityKw: 5, priceAzn: 5000, panelCount: 9, panelWattage: 650, inverterModels: ['Growatt MIN 5000TL-X2'] },
+  { capacityKw: 10, priceAzn: 10000, panelCount: 17, panelWattage: 650, inverterModels: ['Growatt MIN 10000TL-X2', 'Growatt MOD10KTL3-X2'], recommended: true },
+  { capacityKw: 15, priceAzn: 15000, panelCount: 26, panelWattage: 650, inverterModels: ['Growatt MOD15KTL3-X2'] },
 ];
 
 const localeByLanguage: Record<Language, string> = {

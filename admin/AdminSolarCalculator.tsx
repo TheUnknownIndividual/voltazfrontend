@@ -93,8 +93,8 @@ const DESIGN_BUFFER = 1.05;
 const RESIDENTIAL_HIGH_CONSUMPTION_TARIFF = 0.15;
 const DEFAULT_COMMERCIAL_TARIFF = 0.125;
 const VAT_RATE = 0.18;
-const ROOF_PRICE_PER_KW = 850;
-const GROUND_PRICE_PER_KW = 1105;
+const ROOF_PRICE_PER_KW = 1180;
+const GROUND_PRICE_PER_KW = 1535;
 const DEFAULT_PANEL_MODEL = 'LONGi LR7-72HVHF-650M günəş paneli';
 const SOLAR_CALCULATOR_DRAFT_KEY = 'volt-admin-solar-calculator-draft';
 const MIN_RECOMMENDED_DC_AC_RATIO = 1.1;
@@ -209,7 +209,7 @@ const ui: Record<Lang, Record<string, string>> = {
     boqDetails: 'BOQ məhsul məlumatları',
     boqAdditions: 'BOQ əlavələri',
     includesAdv: 'ƏDV (18%) daxil qiymət göstər',
-    advIncludedNote: 'Baza qiymətlər (850/1105 AZN/kW) artıq ƏDV daxildir; qiymət və özünü ödəmə müddəti dəyişmir, sadəcə ƏDV ayrıca göstərilir.',
+    advIncludedNote: 'Baza qiymətlər (1180/1535 AZN/kW) artıq ƏDV daxildir; qiymət və özünü ödəmə müddəti dəyişmir, sadəcə ƏDV ayrıca göstərilir.',
     advExcludedNote: 'ƏDV çıxılıb — qiymət və özünü ödəmə müddəti ƏDV-siz (aşağı) göstərilir.',
     vatAmount: 'ƏDV (18%)',
     vatIncludedLabel: 'o cümlədən ƏDV',
@@ -316,7 +316,7 @@ const ui: Record<Lang, Record<string, string>> = {
     boqDetails: 'BOQ product details',
     boqAdditions: 'BOQ additions',
     includesAdv: 'Show price with VAT (18%)',
-    advIncludedNote: 'Base prices (850/1105 AZN/kW) already include VAT; the price and payback period stay the same, VAT is just broken out separately.',
+    advIncludedNote: 'Base prices (1180/1535 AZN/kW) already include VAT; the price and payback period stay the same, VAT is just broken out separately.',
     advExcludedNote: 'VAT removed — price and payback period are shown VAT-excluded (lower).',
     vatAmount: 'VAT (18%)',
     vatIncludedLabel: 'incl. VAT',
@@ -423,7 +423,7 @@ const ui: Record<Lang, Record<string, string>> = {
     boqDetails: 'Данные BOQ',
     boqAdditions: 'Дополнения BOQ',
     includesAdv: 'Показать цену с НДС (18%)',
-    advIncludedNote: 'Базовые цены (850/1105 AZN/кВт) уже включают НДС; цена и срок окупаемости не меняются, НДС просто показывается отдельно.',
+    advIncludedNote: 'Базовые цены (1180/1535 AZN/кВт) уже включают НДС; цена и срок окупаемости не меняются, НДС просто показывается отдельно.',
     advExcludedNote: 'НДС вычтен — цена и срок окупаемости показаны без НДС (ниже).',
     vatAmount: 'НДС (18%)',
     vatIncludedLabel: 'в т.ч. НДС',
@@ -530,7 +530,7 @@ const ui: Record<Lang, Record<string, string>> = {
     boqDetails: 'BOQ ürün bilgileri',
     boqAdditions: 'BOQ eklemeleri',
     includesAdv: 'KDV dahil fiyatı göster (%18)',
-    advIncludedNote: 'Baz fiyatlar (850/1105 AZN/kW) zaten KDV dahildir; fiyat ve geri ödeme süresi değişmez, KDV sadece ayrı gösterilir.',
+    advIncludedNote: 'Baz fiyatlar (1180/1535 AZN/kW) zaten KDV dahildir; fiyat ve geri ödeme süresi değişmez, KDV sadece ayrı gösterilir.',
     advExcludedNote: 'KDV çıkarıldı — fiyat ve geri ödeme süresi KDV hariç (daha düşük) gösterilir.',
     vatAmount: 'KDV (%18)',
     vatIncludedLabel: 'KDV dahil',
@@ -1319,7 +1319,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
     const panelCount = requiredKw > 0 ? Math.max(1, Math.ceil(requiredKw / panelKw)) : 0;
     const systemKw = panelCount > 0 ? panelCount * panelKw : 0;
     const yearlyProduction = systemKw * city.specificYield;
-    // pricePerKw (850/1105) and admin-entered BOQ line prices are real,
+    // pricePerKw (1180/1535) and admin-entered BOQ line prices are real,
     // VAT-inclusive retail prices, not net prices with VAT to be added on
     // top. So the "Add VAT" toggle doesn't add 18% to this figure — it
     // decomposes it into net + VAT for display, and turning it off shows
