@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useReducedMotion, useSpring } from 'motion/react';
 import { logPublicSolarCalculation } from '../api/solarAnalytics';
+import { getSolarYield, getSolarYieldKey, type SolarYieldRequest } from '../api/solarYield';
 import { trackCalculatorComplete } from '../utils/analytics';
 import AbifCreditEstimateCard, {
   calculateAbifCreditEstimate,
@@ -39,37 +40,39 @@ const FINANCE_BANNERS: Array<{ source: FinanceSource; image: string }> = [
   { source: 'ebrd', image: '/ebrd-business-finance-banner.png' }
 ];
 
+// Fallback annual yields (kWh/kWp/yr) from PVGIS v5.3 (PVGIS-SARAH3, 2005-2023), optimal tilt/azimuth,
+// 14% system loss, terrain horizon. Used until the live /SolarYield (PVGIS) value loads, or if it fails.
 const cityProfiles: Record<string, { lat: number; lon: number; yield: number; region?: string }> = {
-  'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1620, region: 'Abşeron' },
-  'Sumqayıt': { lat: 40.5897, lon: 49.6686, yield: 1615, region: 'Abşeron' },
-  'Xırdalan': { lat: 40.4481, lon: 49.7550, yield: 1615, region: 'Abşeron' },
-  'Şamaxı': { lat: 40.6314, lon: 48.6394, yield: 1585, region: 'Dağlıq Şirvan' },
-  'Qobustan': { lat: 40.5378, lon: 49.3844, yield: 1685, region: 'Dağlıq Şirvan' },
-  'Gəncə': { lat: 40.6828, lon: 46.3606, yield: 1540, region: 'Qərb' },
-  'Mingəçevir': { lat: 40.7703, lon: 47.0495, yield: 1600, region: 'Aran' },
-  'Yevlax': { lat: 40.6127, lon: 47.1522, yield: 1600, region: 'Aran' },
-  'Şirvan': { lat: 39.9321, lon: 48.9203, yield: 1690, region: 'Aran' },
-  'Salyan': { lat: 39.5967, lon: 48.9831, yield: 1690, region: 'Aran' },
-  'Neftçala': { lat: 39.3789, lon: 49.2467, yield: 1660, region: 'Aran' },
-  'Lənkəran': { lat: 38.7539, lon: 48.8509, yield: 1415, region: 'Cənub' },
-  'Astara': { lat: 38.4506, lon: 48.8756, yield: 1385, region: 'Cənub' },
-  'Masallı': { lat: 39.0333, lon: 48.6667, yield: 1440, region: 'Cənub' },
-  'Quba': { lat: 41.3611, lon: 48.5134, yield: 1490, region: 'Şimal' },
-  'Qusar': { lat: 41.4275, lon: 48.4302, yield: 1460, region: 'Şimal' },
-  'Xaçmaz': { lat: 41.4636, lon: 48.8006, yield: 1505, region: 'Şimal' },
-  'Şəki': { lat: 41.1919, lon: 47.1706, yield: 1480, region: 'Şimal-qərb' },
-  'Zaqatala': { lat: 41.6308, lon: 46.6428, yield: 1440, region: 'Şimal-qərb' },
-  'Qəbələ': { lat: 40.9810, lon: 47.8458, yield: 1480, region: 'Şimal-qərb' },
-  'İsmayıllı': { lat: 40.7833, lon: 48.15, yield: 1525, region: 'Dağlıq Şirvan' },
-  'Naxçıvan': { lat: 39.2090, lon: 45.4126, yield: 1825, region: 'Naxçıvan' },
-  'Şərur': { lat: 39.5561, lon: 44.9553, yield: 1825, region: 'Naxçıvan' },
-  'Culfa': { lat: 38.9581, lon: 45.6297, yield: 1875, region: 'Naxçıvan' },
-  'Ordubad': { lat: 38.9083, lon: 46.0233, yield: 1825, region: 'Naxçıvan' },
-  'Ağdam': { lat: 39.9908, lon: 46.9264, yield: 1660, region: 'Qarabağ' },
-  'Füzuli': { lat: 39.6014, lon: 47.1447, yield: 1660, region: 'Qarabağ' },
-  'Şuşa': { lat: 39.7581, lon: 46.7508, yield: 1525, region: 'Qarabağ' },
-  'Laçın': { lat: 39.6428, lon: 46.5486, yield: 1475, region: 'Qarabağ' },
-  'Kəlbəcər': { lat: 40.1064, lon: 46.0392, yield: 1475, region: 'Qarabağ' }
+  'Bakı': { lat: 40.3953, lon: 49.8822, yield: 1342, region: 'Abşeron' },
+  'Sumqayıt': { lat: 40.5897, lon: 49.6686, yield: 1315, region: 'Abşeron' },
+  'Xırdalan': { lat: 40.4481, lon: 49.7550, yield: 1342, region: 'Abşeron' },
+  'Şamaxı': { lat: 40.6314, lon: 48.6394, yield: 1267, region: 'Dağlıq Şirvan' },
+  'Qobustan': { lat: 40.5378, lon: 49.3844, yield: 1353, region: 'Dağlıq Şirvan' },
+  'Gəncə': { lat: 40.6828, lon: 46.3606, yield: 1268, region: 'Qərb' },
+  'Mingəçevir': { lat: 40.7703, lon: 47.0495, yield: 1303, region: 'Aran' },
+  'Yevlax': { lat: 40.6127, lon: 47.1522, yield: 1284, region: 'Aran' },
+  'Şirvan': { lat: 39.9321, lon: 48.9203, yield: 1296, region: 'Aran' },
+  'Salyan': { lat: 39.5967, lon: 48.9831, yield: 1285, region: 'Aran' },
+  'Neftçala': { lat: 39.3789, lon: 49.2467, yield: 1301, region: 'Aran' },
+  'Lənkəran': { lat: 38.7539, lon: 48.8509, yield: 1187, region: 'Cənub' },
+  'Astara': { lat: 38.4506, lon: 48.8756, yield: 1153, region: 'Cənub' },
+  'Masallı': { lat: 39.0333, lon: 48.6667, yield: 1243, region: 'Cənub' },
+  'Quba': { lat: 41.3611, lon: 48.5134, yield: 1151, region: 'Şimal' },
+  'Qusar': { lat: 41.4275, lon: 48.4302, yield: 1141, region: 'Şimal' },
+  'Xaçmaz': { lat: 41.4636, lon: 48.8006, yield: 1189, region: 'Şimal' },
+  'Şəki': { lat: 41.1919, lon: 47.1706, yield: 1280, region: 'Şimal-qərb' },
+  'Zaqatala': { lat: 41.6308, lon: 46.6428, yield: 1270, region: 'Şimal-qərb' },
+  'Qəbələ': { lat: 40.9810, lon: 47.8458, yield: 1268, region: 'Şimal-qərb' },
+  'İsmayıllı': { lat: 40.7833, lon: 48.15, yield: 1258, region: 'Dağlıq Şirvan' },
+  'Naxçıvan': { lat: 39.2090, lon: 45.4126, yield: 1497, region: 'Naxçıvan' },
+  'Şərur': { lat: 39.5561, lon: 44.9553, yield: 1460, region: 'Naxçıvan' },
+  'Culfa': { lat: 38.9581, lon: 45.6297, yield: 1525, region: 'Naxçıvan' },
+  'Ordubad': { lat: 38.9083, lon: 46.0233, yield: 1563, region: 'Naxçıvan' },
+  'Ağdam': { lat: 39.9908, lon: 46.9264, yield: 1238, region: 'Qarabağ' },
+  'Füzuli': { lat: 39.6014, lon: 47.1447, yield: 1266, region: 'Qarabağ' },
+  'Şuşa': { lat: 39.7581, lon: 46.7508, yield: 1214, region: 'Qarabağ' },
+  'Laçın': { lat: 39.6428, lon: 46.5486, yield: 1319, region: 'Qarabağ' },
+  'Kəlbəcər': { lat: 40.1064, lon: 46.0392, yield: 1289, region: 'Qarabağ' }
 };
 
 const CITY_NAME_ALIASES: Record<string, string> = {
@@ -309,6 +312,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
   const [showCreditEstimate, setShowCreditEstimate] = useState(false);
   const [financeSource, setFinanceSource] = useState<FinanceSource | null>(null);
   const [activeFinanceBanner, setActiveFinanceBanner] = useState(0);
+  const [liveYield, setLiveYield] = useState<{ key: string; value: number } | null>(null);
   const lastLoggedCalculationRef = useRef<string>('');
   const followTrackRef = useRef<HTMLDivElement | null>(null);
   const followContentRef = useRef<HTMLDivElement | null>(null);
@@ -347,6 +351,35 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     };
   }, [hasUserPickedCity]);
 
+  // Live PVGIS yield for the selected city (and custom tilt/orientation when the advanced panel is
+  // open). Until it arrives, or if it fails, the bundled PVGIS table (cityProfiles) is used.
+  const yieldRequest = useMemo<SolarYieldRequest>(() => {
+    const profile = cityProfiles[city] || cityProfiles['Bakı'];
+    return isAdvancedOpen
+      ? { lat: profile.lat, lon: profile.lon, tilt: tiltAngle, orientation }
+      : { lat: profile.lat, lon: profile.lon };
+  }, [city, isAdvancedOpen, tiltAngle, orientation]);
+  const yieldKey = getSolarYieldKey(yieldRequest);
+
+  useEffect(() => {
+    let isCancelled = false;
+    // Debounced so typing a tilt/orientation value doesn't fire a request per keystroke.
+    const timer = window.setTimeout(() => {
+      getSolarYield(yieldRequest)
+        .then((value) => {
+          if (!isCancelled) setLiveYield({ key: yieldKey, value });
+        })
+        .catch(() => {
+          // Keep the bundled table value.
+        });
+    }, 400);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [yieldKey, yieldRequest]);
+
   const results = useMemo(() => {
     const tariff = DEFAULT_ELECTRICITY_TARIFF;
     const annualConsumptionFromBill = (bill / tariff) * 12 * (savingTarget / 100);
@@ -357,14 +390,16 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
     const optimalTilt = getOptimalTilt(cityProfile.lat);
     const effectiveTilt = isAdvancedOpen ? tiltAngle : optimalTilt;
     const effectiveOrientation = isAdvancedOpen ? orientation : 180;
-    const solarYield = Math.max(
-      1,
-      Math.round(
-        (cityProfile.yield || AZERBAIJAN_AVERAGE_YIELD) *
-          getTiltFactor(effectiveTilt, optimalTilt) *
-          getOrientationFactor(effectiveOrientation)
-      )
-    );
+    const solarYield = liveYield?.key === yieldKey
+      ? liveYield.value
+      : Math.max(
+          1,
+          Math.round(
+            (cityProfile.yield || AZERBAIJAN_AVERAGE_YIELD) *
+              getTiltFactor(effectiveTilt, optimalTilt) *
+              getOrientationFactor(effectiveOrientation)
+          )
+        );
 
     const neededKWp = (annualConsumption / solarYield) * DESIGN_BUFFER;
     const panelsForFullCoverage = Math.max(1, Math.ceil((neededKWp * 1000) / PANEL_WATTAGE));
@@ -394,7 +429,7 @@ const Calculator: React.FC<CalculatorProps> = ({ lang }) => {
       limitedByRoof: Boolean(roofLimit && neededArea > roofLimit),
       paybackYears
     };
-  }, [bill, propertyType, savingTarget, systemType, city, roofArea, isAdvancedOpen, maxRoofArea, tiltAngle, orientation]);
+  }, [bill, propertyType, savingTarget, systemType, city, roofArea, isAdvancedOpen, maxRoofArea, tiltAngle, orientation, liveYield, yieldKey]);
 
   const abifCreditEstimate = useMemo(
     () => calculateAbifCreditEstimate(results.price),

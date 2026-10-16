@@ -4,6 +4,7 @@ import { buildInitialAssessmentDocx, formatPaybackPeriod, type SolarSystemType }
 import { useAuth } from '../contexts/AuthContext';
 import { issueAdminDocxExport, logAdminPdfExport, searchSolarProjects, type SolarProjectOption } from '../api/solarAnalytics';
 import { getSolarInverters, type SolarInverterOption } from '../api/solarInverters';
+import { getSolarYield } from '../api/solarYield';
 import { addAdminTrackedProjectAttachment, getAdminTrackedProjects, type TrackedProject } from '../api/adminProjectTracker';
 import { useUpload } from '../contexts/UploadContext';
 
@@ -28,6 +29,8 @@ interface CitySolarProfile {
   city: string;
   specificYield: number;
   region: string;
+  lat: number;
+  lon: number;
 }
 
 interface InverterRecommendation extends SolarInverterOption {
@@ -143,37 +146,39 @@ const documentTypeOptions = [
   { code: 'CAL', label: 'Hesablama' }
 ] as const;
 
+// Fallback annual yields (kWh/kWp/yr) from PVGIS v5.3 (PVGIS-SARAH3, 2005-2023), optimal tilt/azimuth,
+// 14% system loss, terrain horizon. Used until the live /SolarYield (PVGIS) value loads, or if it fails.
 const cityProfiles: CitySolarProfile[] = [
-  { city: 'Bakı', specificYield: 1620, region: 'Abşeron' },
-  { city: 'Sumqayıt', specificYield: 1615, region: 'Abşeron' },
-  { city: 'Xırdalan', specificYield: 1615, region: 'Abşeron' },
-  { city: 'Şamaxı', specificYield: 1585, region: 'Dağlıq Şirvan' },
-  { city: 'Qobustan', specificYield: 1685, region: 'Dağlıq Şirvan' },
-  { city: 'Gəncə', specificYield: 1540, region: 'Qərb' },
-  { city: 'Mingəçevir', specificYield: 1600, region: 'Aran' },
-  { city: 'Yevlax', specificYield: 1600, region: 'Aran' },
-  { city: 'Şirvan', specificYield: 1690, region: 'Aran' },
-  { city: 'Salyan', specificYield: 1690, region: 'Aran' },
-  { city: 'Neftçala', specificYield: 1660, region: 'Aran' },
-  { city: 'Lənkəran', specificYield: 1415, region: 'Cənub' },
-  { city: 'Astara', specificYield: 1385, region: 'Cənub' },
-  { city: 'Masallı', specificYield: 1440, region: 'Cənub' },
-  { city: 'Quba', specificYield: 1490, region: 'Şimal' },
-  { city: 'Qusar', specificYield: 1460, region: 'Şimal' },
-  { city: 'Xaçmaz', specificYield: 1505, region: 'Şimal' },
-  { city: 'Şəki', specificYield: 1480, region: 'Şimal-qərb' },
-  { city: 'Zaqatala', specificYield: 1440, region: 'Şimal-qərb' },
-  { city: 'Qəbələ', specificYield: 1480, region: 'Şimal-qərb' },
-  { city: 'İsmayıllı', specificYield: 1525, region: 'Dağlıq Şirvan' },
-  { city: 'Naxçıvan', specificYield: 1825, region: 'Naxçıvan' },
-  { city: 'Şərur', specificYield: 1825, region: 'Naxçıvan' },
-  { city: 'Culfa', specificYield: 1875, region: 'Naxçıvan' },
-  { city: 'Ordubad', specificYield: 1825, region: 'Naxçıvan' },
-  { city: 'Ağdam', specificYield: 1660, region: 'Qarabağ' },
-  { city: 'Füzuli', specificYield: 1660, region: 'Qarabağ' },
-  { city: 'Şuşa', specificYield: 1525, region: 'Qarabağ' },
-  { city: 'Laçın', specificYield: 1475, region: 'Qarabağ' },
-  { city: 'Kəlbəcər', specificYield: 1475, region: 'Qarabağ' }
+  { city: 'Bakı', specificYield: 1342, region: 'Abşeron', lat: 40.3953, lon: 49.8822 },
+  { city: 'Sumqayıt', specificYield: 1315, region: 'Abşeron', lat: 40.5897, lon: 49.6686 },
+  { city: 'Xırdalan', specificYield: 1342, region: 'Abşeron', lat: 40.4481, lon: 49.7550 },
+  { city: 'Şamaxı', specificYield: 1267, region: 'Dağlıq Şirvan', lat: 40.6314, lon: 48.6394 },
+  { city: 'Qobustan', specificYield: 1353, region: 'Dağlıq Şirvan', lat: 40.5378, lon: 49.3844 },
+  { city: 'Gəncə', specificYield: 1268, region: 'Qərb', lat: 40.6828, lon: 46.3606 },
+  { city: 'Mingəçevir', specificYield: 1303, region: 'Aran', lat: 40.7703, lon: 47.0495 },
+  { city: 'Yevlax', specificYield: 1284, region: 'Aran', lat: 40.6127, lon: 47.1522 },
+  { city: 'Şirvan', specificYield: 1296, region: 'Aran', lat: 39.9321, lon: 48.9203 },
+  { city: 'Salyan', specificYield: 1285, region: 'Aran', lat: 39.5967, lon: 48.9831 },
+  { city: 'Neftçala', specificYield: 1301, region: 'Aran', lat: 39.3789, lon: 49.2467 },
+  { city: 'Lənkəran', specificYield: 1187, region: 'Cənub', lat: 38.7539, lon: 48.8509 },
+  { city: 'Astara', specificYield: 1153, region: 'Cənub', lat: 38.4506, lon: 48.8756 },
+  { city: 'Masallı', specificYield: 1243, region: 'Cənub', lat: 39.0333, lon: 48.6667 },
+  { city: 'Quba', specificYield: 1151, region: 'Şimal', lat: 41.3611, lon: 48.5134 },
+  { city: 'Qusar', specificYield: 1141, region: 'Şimal', lat: 41.4275, lon: 48.4302 },
+  { city: 'Xaçmaz', specificYield: 1189, region: 'Şimal', lat: 41.4636, lon: 48.8006 },
+  { city: 'Şəki', specificYield: 1280, region: 'Şimal-qərb', lat: 41.1919, lon: 47.1706 },
+  { city: 'Zaqatala', specificYield: 1270, region: 'Şimal-qərb', lat: 41.6308, lon: 46.6428 },
+  { city: 'Qəbələ', specificYield: 1268, region: 'Şimal-qərb', lat: 40.9810, lon: 47.8458 },
+  { city: 'İsmayıllı', specificYield: 1258, region: 'Dağlıq Şirvan', lat: 40.7833, lon: 48.15 },
+  { city: 'Naxçıvan', specificYield: 1497, region: 'Naxçıvan', lat: 39.2090, lon: 45.4126 },
+  { city: 'Şərur', specificYield: 1460, region: 'Naxçıvan', lat: 39.5561, lon: 44.9553 },
+  { city: 'Culfa', specificYield: 1525, region: 'Naxçıvan', lat: 38.9581, lon: 45.6297 },
+  { city: 'Ordubad', specificYield: 1563, region: 'Naxçıvan', lat: 38.9083, lon: 46.0233 },
+  { city: 'Ağdam', specificYield: 1238, region: 'Qarabağ', lat: 39.9908, lon: 46.9264 },
+  { city: 'Füzuli', specificYield: 1266, region: 'Qarabağ', lat: 39.6014, lon: 47.1447 },
+  { city: 'Şuşa', specificYield: 1214, region: 'Qarabağ', lat: 39.7581, lon: 46.7508 },
+  { city: 'Laçın', specificYield: 1319, region: 'Qarabağ', lat: 39.6428, lon: 46.5486 },
+  { city: 'Kəlbəcər', specificYield: 1289, region: 'Qarabağ', lat: 40.1064, lon: 46.0392 }
 ];
 
 const methodLabels: Record<Lang, Record<CalculationMethod, string>> = {
@@ -247,7 +252,7 @@ const ui: Record<Lang, Record<string, string>> = {
     offset: 'Ödəniləcək enerji hədəfi',
     sunHours: 'İllik regional istehsal əmsalı',
     sunHourUnit: 'kWh/kWp/il',
-    sunNote: 'üçün sabit damüstü sistemlərə əsaslanan ilkin mühəndislik əmsalı. Sahə üzrə PVGIS yoxlaması ayrıca aparılmalıdır.',
+    sunNote: 'üçün PVGIS (Avropa Komissiyası JRC) məlumatlarına əsaslanan illik istehsal əmsalı: optimal bucaq, 14% sistem itkisi. Kölgələnmə və faktiki dam bucağı sahədə ayrıca yoxlanılmalıdır.',
     systemPower: 'Sistem gücü',
     estimatedPrice: 'Təxmini qiymət',
     priceFormula: 'Hesablama',
@@ -354,7 +359,7 @@ const ui: Record<Lang, Record<string, string>> = {
     offset: 'Energy offset target',
     sunHours: 'Annual regional yield',
     sunHourUnit: 'kWh/kWp/year',
-    sunNote: 'pre-feasibility coefficient for fixed rooftop systems. Site-specific PVGIS verification should be done separately.',
+    sunNote: 'annual yield coefficient from PVGIS (European Commission JRC) data: optimal angles, 14% system loss. Shading and the actual roof angle should be checked on site.',
     systemPower: 'System power',
     estimatedPrice: 'Estimated price',
     priceFormula: 'Calculation',
@@ -461,7 +466,7 @@ const ui: Record<Lang, Record<string, string>> = {
     offset: 'Цель покрытия энергии',
     sunHours: 'Годовой региональный коэффициент',
     sunHourUnit: 'kWh/kWp/year',
-    sunNote: 'предварительный коэффициент для фиксированных крышных систем. Для объекта нужна отдельная проверка PVGIS.',
+    sunNote: 'годовой коэффициент выработки по данным PVGIS (Европейская комиссия, JRC): оптимальные углы, 14% системных потерь. Затенение и фактический угол крыши нужно проверить на объекте.',
     systemPower: 'Мощность системы',
     estimatedPrice: 'Ориентировочная цена',
     priceFormula: 'Расчёт',
@@ -568,7 +573,7 @@ const ui: Record<Lang, Record<string, string>> = {
     offset: 'Enerji karşılama hedefi',
     sunHours: 'Yıllık bölgesel üretim katsayısı',
     sunHourUnit: 'kWh/kWp/yıl',
-    sunNote: 'sabit çatı sistemleri için ön fizibilite katsayısı. Sahaya özel PVGIS kontrolü ayrıca yapılmalıdır.',
+    sunNote: 'PVGIS (Avrupa Komisyonu JRC) verilerine dayalı yıllık üretim katsayısı: optimum açılar, %14 sistem kaybı. Gölgelenme ve gerçek çatı açısı sahada ayrıca kontrol edilmelidir.',
     systemPower: 'Sistem gücü',
     estimatedPrice: 'Tahmini fiyat',
     priceFormula: 'Hesaplama',
@@ -1042,6 +1047,8 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
   const draft = useMemo(() => readSolarCalculatorDraft(), []);
   const [method, setMethod] = useState<CalculationMethod>(draft.method || 'consumption');
   const [cityName, setCityName] = useState<string>(draft.cityName || 'Bakı');
+  // Live PVGIS yields by city; the bundled cityProfiles value is used until/unless one loads.
+  const [liveYields, setLiveYields] = useState<Record<string, number>>({});
   const [consumptionValue, setConsumptionValue] = useState<string>(draft.consumptionValue || '1200');
   const [consumptionPeriod, setConsumptionPeriod] = useState<ConsumptionPeriod>(draft.consumptionPeriod || 'monthly');
   const [targetOffset, setTargetOffset] = useState<string>(draft.targetOffset || '100');
@@ -1291,8 +1298,27 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
     }
   };
 
+  useEffect(() => {
+    const profile = cityProfiles.find((item) => item.city === cityName) || cityProfiles[0];
+    if (liveYields[profile.city]) return;
+
+    let isCancelled = false;
+    getSolarYield({ lat: profile.lat, lon: profile.lon })
+      .then((value) => {
+        if (!isCancelled) setLiveYields((current) => ({ ...current, [profile.city]: value }));
+      })
+      .catch(() => {
+        // Keep the bundled table value.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [cityName, liveYields]);
+
   const result = useMemo<CalculationResult>(() => {
-    const city = cityProfiles.find((profile) => profile.city === cityName) || cityProfiles[0];
+    const baseCity = cityProfiles.find((profile) => profile.city === cityName) || cityProfiles[0];
+    const city = liveYields[baseCity.city] ? { ...baseCity, specificYield: liveYields[baseCity.city] } : baseCity;
     const offset = clamp(toPositiveNumber(targetOffset) || 100, 1, 200);
     const pricePerKw = mountType === 'ground' ? GROUND_PRICE_PER_KW : ROOF_PRICE_PER_KW;
     const mountLabel = mountType === 'ground' ? t.groundMount : t.roofMount;
@@ -1384,7 +1410,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       secondBestInverter: inverterRecommendations.secondBest,
       connectionPhase
     };
-  }, [annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, panelWattage, priceOverride, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
+  }, [annualSavings, cityName, liveYields, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, panelWattage, priceOverride, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
 
   const selectedCatalogInverter =
     inverterSelectionMode === 'second'

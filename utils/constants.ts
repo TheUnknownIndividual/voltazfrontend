@@ -272,6 +272,7 @@ export const API_ENDPOINTS = {
     UPDATE_PARTNERSHIP_REQUEST: (id: string | number) => `${URL}PartnershipRequests/status?id=${id}`,
     MARK_PARTNERSHIP_REQUEST_VIEWED: (id: string | number) => `${URL}PartnershipRequests/${id}/viewed`,
   },
+  SOLAR_YIELD: `${URL}SolarYield`,
   SOLAR_ANALYTICS: {
     SEARCH_PROJECTS: (query?: string) => `${URL}SolarAnalytics/projects${query ? `?query=${encodeURIComponent(query)}` : ''}`,
     ADMIN_DOCX_EXPORT: `${URL}SolarAnalytics/admin/docx-export`,
