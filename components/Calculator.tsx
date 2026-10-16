@@ -19,7 +19,8 @@ type LocalizedText = Record<Lang, string>;
 const getText = (value: LocalizedText, lang: Lang) => value[lang] || value.az;
 
 const PANEL_WATTAGE = 650;
-const AREA_PER_PANEL = 2.7;
+// 2.7 m² panel footprint x 1.15 for gaps between panels and roof-edge setbacks (flush roof mount).
+const AREA_PER_PANEL = 2.7 * 1.15;
 const AZERBAIJAN_AVERAGE_YIELD = 1350;
 const DEFAULT_BILL = 150;
 const DEFAULT_SAVING_TARGET = 100;

@@ -11,6 +11,7 @@ import { useUpload } from '../contexts/UploadContext';
 type CalculationMethod = 'consumption' | 'system' | 'bill';
 type ConsumptionPeriod = 'daily' | 'monthly' | 'yearly';
 type MountType = 'roof' | 'ground';
+type RoofLayout = 'flat' | 'pitched';
 type CustomerType = 'residential' | 'nonResidential';
 type ConnectionPhase = 'single' | 'three';
 type InverterSelectionMode = 'best' | 'second' | 'manual';
@@ -63,6 +64,8 @@ interface CalculationResult {
   tariff: number;
   designBuffer: number;
   roofArea: number;
+  areaFactor: number;
+  rowTilt: number | null;
   targetOffset: number;
   panelWattage: number;
   panelKw: number;
@@ -92,6 +95,30 @@ const DEFAULT_PANEL_WATTAGE = 650;
 const PANEL_WIDTH_METERS = 1.134;
 const PANEL_HEIGHT_METERS = 2.382;
 const PANEL_AREA = PANEL_WIDTH_METERS * PANEL_HEIGHT_METERS;
+// Layout tilt for tilted-row arrays (ground and flat roofs), panels in portrait.
+const GROUND_ROW_TILT_DEGREES = 30;
+const FLAT_ROOF_ROW_TILT_DEGREES = 15;
+// Extra for maintenance aisles and gaps between tables (tilted rows) / panel gaps and roof-edge
+// setbacks (flush-mounted on a pitched roof).
+const TILTED_ROW_LAYOUT_ALLOWANCE = 1.1;
+const FLUSH_LAYOUT_ALLOWANCE = 1.15;
+
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+// Row pitch / panel depth, so rows don't shade each other between 10:00 and 14:00 solar time on
+// the winter solstice (standard inter-row spacing criterion). Multiplying the panel area by this
+// gives the ground area each panel occupies including the gap to the next row.
+const getRowSpacingFactor = (latitude: number, tiltDegrees: number) => {
+  const declination = toRadians(-23.45);
+  const hourAngle = toRadians(30);
+  const lat = toRadians(latitude);
+  const sinElevation = Math.sin(lat) * Math.sin(declination) + Math.cos(lat) * Math.cos(declination) * Math.cos(hourAngle);
+  const elevation = Math.asin(sinElevation);
+  const azimuthFromSouth = Math.asin((Math.cos(declination) * Math.sin(hourAngle)) / Math.cos(elevation));
+  const tilt = toRadians(tiltDegrees);
+  const shadowGap = ((PANEL_HEIGHT_METERS * Math.sin(tilt)) / Math.tan(elevation)) * Math.cos(azimuthFromSouth);
+  return (PANEL_HEIGHT_METERS * Math.cos(tilt) + shadowGap) / PANEL_HEIGHT_METERS;
+};
 const DESIGN_BUFFER = 1.05;
 const RESIDENTIAL_HIGH_CONSUMPTION_TARIFF = 0.15;
 const DEFAULT_COMMERCIAL_TARIFF = 0.125;
@@ -260,6 +287,11 @@ const ui: Record<Lang, Record<string, string>> = {
     paybackFormula: 'Yekun qiymət ÷ İllik qənaət',
     yearlyProduction: 'İllik istehsal',
     requiredArea: 'Tələb olunan sahə',
+    roofLayout: 'Dam tipi',
+    flatRoof: 'Düz dam (bucaqlı sıralar)',
+    pitchedRoof: 'Maili dam (səthə paralel)',
+    areaNoteRows: 'sıralar arası kölgəsiz məsafə ({tilt}° bucaq, 21 dekabr 10:00–14:00) və texniki keçidlər daxil',
+    areaNoteFlush: 'panellər arası boşluq və dam kənarı məsafəsi daxil',
     pieces650: 'ədəd 650W panel',
     monthlyProduction: 'kWh/ay',
     areaNote: 'm²/panel əsasında',
@@ -367,6 +399,11 @@ const ui: Record<Lang, Record<string, string>> = {
     paybackFormula: 'Total price ÷ Annual savings',
     yearlyProduction: 'Annual production',
     requiredArea: 'Required area',
+    roofLayout: 'Roof type',
+    flatRoof: 'Flat roof (tilted rows)',
+    pitchedRoof: 'Pitched roof (flush-mounted)',
+    areaNoteRows: 'includes shade-free row spacing ({tilt}° tilt, 21 Dec 10:00–14:00) and access aisles',
+    areaNoteFlush: 'includes gaps between panels and roof-edge setbacks',
     pieces650: '650W panels',
     monthlyProduction: 'kWh/month',
     areaNote: 'based on m²/panel',
@@ -474,6 +511,11 @@ const ui: Record<Lang, Record<string, string>> = {
     paybackFormula: 'Итоговая цена ÷ Годовая экономия',
     yearlyProduction: 'Годовая выработка',
     requiredArea: 'Необходимая площадь',
+    roofLayout: 'Тип крыши',
+    flatRoof: 'Плоская крыша (наклонные ряды)',
+    pitchedRoof: 'Скатная крыша (параллельно поверхности)',
+    areaNoteRows: 'с учётом расстояния между рядами без затенения ({tilt}°, 21 декабря 10:00–14:00) и проходов',
+    areaNoteFlush: 'с учётом зазоров между панелями и отступов от края крыши',
     pieces650: 'панелей 650W',
     monthlyProduction: 'kWh/месяц',
     areaNote: 'на основе m²/панель',
@@ -581,6 +623,11 @@ const ui: Record<Lang, Record<string, string>> = {
     paybackFormula: 'Toplam fiyat ÷ Yıllık tasarruf',
     yearlyProduction: 'Yıllık üretim',
     requiredArea: 'Gerekli alan',
+    roofLayout: 'Çatı tipi',
+    flatRoof: 'Düz çatı (eğimli sıralar)',
+    pitchedRoof: 'Eğimli çatı (yüzeye paralel)',
+    areaNoteRows: 'gölgesiz sıra aralığı ({tilt}° eğim, 21 Aralık 10:00–14:00) ve bakım koridorları dahil',
+    areaNoteFlush: 'paneller arası boşluk ve çatı kenarı mesafesi dahil',
     pieces650: 'adet 650W panel',
     monthlyProduction: 'kWh/ay',
     areaNote: 'm²/panel bazında',
@@ -904,6 +951,7 @@ const readSolarCalculatorDraft = () => {
       consumptionPeriod: ConsumptionPeriod;
       targetOffset: string;
       mountType: MountType;
+      roofLayout: RoofLayout;
       connectionPhase: ConnectionPhase;
       proposalStatus: ProposalStatus;
       customerType: CustomerType;
@@ -1053,6 +1101,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
   const [consumptionPeriod, setConsumptionPeriod] = useState<ConsumptionPeriod>(draft.consumptionPeriod || 'monthly');
   const [targetOffset, setTargetOffset] = useState<string>(draft.targetOffset || '100');
   const [mountType, setMountType] = useState<MountType>(draft.mountType || 'roof');
+  const [roofLayout, setRoofLayout] = useState<RoofLayout>(draft.roofLayout || 'flat');
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>(draft.connectionPhase || 'three');
   const [proposalStatus, setProposalStatus] = useState<ProposalStatus>(draft.proposalStatus || 'preliminary');
   const [customerType, setCustomerType] = useState<CustomerType>(draft.customerType || 'residential');
@@ -1110,6 +1159,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       consumptionPeriod,
       targetOffset,
       mountType,
+      roofLayout,
       connectionPhase,
       proposalStatus,
       customerType,
@@ -1135,7 +1185,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       priceOverride,
       customBoqItems
     }));
-  }, [address, adminTrackedProjectId, annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, documentCode, includesAdv, installationDays, inverterCount, inverterModel, inverterSelectionMode, inverterSpec, method, monthlyBill, mountType, panelModel, panelSpec, panelWattage, priceOverride, projectName, proposalStatus, recipient, systemKwInput, systemType, targetOffset, tariff]);
+  }, [address, adminTrackedProjectId, annualSavings, cityName, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, documentCode, includesAdv, installationDays, inverterCount, inverterModel, inverterSelectionMode, inverterSpec, method, monthlyBill, mountType, roofLayout, panelModel, panelSpec, panelWattage, priceOverride, projectName, proposalStatus, recipient, systemKwInput, systemType, targetOffset, tariff]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1228,6 +1278,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       if (inputs.consumptionPeriod) setConsumptionPeriod(inputs.consumptionPeriod);
       if (inputs.targetOffset !== undefined) setTargetOffset(String(inputs.targetOffset));
       if (inputs.mountType) setMountType(inputs.mountType);
+      if (inputs.roofLayout) setRoofLayout(inputs.roofLayout);
       if (inputs.connectionPhase) setConnectionPhase(inputs.connectionPhase);
       if (inputs.proposalStatus) setProposalStatus(inputs.proposalStatus);
       if (inputs.customerType) setCustomerType(inputs.customerType);
@@ -1322,6 +1373,12 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
     const offset = clamp(toPositiveNumber(targetOffset) || 100, 1, 200);
     const pricePerKw = mountType === 'ground' ? GROUND_PRICE_PER_KW : ROOF_PRICE_PER_KW;
     const mountLabel = mountType === 'ground' ? t.groundMount : t.roofMount;
+    const rowTilt = mountType === 'ground'
+      ? GROUND_ROW_TILT_DEGREES
+      : roofLayout === 'flat' ? FLAT_ROOF_ROW_TILT_DEGREES : null;
+    const areaFactor = rowTilt === null
+      ? FLUSH_LAYOUT_ALLOWANCE
+      : getRowSpacingFactor(city.lat, rowTilt) * TILTED_ROW_LAYOUT_ALLOWANCE;
     const panelWattageValue = clamp(toPositiveNumber(panelWattage) || DEFAULT_PANEL_WATTAGE, 100, 1000);
     const panelKw = panelWattageValue / 1000;
     const enteredConsumption = toPositiveNumber(consumptionValue);
@@ -1394,7 +1451,9 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       customerType,
       tariff: enteredTariff,
       designBuffer: DESIGN_BUFFER,
-      roofArea: panelCount * PANEL_AREA,
+      roofArea: panelCount * PANEL_AREA * areaFactor,
+      areaFactor,
+      rowTilt,
       targetOffset: offset,
       panelWattage: panelWattageValue,
       panelKw,
@@ -1410,7 +1469,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       secondBestInverter: inverterRecommendations.secondBest,
       connectionPhase
     };
-  }, [annualSavings, cityName, liveYields, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, panelWattage, priceOverride, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
+  }, [annualSavings, cityName, liveYields, connectionPhase, consumptionPeriod, consumptionValue, customBoqItems, customerType, includesAdv, inverterOptions, method, monthlyBill, mountType, roofLayout, panelWattage, priceOverride, systemKwInput, targetOffset, tariff, methods, t.groundMount, t.roofMount]);
 
   const selectedCatalogInverter =
     inverterSelectionMode === 'second'
@@ -1560,6 +1619,7 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
       consumptionPeriod,
       targetOffset,
       mountType,
+      roofLayout,
       connectionPhase,
       proposalStatus,
       customerType,
@@ -1993,6 +2053,20 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
                 <option value="ground">{t.groundMount} - {GROUND_PRICE_PER_KW} AZN/kW</option>
               </select>
             </div>
+
+            {mountType === 'roof' && (
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.roofLayout}</label>
+                <select
+                  value={roofLayout}
+                  onChange={(event) => setRoofLayout(event.target.value as RoofLayout)}
+                  className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500"
+                >
+                  <option value="flat">{t.flatRoof}</option>
+                  <option value="pitched">{t.pitchedRoof}</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.connectionPhase}</label>
@@ -2453,7 +2527,15 @@ const AdminSolarCalculator: React.FC<{ lang?: Lang }> = ({ lang = 'az' }) => {
                 </div>
               )}
             </div>
-            <ResultCard label={t.requiredArea} value={`${formatNumber(result.roofArea)} m²`} note={`${formatNumber(PANEL_AREA, 2)} m²/panel (${PANEL_WIDTH_METERS * 1000} × ${PANEL_HEIGHT_METERS * 1000} mm)`} />
+            <ResultCard
+              label={t.requiredArea}
+              value={`${formatNumber(result.roofArea)} m²`}
+              note={`${formatNumber(PANEL_AREA, 2)} m²/panel (${PANEL_WIDTH_METERS * 1000} × ${PANEL_HEIGHT_METERS * 1000} mm) × ${formatNumber(result.areaFactor, 2)} — ${
+                result.rowTilt === null
+                  ? t.areaNoteFlush
+                  : t.areaNoteRows.replace('{tilt}', String(result.rowTilt))
+              }`}
+            />
           </div>
 
           <div className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-8 shadow-sm">
